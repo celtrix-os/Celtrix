@@ -13,6 +13,9 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+const authRoutes = require('../routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 // Sample route
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from Express!' });
