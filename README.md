@@ -1,35 +1,80 @@
-<p align="center">
+<div align="center">
+  <img width="200" height="400" alt="Celtrix Logo" src="https://github.com/user-attachments/assets/4eeccf63-ff8f-4849-a579-e2f912204a78" />
   
-<img width="200" height="400" alt="logoipsum-392" src="https://github.com/user-attachments/assets/4eeccf63-ff8f-4849-a579-e2f912204a78" />
-</p>
-<h1 align="center">
-Celtrix CLI
-</h1>
-
-Celtrix CLI Scaffold a full-stack MERN app in seconds.
-**No setup ,No Sh*t** — just run one command and start building.
-
-**npm Link: https://www.npmjs.com/package/celtrix**
-
----
-
-## ✨ Features
-- Create a new MERN project instantly
-- Pre-configured **client (React + Vite)** and **server (Express + MongoDB)**
-- Comes with ESLint, sample components, and API setup
-- Installs dependencies automatically
-- Made with simplicity in mind by **Joe Celaster** ❤️ 
-
-⚠️ Note: Currently it supports only MERN stack, working to make it as an Universal scaffolder that supports all frameworks and stacks
+  # 🚀 Celtrix
+  
+  **Setup web apps in seconds, not hours, with your preferred stack**
+  
+  [![npm version](https://img.shields.io/npm/v/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+  [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+  [![Downloads](https://img.shields.io/npm/dm/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+  
+</div>
 
 ---
 
-## 📦 Installation
+## Features
 
-You don’t need to install it globally. Just use `npx`:
+### **Multiple Stack Options**
+Choose from **7+ popular stacks** including MERN, MEAN, T3, Angular+Tailwind, and more!
+
+<div align="center">
+  <img width="455" height="537" alt="Celtrix Stack Selection Demo" src="https://github.com/user-attachments/assets/7b6a30be-1e34-443e-a906-8c167230c238" />
+</div>
+
+### **Language Flexibility**
+Pick your preferred programming languages and frameworks to match your workflow.
+
+<div align="center">
+  <img width="578" height="361" alt="Celtrix Language Selection" src="https://github.com/user-attachments/assets/3f8c775a-b747-4eb1-a22d-c1f236276934" />
+</div>
+
+### **Ready-to-Go Setup**
+- ✅ **ESLint** configuration included
+- ✅ **Sample components** and boilerplate code
+- ✅ **API setup** with best practices
+- ✅ **Automatic dependency installation**
+- ✅ **Modern development tools** pre-configured
+
+---
+
+## Quick Start
+
+No global installation needed! Get started instantly:
 
 ```bash
-npx celtrix my-app
+npx celtrix my-awesome-app
 ```
 
-## No setup, No Sh*t.
+That's it! Follow the interactive prompts to customize your project.
+
+---
+
+## What You Get
+
+- **Production-ready** project structure
+- **Modern tooling** and best practices
+- **Responsive** starter templates
+- **Clean code** architecture
+- **Documentation** and examples
+
+---
+
+## Contributing 🤝
+
+We love contributions! Please feel free to:
+
+- 🐛 Report bugs
+- 💡 Suggest new features
+- 🔧 Submit pull requests
+- ⭐ Star this repository
+
+---
+
+<div align="center">
+  
+  **Made with ❤️ by [Joe Celaster](https://github.com/joecelaster)**
+  
+  ### ⭐ Star us on GitHub — it motivates us a lot!
+  
+</div>
