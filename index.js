@@ -1,98 +1,71 @@
+#!/usr/bin/env node
 import inquirer from "inquirer";
 import chalk from "chalk";
-import gradient from "gradient-string";
-import figlet from "figlet";
-import { createProject } from "./commands/scaffold.js";
+import path from "path";
+import { setupTurbo } from "./utils/setupTurbo.js";
+import { setupFrontend } from "./utils/setupFrontend.js";
+import { setupBackend } from "./utils/setupBackend.js";
 
-function showBanner() {
-  console.log(
-    gradient.pastel(
-      figlet.textSync("Celtrix", {
-        font: "Big",
-        horizontalLayout: "default",
-        verticalLayout: "default",
-      })
-    )
-  );
-  console.log(chalk.gray("⚡ Setup Web-apps in seconds, not hours ⚡\n"));
-}
-
-console.log("\n")
-
-async function askStackQuestions() {
-  return await inquirer.prompt([
-    {
-      type: "list",
-      name: "stack",
-      message: "Choose your stack:",
-      choices: [
-        { name: chalk.bold.blue("MERN") + " → MongoDB + Express + React + Node.js", value: "mern" },
-        { name: chalk.bold.green("MERN") + " + Tailwind + Auth", value: "mern+tailwind+auth" },
-        { name: chalk.bold.red("MEAN") + " → MongoDB + Express + Angular + Node.js", value: "mean" },
-        { name: chalk.bold.magenta("MEAN") + " + Tailwind + Auth", value: "mean+tailwind+auth" },
-        { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
-        { name: chalk.bold.yellow("MEVN") + " + Tailwind + Auth", value: "mevn+tailwind+auth" },
-        { name: chalk.bold.yellow("Next.js") + " + tRPC + Prisma + Tailwind + Auth", value: "t3-stack" },
-
-      ],
-      pageSize: 10,
-      default: "mern",
-    },
-    {
-      type: "list",
-      name: "language",
-      message: "Choose your language:",
-      choices: [
-        { name: chalk.bold.yellow("JavaScript"), value: "javascript" },
-        { name: chalk.bold.blue("TypeScript"), value: "typescript" },
-      ],
-      pageSize: 10,
-      default: "typescript",
-    },
-  ]);
-}
-
-async function askProjectName() {
-  const { projectName } = await inquirer.prompt([
+async function run() {
+  const answers = await inquirer.prompt([
     {
       type: "input",
       name: "projectName",
-      message: chalk.cyan("📦 Enter your project name:"),
-      validate: (input) => {
-        if (!input.trim()) return chalk.red("Project name is required!");
-        if (!/^[a-zA-Z0-9-_]+$/.test(input)) {
-          return chalk.red(
-            "Only letters, numbers, hyphens, and underscores are allowed."
-          );
-        }
-        return true;
-      },
+      message: "Enter your monorepo name:",
+      default: "my-turbo-app",
+    },
+    {
+      type: "list",
+      name: "frontend",
+      message: "Select Frontend Framework:",
+      choices: ["React", "Vue", "Angular", "None"],
+    },
+    {
+      type: "list",
+      name: "backend",
+      message: "Select Backend Framework:",
+      choices: ["Express.js", "NestJS", "Koa.js", "Fastify", "None"],
+    },
+    {
+      type: "list",
+      name: "backendLang",
+      message: "Select Backend Language (for Express):",
+      choices: ["js", "ts"],
+      when: (ans) => ans.backend === "Express.js",
+    },
+    {
+      type: "list",
+      name: "database",
+      message: "Select Database:",
+      choices: [
+        "Postgres + Prisma",
+        "MySQL + Prisma",
+        "MongoDB + Mongoose",
+        "None",
+      ],
     },
   ]);
-  return projectName;
+
+  const { projectName, frontend, backend, backendLang, database } = answers;
+  const projectPath = path.join(process.cwd(), projectName);
+
+  console.log(chalk.cyan(`\n🚀 Creating Turborepo: ${projectName}\n`));
+
+  // Step 1: Setup Turborepo
+  await setupTurbo(projectName, projectPath);
+
+  // Step 2: Setup Frontend
+  await setupFrontend(projectPath, frontend);
+
+  // Step 3: Setup Backend (+ DB)
+  await setupBackend(projectPath, backend, backendLang, database);
+
+  console.log(
+    chalk.green(`\n✅ Turborepo ${projectName} created successfully!`)
+  );
+  console.log(chalk.yellow(`\n👉 cd ${projectName}`));
+  console.log(chalk.yellow(`👉 npm install`));
+  console.log(chalk.yellow(`👉 turbo run dev`));
 }
 
-async function main() {
-  showBanner();
-
-  let projectName = process.argv[2];
-  let config;
-
-  try {
-    if (!projectName) {
-      projectName = await askProjectName();
-    }
-    const stackAnswers = await askStackQuestions();
-    config = { ...stackAnswers, projectName };
-    
-
-    console.log(chalk.yellow("\n🚀 Creating your project...\n"));
-    await createProject(projectName, config);
-
-  } catch (err) {
-    console.log(chalk.red("❌ Error:"), err.message);
-    process.exit(1);
-  }
-}
-
-main();
+run();
