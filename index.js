@@ -65,7 +65,7 @@ async function run() {
   );
   console.log(chalk.yellow(`\n👉 cd ${projectName}`));
   console.log(chalk.yellow(`👉 npm install`));
-  console.log(chalk.yellow(`👉 turbo run dev`));
+  console.log(chalk.yellow(`👉 npm run dev`));
 }
 
 run();
