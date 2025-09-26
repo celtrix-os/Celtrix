@@ -19,16 +19,16 @@ export async function setupFrontend(projectPath, frontend) {
   if (frontend === "React") {
     execSync(
       `npm -y create vite@latest frontend -- --template react-ts --no-interactive --skip-git`,
-      { stdio: "inherit", cwd: appsPath }
+      { stdio: "pipe", cwd: appsPath }
     );
   } else if (frontend === "Vue") {
     execSync(
       `npm -y create vite@latest frontend -- --template vue --no-interactive --skip-git`,
-      { stdio: "inherit", cwd: appsPath }
+      { stdio: "pipe", cwd: appsPath }
     );
   } else if (frontend === "Angular") {
     execSync(`npx -y @angular/cli new frontend --skip-install --skip-git`, {
-      stdio: "inherit",
+      stdio: "pipe",
       cwd: appsPath,
     });
   }

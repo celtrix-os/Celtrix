@@ -96,7 +96,7 @@ app.listen(3000, () => console.log("Server running on port 3000"));`
   // NESTJS
   else if (backend === "NestJS") {
     execSync(`npx -y @nestjs/cli new backend --skip-install --skip-git`, {
-      stdio: "inherit",
+      stdio: "pipe",
       cwd: appsPath,
     });
     removeLocks(path.join(appsPath, "backend"));

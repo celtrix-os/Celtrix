@@ -6,7 +6,7 @@ export async function setupTurbo(projectName, projectPath) {
   try {
     execSync(
       `npx -y create-turbo@latest ${projectName} --example=basic --skip-install --package-manager=npm`,
-      { stdio: "inherit" }
+      { stdio: "inherit", stdio: "pipe" }
     );
 
     const appsPath = path.join(projectPath, "apps");
