@@ -28,6 +28,7 @@ async function askStackQuestions() {
       choices: [
         { name: chalk.bold.blue("MERN") + " → MongoDB + Express + React + Node.js", value: "mern" },
         { name: chalk.bold.green("MERN") + " + Tailwind + Auth", value: "mern+tailwind+auth" },
+        { name: chalk.bold.blue("MERN (Turborepo)") + " → Monorepo with Turbo (apps/client + apps/server)", value: "mern-turbo" },
         { name: chalk.bold.red("MEAN") + " → MongoDB + Express + Angular + Node.js", value: "mean" },
         { name: chalk.bold.magenta("MEAN") + " + Tailwind + Auth", value: "mean+tailwind+auth" },
         { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
@@ -84,7 +85,7 @@ async function main() {
     }
     const stackAnswers = await askStackQuestions();
     config = { ...stackAnswers, projectName };
-    
+
 
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config);

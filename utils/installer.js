@@ -7,13 +7,15 @@ export function installDependencies(projectPath, config, projectName) {
   logger.info("📦 Installing dependencies...");
 
   try {
-    const clientDir = fs.existsSync(path.join(projectPath, "client"))
-      ? path.join(projectPath, "client")
-      : path.join(projectPath, "client");
+    if (config.stack === 'mern-turbo') {
+      // Single install at root (Turbo will handle workspaces)
+      execSync("npm install", { cwd: projectPath, stdio: "inherit", shell: true });
+      logger.info("✅ Monorepo dependencies installed (root workspaces)");
+      return;
+    }
 
-    const serverDir = fs.existsSync(path.join(projectPath, "server"))
-      ? path.join(projectPath, "server")
-      : path.join(projectPath, "server");
+    const clientDir = path.join(projectPath, "client");
+    const serverDir = path.join(projectPath, "server");
 
     if (fs.existsSync(clientDir)) {
       execSync("npm install", { cwd: clientDir, stdio: "inherit", shell: true });
