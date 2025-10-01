@@ -28,7 +28,7 @@
     "@octokit/rest": "^22.0.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "boxen": "^8.0.1",
-    "chalk": "^5.6.0",
+    "chalk": "^5.6.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "figlet": "^1.8.2",

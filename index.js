@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import gradient from "gradient-string";
 import figlet from "figlet";
+import boxen from 'boxen'; // Added this line
 import { createProject } from "./commands/scaffold.js";
 
 function showBanner() {
@@ -33,7 +34,6 @@ async function askStackQuestions() {
         { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
         { name: chalk.bold.yellow("MEVN") + " + Tailwind + Auth", value: "mevn+tailwind+auth" },
         { name: chalk.bold.yellow("Next.js") + " + tRPC + Prisma + Tailwind + Auth", value: "t3-stack" },
-
       ],
       pageSize: 10,
       default: "mern",
@@ -85,9 +85,30 @@ async function main() {
     const stackAnswers = await askStackQuestions();
     config = { ...stackAnswers, projectName };
     
-
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config);
+
+    // This is the new success box code
+    const nextSteps = `
+${chalk.green.bold('Success! Your project is ready.')}
+
+Now, run the following commands:
+
+  ${chalk.cyan(`cd ${projectName}`)}
+  ${chalk.cyan('npm install')}
+  ${chalk.cyan('npm run dev')}
+    `;
+
+    const box = boxen(nextSteps, {
+        padding: 1,
+        margin: 1,
+        borderStyle: 'round',
+        borderColor: 'green',
+        title: 'All Set!',
+        titleAlignment: 'center'
+    });
+
+    console.log(box);
 
   } catch (err) {
     console.log(chalk.red("❌ Error:"), err.message);
