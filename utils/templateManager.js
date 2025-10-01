@@ -37,8 +37,9 @@ export function copyTemplates(projectPath, config) {
     fs.copySync(frontendTemplate, clientPath);
   }
   if (stack === "mern-turbo") {
-    const rootTemplate = path.join(__dirname, "..", "templates", stack, "javascript");
-    logger.info("📂 Copying Turborepo (MERN) template files...");
+    const lang = config.language || 'typescript';
+    const rootTemplate = path.join(__dirname, "..", "templates", stack, lang);
+    logger.info(`📂 Copying Turborepo (MERN) template files (${lang})...`);
     fs.copySync(rootTemplate, projectPath);
   }
 }
