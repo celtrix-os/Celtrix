@@ -25,19 +25,35 @@
   "author": "Joe Celaster",
   "license": "ISC",
   "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "@pinecone-database/pinecone": "^6.1.2",
     "boxen": "^8.0.1",
     "chalk": "^5.6.0",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "figlet": "^1.8.2",
     "fs-extra": "^11.3.1",
     "gradient-string": "^3.0.0",
     "inquirer": "^12.9.4",
     "log-symbols": "^7.0.1",
+    "node-fetch": "^3.3.2",
     "ora": "^8.2.0"
   },
   "scripts": {
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",
-    "release:major": "npm version major && npm publish --access public"
+    "release:major": "npm version major && npm publish --access public",
+    "validate": "node scripts/validate-apis.js",
+    "validate:pinecone": "node scripts/validate-apis.js pinecone",
+    "validate:github": "node scripts/validate-apis.js github",
+    "validate:gemini": "node scripts/validate-apis.js gemini",
+    "populate-issues": "node scripts/populate-existing-issues.js",
+    "cleanup-issue": "node scripts/cleanup-closed-issue.js",
+    "cleanup-specific": "node scripts/cleanup-specific-issue.js",
+    "cleanup-duplicates": "node scripts/cleanup-duplicates.js --force",
+    "debug-db": "node scripts/debug-pinecone.js",
+    "clear-all": "echo '⚠️  Use: npm run clear-all:force' && exit 1",
+    "clear-all:force": "node scripts/clear-all-vectors.js --force",
+    "check-duplicates": "node scripts/check-duplicates.js"
   }
 }

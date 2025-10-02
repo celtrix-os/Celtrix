@@ -1,0 +1,99 @@
+name: Duplicate Issue Management
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to manually check for duplicates'
+        required: true
+        type: number
+
+permissions:
+  issues: write
+
+jobs:
+  check-duplicates:
+    if: github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      SIMILARITY_THRESHOLD: 0.7
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Set issue number
+        id: issue-number
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.inputs.issue_number }}" >> $GITHUB_ENV
+            echo "Manual check for issue #${{ github.event.inputs.issue_number }}"
+          else
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+            echo "Automatic check for issue #${{ github.event.issue.number }}"
+          fi
+
+      - name: Run duplicate check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🔍 Checking issue #$ISSUE_NUMBER for duplicates..."
+          echo "📊 Similarity threshold: $SIMILARITY_THRESHOLD"
+          node scripts/check-duplicates.js
+        continue-on-error: true
+
+      - name: Handle check failure
+        if: failure()
+        run: |
+          echo "⚠️ Duplicate check failed, but continuing workflow"
+          echo "This might be due to API limits or temporary issues"
+          echo "Issue #$ISSUE_NUMBER will be processed normally"
+
+  cleanup-closed-issue:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Remove closed issue from vector database
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🧹 Removing closed issue #$ISSUE_NUMBER from database..."
+          node scripts/cleanup-closed-issue.js
+        continue-on-error: true
+
+      - name: Handle cleanup failure
+        if: failure()
+        run: |
+          echo "⚠️ Cleanup of closed issue failed, but this is non-critical"
+          echo "Issue #$ISSUE_NUMBER may remain in the vector database"
+          echo "You can manually clean it up later using the database management workflow"

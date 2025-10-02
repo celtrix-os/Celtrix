@@ -1,0 +1,84 @@
+name: API Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      validation_scope:
+        description: 'Which APIs to validate'
+        required: true
+        default: 'all-apis'
+        type: choice
+        options:
+        - 'all-apis'
+        - 'pinecone-only'
+        - 'github-only'
+        - 'gemini-only'
+
+permissions:
+  issues: read
+  contents: read
+
+jobs:
+  validate-apis:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate All APIs
+        if: github.event.inputs.validation_scope == 'all-apis'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🔍 Validating all API connections..."
+          node scripts/validate-apis.js
+
+      - name: Validate Pinecone Only
+        if: github.event.inputs.validation_scope == 'pinecone-only'
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🔍 Validating Pinecone database connection..."
+          node scripts/validate-apis.js pinecone
+
+      - name: Validate GitHub Only
+        if: github.event.inputs.validation_scope == 'github-only'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "🔍 Validating GitHub API connection..."
+          node scripts/validate-apis.js github
+
+      - name: Validate Gemini Only
+        if: github.event.inputs.validation_scope == 'gemini-only'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🔍 Validating Gemini API connection..."
+          node scripts/validate-apis.js gemini
+
+      - name: Validation Summary
+        if: always()
+        run: |
+          echo "### 🔍 API Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Validation Scope:** ${{ github.event.inputs.validation_scope }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Run this before database operations to ensure API connectivity." >> $GITHUB_STEP_SUMMARY

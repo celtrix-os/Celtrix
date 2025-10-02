@@ -1,0 +1,104 @@
+name: Database Operations
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Database operation to perform'
+        required: true
+        default: 'populate-issues'
+        type: choice
+        options:
+        - 'populate-issues'
+        - 'cleanup-duplicates'
+        - 'debug-database'
+        - 'clear-all-vectors'
+      force:
+        description: 'Force action (required for destructive operations)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  issues: read
+  contents: read
+
+jobs:
+  database-operation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Populate Issues to Database
+        if: github.event.inputs.action == 'populate-issues'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🚀 Populating existing issues to database..."
+          echo "This will skip issues that already exist in the database."
+          node scripts/populate-existing-issues.js
+
+      - name: Cleanup Duplicate Vectors
+        if: github.event.inputs.action == 'cleanup-duplicates'
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🧹 Cleaning up duplicate vectors..."
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            node scripts/cleanup-duplicates.js --force
+          else
+            echo "❌ Cleanup requires force flag to be enabled for safety!"
+            echo "Please re-run the workflow with 'Force action' checked."
+            exit 1
+          fi
+
+      - name: Debug Database
+        if: github.event.inputs.action == 'debug-database'
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🔍 Running database diagnostics..."
+          node scripts/debug-pinecone.js
+
+      - name: Clear All Vectors
+        if: github.event.inputs.action == 'clear-all-vectors'
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
+        run: |
+          echo "🚨 DANGER: Clearing all vectors from database..."
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            echo "⚠️  This will delete ALL vectors in the database!"
+            node scripts/clear-all-vectors.js --force
+          else
+            echo "❌ Clear all requires force flag to be enabled for safety!"
+            echo "Please re-run the workflow with 'Force action' checked."
+            exit 1
+          fi
+
+      - name: Operation Summary
+        if: always()
+        run: |
+          echo "### 🗄️ Database Operation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Operation:** ${{ github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Force Flag:** ${{ github.event.inputs.force }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Use 'API Validation' workflow to test connections before database operations." >> $GITHUB_STEP_SUMMARY
