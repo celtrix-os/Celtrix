@@ -66,6 +66,10 @@ export async function setupProject(projectName, config) {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);
   } else if(config.stack === "t3-stack") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/t3-app && ${chalk.green("npm run dev")}`);
+  } else if(config.stack === "pern") {
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm run dev")}`);
+    console.log(chalk.gray("\nSet Postgres env in server/.env (e.g. PGHOST, PGUSER, PGPASSWORD, PGDATABASE or DATABASE_URL)."));
   } else {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);

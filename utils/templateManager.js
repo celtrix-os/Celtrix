@@ -21,6 +21,19 @@ export function copyTemplates(projectPath, config) {
     fs.copySync(frontendTemplate, clientPath);
     fs.copySync(backendTemplate, serverPath);
   }
+  
+  if(stack === "pern"){
+    const clientPath = path.join(projectPath, "client");
+    const serverPath = path.join(projectPath, "server");
+
+    const pernClientTemplate = path.join(__dirname, "..", "templates", "pern", config.language, "client");
+    const mernClientTemplate = path.join(__dirname, "..", "templates", "mern", config.language, "client");
+    const pernServerTemplate = path.join(__dirname, "..", "templates", "pern", config.language, "server");
+
+    logger.info("📂 Copying template files...");
+    fs.copySync(fs.existsSync(pernClientTemplate) ? pernClientTemplate : mernClientTemplate, clientPath);
+    fs.copySync(pernServerTemplate, serverPath);
+  }
   if(stack === "mean" || stack === "mean+tailwind+auth"){
     const backendTemplate = path.join(__dirname, "..", "templates", stack, "server")
     const serverPath = path.join(projectPath, "server");
