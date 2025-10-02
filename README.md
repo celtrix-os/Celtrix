@@ -73,6 +73,20 @@ Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIB
 
 ---
 
+# 👨‍💻 Contributors
+
+We extend our heartfelt thanks to all the amazing people who have contributed to **Celtrix**!  
+Your efforts help this project grow and inspire others to join. 🚀✨
+
+<div align="center">
+
+<a href="https://github.com/celtrix-os/Celtrix/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=celtrix-os/Celtrix" alt="Contributors"/>
+</a>
+
+</div>
+
+---
 <div align="center">
 
 <p><strong>Made with ❤️ by <a href="https://github.com/celtrix-os">Celtrix Team</a></strong></p>
@@ -80,3 +94,4 @@ Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIB
 <h3>⭐ Star us on GitHub — it motivates us a lot!</h3>
 
 </div>
+
