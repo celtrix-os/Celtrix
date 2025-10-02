@@ -1,0 +1,47 @@
+# Specifies the Docker Compose file format version
+version: '3.8'
+
+# Defines the services (containers) that make up your app
+services:
+  # The backend Express server
+  server:
+    # Tells Docker to build an image from the Dockerfile in the ./server directory
+    build: ./server
+    # Names the container so it's easy to identify
+    container_name: celtrix-mern-server
+    # Sets environment variables for the server, like the database connection string
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/celtrix-db
+    # Maps port 4000 on your computer to port 4000 in the container
+    ports:
+      - "4000:4000"
+    # Makes this service depend on the 'mongodb' service. It will wait for mongodb to start.
+    depends_on:
+      - mongodb
+
+  # The frontend React client
+  client:
+    build: ./client
+    container_name: celtrix-mern-client
+    # Maps port 3000 on your computer to port 3000 in the container
+    ports:
+      - "3000:5173"
+    # Makes the client depend on the server, ensuring the backend starts first
+    depends_on:
+      - server
+
+  # The MongoDB database
+  mongodb:
+    # Pulls the official MongoDB image from Docker Hub
+    image: mongo:latest
+    container_name: celtrix-mern-mongodb
+    # Maps the default MongoDB port
+    ports:
+      - "27017:27017"
+    # Creates a volume to persist database data even if the container is removed
+    volumes:
+      - mongo-data:/data/db
+
+# Defines a named volume for persisting database data
+volumes:
+  mongo-data:
