@@ -7,22 +7,24 @@
 </div>
 <div align="center">
 
-  [![npm version](https://img.shields.io/npm/v/celtrix.svg)](https://www.npmjs.com/package/celtrix)
-  [![Downloads](https://img.shields.io/npm/dm/celtrix.svg)](https://www.npmjs.com/package/celtrix)
-  [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-  
+[![npm version](https://img.shields.io/npm/v/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+[![Downloads](https://img.shields.io/npm/dm/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
 </div>
 
 # ✨ Features
 
 ### 🎯 **Multiple Stack Options**
-Choose from **7+ popular stacks** including MERN, MEAN, T3, Angular+Tailwind, and more!
+
+Choose from **8+ popular stacks** including MERN, MEAN, Next.js+Express+MongoDB, T3, and more!
 
 <div align="center">
   <img width="250" height="250" alt="Celtrix Stack Selection Demo" src="https://github.com/user-attachments/assets/7b6a30be-1e34-443e-a906-8c167230c238" />
 </div>
 
 ### 🌐 **Language Flexibility**
+
 Pick your preferred programming languages and frameworks to match your workflow.
 
 <div align="center">
@@ -30,11 +32,12 @@ Pick your preferred programming languages and frameworks to match your workflow.
 </div>
 
 ### 🛠️ **Ready-to-Go Setup**
--  **ESLint** configuration included
--  **Sample components** and boilerplate code
--  **API setup** with best practices
--  **Automatic dependency installation**
--  **Modern development tools** pre-configured
+
+- **ESLint** configuration included
+- **Sample components** and boilerplate code
+- **API setup** with best practices
+- **Automatic dependency installation**
+- **Modern development tools** pre-configured
 
 ---
 

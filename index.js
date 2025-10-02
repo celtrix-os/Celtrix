@@ -32,7 +32,9 @@ async function askStackQuestions() {
         { name: chalk.bold.magenta("MEAN") + " + Tailwind + Auth", value: "mean+tailwind+auth" },
         { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
         { name: chalk.bold.yellow("MEVN") + " + Tailwind + Auth", value: "mevn+tailwind+auth" },
+        { name: chalk.bold.blue("Next.js + Express + MongoDB") + " → TypeScript-first full-stack", value: "next+express+mongodb" },
         { name: chalk.bold.yellow("Next.js") + " + tRPC + Prisma + Tailwind + Auth", value: "t3-stack" },
+        { name: chalk.bold.green("Next.js") + " + Express + MongoDB + TailwindCSS", value: "next+express+mongodb" },
 
       ],
       pageSize: 10,
@@ -84,7 +86,7 @@ async function main() {
     }
     const stackAnswers = await askStackQuestions();
     config = { ...stackAnswers, projectName };
-    
+
 
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config);
