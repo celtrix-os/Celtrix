@@ -44,7 +44,7 @@ We expect the same respect, clarity, and professionalism in community interactio
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the maintainers at **celtrixos@gmail.com**. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the maintainers at **celtrix.org@gmail.com**. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
