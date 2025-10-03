@@ -35,6 +35,7 @@ async function askStackQuestions() {
         { name: chalk.bold.blue("Next.js + Express + MongoDB") + " → TypeScript-first full-stack", value: "next+express+mongodb" },
         { name: chalk.bold.yellow("Next.js") + " + tRPC + Prisma + Tailwind + Auth", value: "t3-stack" },
         { name: chalk.bold.green("Next.js") + " + Express + MongoDB + TailwindCSS", value: "next+express+mongodb" },
+        { name: chalk.bold.red("Hono") + " → Hono + Prisma + React", value: "hono" }
 
       ],
       pageSize: 10,
