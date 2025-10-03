@@ -4,6 +4,8 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "esModuleInterop": true,
+    "types": ["vite/client", "@testing-library/jest-dom"],
     "module": "ESNext",
     "skipLibCheck": true,
 
