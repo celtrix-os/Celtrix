@@ -227,28 +227,30 @@ async function run() {
         `After filtering out current issue: ${filteredResults.length} matches`
       );
 
+      // Get all potential duplicates above 0.55 threshold for 3-tier system
       duplicates = filteredResults
-        .filter((r) => r.score >= SIMILARITY_THRESHOLD)
+        .filter((r) => r.score >= 0.55)
         .map((r) => ({
           number: r.metadata?.issue_number || "Unknown",
           similarity: r.score,
           title: r.metadata?.title || "Unknown",
-        }));
+        }))
+        .sort((a, b) => b.similarity - a.similarity); // Sort by highest similarity first
 
       console.log(
-        `Found ${duplicates.length} duplicates above threshold (${SIMILARITY_THRESHOLD})`
+        `Found ${duplicates.length} potential matches above 0.55 similarity threshold`
       );
 
       filteredResults.forEach((result, index) => {
         const score = result.score || 0;
+        let category = "✅ Below threshold";
+        if (score >= 0.85) category = "🚨 HIGH DUPLICATE";
+        else if (score >= 0.55) category = "🤔 POTENTIALLY RELATED";
+        
         console.log(
           `  ${index + 1}. Issue #${
             result.metadata?.issue_number || "Unknown"
-          } - Score: ${score.toFixed(4)} ${
-            score >= SIMILARITY_THRESHOLD
-              ? "🚨 DUPLICATE"
-              : "✅ Below threshold"
-          }`
+          } - Score: ${score.toFixed(4)} ${category}`
         );
         console.log(`     Title: "${result.metadata?.title || "No title"}"`);
       });
@@ -257,50 +259,70 @@ async function run() {
     console.error("Duplicate detection failed, treating as unique issue...");
   }
 
+  // 3-tier duplicate detection system
   let commentBody = "";
   let shouldUpdateVector = true;
+  let shouldAutoClose = false;
+  let duplicateAction = "none";
 
-  if (duplicates.length > 0) {
+  // Categorize duplicates by similarity score
+  const highSimilarityDuplicates = duplicates.filter(d => d.similarity >= 0.85);
+  const mediumSimilarityDuplicates = duplicates.filter(d => d.similarity >= 0.55 && d.similarity < 0.85);
+  
+  if (highSimilarityDuplicates.length > 0) {
+    // TIER 1: High similarity (>= 0.85) - Auto-close as duplicate
+    duplicateAction = "auto-close";
     shouldUpdateVector = false;
-
+    shouldAutoClose = !isEditingExistingIssue;
+    
+    const topMatch = highSimilarityDuplicates[0];
+    const similarityPercent = (topMatch.similarity * 100).toFixed(1);
+    
     if (isEditingExistingIssue) {
-      commentBody = `🚨 **Warning: Edited Issue Now Appears Similar to Existing Issues** 🚨\n\n`;
-      commentBody += `After your recent edit, this issue now appears to be similar to the following existing issue(s):\n\n`;
+      commentBody = `🚨 **Warning: Edited Issue Now Appears as Duplicate** 🚨\n\n`;
+      commentBody += `After your recent edit, this issue appears to be a duplicate of:\n\n`;
+      commentBody += `- Issue #${topMatch.number}: "${topMatch.title}" (${similarityPercent}% similar)\n`;
+      commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${topMatch.number}\n\n`;
+      commentBody += `⚠️ **Note**: Since this was previously a unique issue, we've kept it open but flagged this high similarity for your attention.\n\n`;
     } else {
-      commentBody = `🚨 **Potential Duplicate Issues Detected** 🚨\n\n`;
-      commentBody += `This issue appears to be similar to the following existing issue(s):\n\n`;
+      commentBody = `🚨 **Duplicate Detected** 🚨\n\n`;
+      commentBody += `This issue appears to be a duplicate of:\n\n`;
+      commentBody += `- Issue #${topMatch.number}: "${topMatch.title}" (${similarityPercent}% similar)\n`;
+      commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${topMatch.number}\n\n`;
+      commentBody += `🔒 **This issue has been automatically closed as a duplicate.**\n\n`;
+      commentBody += `Please continue the discussion in the original issue above. If your problem is different, please open a new issue with more specific details.\n\n`;
     }
 
-    duplicates.forEach((dup) => {
-      const similarityPercent = (dup.similarity * 100).toFixed(1);
-      commentBody += `- Issue #${dup.number}: "${dup.title}" (${similarityPercent}% similar)\n`;
-      commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${dup.number}\n\n`;
-    });
-
-    if (!isEditingExistingIssue) {
-      // For new duplicate issues, close them
-      commentBody += `\n🔒 **This issue has been automatically closed as a duplicate.**\n\n`;
-      commentBody += `Please continue the discussion in the original issue above. If your problem is different, please open a new issue with more specific details to help us distinguish it.\n\n`;
-      commentBody += `Thank you for helping keep our issue tracker organized! 🙏\n\n`;
+    console.log(`🚨 HIGH SIMILARITY DUPLICATE detected! Similarity: ${similarityPercent}% with issue #${topMatch.number}`);
+    
+  } else if (mediumSimilarityDuplicates.length > 0) {
+    // TIER 2: Medium similarity (0.55-0.84) - Flag as potentially related
+    duplicateAction = "flag-related";
+    shouldUpdateVector = true; // Still add to vector DB for unique issues
+    shouldAutoClose = false;
+    
+    const topMatch = mediumSimilarityDuplicates[0];
+    const similarityPercent = (topMatch.similarity * 100).toFixed(1);
+    
+    if (isEditingExistingIssue) {
+      commentBody = `🤔 **Potentially Related Issue After Edit** 🤔\n\n`;
+      commentBody += `After your recent edit, this issue seems related to:\n\n`;
     } else {
-      // For edited existing issues that now appear duplicate
-      commentBody += `\nPlease check if your issue is already covered by the above issue(s). If your issue is different, please provide more specific details to help us distinguish it.\n\n`;
-      commentBody += `⚠️ **Note**: Since this was previously a unique issue, we've kept it open but flagged this similarity for your attention.\n\n`;
+      commentBody = `🤔 **Potentially Related Issue Found** 🤔\n\n`;
+      commentBody += `This issue seems related to:\n\n`;
     }
-
-    commentBody +=
-      `*This comment was generated automatically by Seroski-DupBot 🤖*` +
-      `\n\nCheck out the developer: [Portfolio](https://portfolio.rosk.dev)`;
-
-    console.log(
-      `⚠️  Duplicate detected! ${
-        isEditingExistingIssue
-          ? "Will keep existing vectors but flag similarity."
-          : "Will close issue as duplicate and NOT add to vector store."
-      }`
-    );
+    
+    commentBody += `- Issue #${topMatch.number}: "${topMatch.title}" (${similarityPercent}% similar)\n`;
+    commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${topMatch.number}\n\n`;
+    commentBody += `This issue is not identical but may be related. A maintainer will review to determine if they should be linked or if this is indeed a separate issue.\n\n`;
+    
+    console.log(`🤔 POTENTIALLY RELATED issue detected! Similarity: ${similarityPercent}% with issue #${topMatch.number}`);
+    
   } else {
+    // TIER 3: Low similarity (< 0.55) - Treat as unique
+    duplicateAction = "unique";
     shouldUpdateVector = true;
+    shouldAutoClose = false;
 
     if (isEditingExistingIssue) {
       commentBody = `✅ **Issue Updated Successfully** ✅\n\n`;
@@ -312,18 +334,15 @@ async function run() {
       commentBody += `Your contribution helps make this project better. We appreciate you taking the time to report this! 🙏\n\n`;
     }
 
-    commentBody +=
-      `*This comment was generated automatically by Seroski-DupBot 🤖*` +
-      `\n\nCheck out the developer: [Portfolio](https://portfolio.rosk.dev)`;
-
-    console.log(
-      `✅ No duplicates found. ${
-        isEditingExistingIssue
-          ? "Will update existing vectors."
-          : "Will add new vectors."
-      }`
-    );
+    console.log(`✅ UNIQUE issue confirmed. No similar issues found above 0.55 threshold.`);
   }
+
+  commentBody += `*This comment was generated automatically by Seroski-DupBot 🤖*\n\nCheck out the developer: [Portfolio](https://portfolio.rosk.dev)`;
+
+  console.log(`📊 Duplicate Detection Summary:`);
+  console.log(`   Action: ${duplicateAction}`);
+  console.log(`   Will auto-close: ${shouldAutoClose}`);
+  console.log(`   Will update vectors: ${shouldUpdateVector}`);
 
   // Post the comment first
   await retryApiCall(async () => {
@@ -336,9 +355,11 @@ async function run() {
   });
   console.log("Comment posted on the issue.");
 
-  // Close and label the issue if it's a new duplicate (not an edited existing issue)
-  if (duplicates.length > 0 && !isEditingExistingIssue) {
+  // Handle auto-closure for high similarity duplicates (>= 0.85)
+  if (shouldAutoClose && duplicateAction === "auto-close") {
     try {
+      console.log(`🔄 Auto-closing issue #${ISSUE_NUMBER} as duplicate...`);
+      
       // First add the duplicate label
       await retryApiCall(async () => {
         return await octokit.issues.addLabels({
@@ -351,21 +372,21 @@ async function run() {
       
       console.log(`🏷️  Added 'duplicate' label to issue #${ISSUE_NUMBER}`);
       
-      // Then close the issue with 'not_planned' state reason (GitHub's recommended practice for duplicates)
+      // Then close the issue with 'not_planned' state reason
       await retryApiCall(async () => {
         return await octokit.issues.update({
           owner: OWNER,
           repo: REPO,
           issue_number: ISSUE_NUMBER,
           state: 'closed',
-          state_reason: 'duplicate' // This shows "Closed as not planned" which is appropriate for duplicates
+          state_reason: 'duplicate'
         });
       });
       
-      console.log(`🔒 Issue #${ISSUE_NUMBER} has been closed as duplicate`);
+      console.log(`🔒 Issue #${ISSUE_NUMBER} has been auto-closed as duplicate`);
       
     } catch (error) {
-      console.error(`❌ Failed to close/label issue #${ISSUE_NUMBER}:`, error.message);
+      console.error(`❌ Failed to auto-close issue #${ISSUE_NUMBER}:`, error.message);
       
       // Post error comment if automatic closure fails
       try {
@@ -374,13 +395,17 @@ async function run() {
             owner: OWNER,
             repo: REPO,
             issue_number: ISSUE_NUMBER,
-            body: `⚠️ **Auto-close Failed** ⚠️\n\nThis issue was detected as a duplicate but could not be automatically closed. A maintainer will review this manually.\n\n*Error: ${error.message}*`
+            body: `⚠️ **Auto-close Failed** ⚠️\n\nThis issue was detected as a high-confidence duplicate but could not be automatically closed. A maintainer will review this manually.\n\n*Error: ${error.message}*`
           });
         });
       } catch (commentError) {
         console.error(`❌ Failed to post error comment: ${commentError.message}`);
       }
     }
+  } else if (duplicateAction === "flag-related") {
+    console.log(`🤔 Issue #${ISSUE_NUMBER} flagged as potentially related - no auto-action taken`);
+  } else if (duplicateAction === "unique") {
+    console.log(`✅ Issue #${ISSUE_NUMBER} confirmed as unique - will process normally`);
   }
 
   // Continue with vector database updates only for unique issues
@@ -445,12 +470,12 @@ async function run() {
       );
     }
   } else {
-    if (isEditingExistingIssue && duplicates.length > 0) {
-      console.log(
-        "⚠️  Keeping existing vectors unchanged due to similarity detected after edit."
-      );
-    } else {
-      console.log("⏭️  Skipped adding to Pinecone due to duplicate detection and auto-closure.");
+    if (duplicateAction === "auto-close") {
+      console.log("⏭️  Skipped adding to Pinecone due to high-confidence duplicate detection and auto-closure.");
+    } else if (duplicateAction === "flag-related") {
+      console.log("✅ Added to Pinecone despite potential relation - issue treated as separate.");
+    } else if (isEditingExistingIssue) {
+      console.log("⚠️  Keeping existing vectors unchanged due to similarity detected after edit.");
     }
   }
 

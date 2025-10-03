@@ -1,7 +1,11 @@
+<div style="text-align: center">
+  <p align="center">
+<img width="500" height="200" alt="Celtrix" src="https://github.com/user-attachments/assets/96981ed5-1788-4262-8d82-6de0afc90dfe" />
+    <br><br>
+    <i>Setup web apps in seconds, not hours, with your preferred stack.</i>
+  </p>
+</div>
 <div align="center">
-  <img width="250" height="250" alt="Untitled design" src="https://github.com/user-attachments/assets/14739e9b-fecf-4cdd-afbb-4d18d30f1b0b" />
-  
-  # Celtrix
 
 **Setup web apps in seconds, not hours, with your preferred stack**
 
@@ -9,11 +13,13 @@
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![Downloads](https://img.shields.io/npm/dm/celtrix.svg)](https://www.npmjs.com/package/celtrix)
 
+  [![npm version](https://img.shields.io/npm/v/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+  [![Downloads](https://img.shields.io/npm/dm/celtrix.svg)](https://www.npmjs.com/package/celtrix)
+  [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+  
 </div>
 
----
-
-## ✨ Features
+# ✨ Features
 
 ### 🎯 **Multiple Stack Options**
 
@@ -36,7 +42,7 @@ Features:
 - Ready to extend with shared packages
 
 <div align="center">
-  <img width="455" height="537" alt="Celtrix Stack Selection Demo" src="https://github.com/user-attachments/assets/7b6a30be-1e34-443e-a906-8c167230c238" />
+  <img width="250" height="250" alt="Celtrix Stack Selection Demo" src="https://github.com/user-attachments/assets/7b6a30be-1e34-443e-a906-8c167230c238" />
 </div>
 
 ### 🌐 **Language Flexibility**
@@ -44,7 +50,7 @@ Features:
 Pick your preferred programming languages and frameworks to match your workflow.
 
 <div align="center">
-  <img width="578" height="361" alt="Celtrix Language Selection" src="https://github.com/user-attachments/assets/3f8c775a-b747-4eb1-a22d-c1f236276934" />
+  <img width="250" height="250" alt="Celtrix Language Selection" src="https://github.com/user-attachments/assets/3f8c775a-b747-4eb1-a22d-c1f236276934" />
 </div>
 
 ### 🛠️ **Ready-to-Go Setup**
@@ -54,6 +60,11 @@ Pick your preferred programming languages and frameworks to match your workflow.
 - ✅ **API setup** with best practices
 - ✅ **Automatic dependency installation**
 - ✅ **Modern development tools** pre-configured
+-  **ESLint** configuration included
+-  **Sample components** and boilerplate code
+-  **API setup** with best practices
+-  **Automatic dependency installation**
+-  **Modern development tools** pre-configured
 
 ---
 
@@ -98,12 +109,14 @@ We love contributions! Please feel free to:
 - 🔧 Submit pull requests
 - ⭐ Star this repository
 
+Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIBUTING.md) to see how to contribute to Celtrix.
+
 ---
 
 <div align="center">
-  
-  **Made with ❤️ by [Celtrix Team](https://github.com/celtrix-os)**
-  
-  ### ⭐ Star us on GitHub — it motivates us a lot!
-  
+
+<p><strong>Made with ❤️ by <a href="https://github.com/celtrix-os">Celtrix Team</a></strong></p>
+
+<h3>⭐ Star us on GitHub — it motivates us a lot!</h3>
+
 </div>

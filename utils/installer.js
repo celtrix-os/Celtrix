@@ -3,7 +3,7 @@ import { logger } from "./logger.js";
 import path from "path";
 import fs from "fs";
 
-export function installDependencies(projectPath, config, projectName) {
+export function installDependencies(projectPath, config, projectName,server=true) {
   logger.info("📦 Installing dependencies...");
 
   try {
@@ -16,11 +16,18 @@ export function installDependencies(projectPath, config, projectName) {
 
     const clientDir = path.join(projectPath, "client");
     const serverDir = path.join(projectPath, "server");
+    const clientDir = fs.existsSync(path.join(projectPath, "client"))
+      ? path.join(projectPath, "client")
+      : path.join(projectPath, "client");
+    
+    const serverDir = fs.existsSync(path.join(projectPath, "server"))
+      ? path.join(projectPath, "server")
+      : path.join(projectPath, "server");
 
     if (fs.existsSync(clientDir)) {
       execSync("npm install", { cwd: clientDir, stdio: "inherit", shell: true });
     }
-    if (fs.existsSync(serverDir)) {
+    if (server && fs.existsSync(serverDir)) {
       execSync("npm install", { cwd: serverDir, stdio: "inherit", shell: true });
     }
 
@@ -93,6 +100,41 @@ export function angularTailwindSetup(projectPath, config, projectName) {
     logger.info("✅ Angular + Tailwind setup completed!");
   } catch (error) {
     logger.error("❌ Failed to set up Angular Tailwind");
+    throw error;
+  }
+}
+
+
+export function HonoReactSetup(projectPath, config, projectName) {
+  logger.info("⚡ Setting up Hono+ React...");
+
+  try {
+    // 1. Create React project (inside projectPath)
+    if(config.language==="typescript"){
+
+      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
+        cwd: projectPath,
+        stdio: "inherit",
+        shell: true,
+      });
+    }else{
+      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
+        cwd: projectPath,
+        stdio: "inherit",
+        shell: true,
+      });
+
+    }
+    
+    execSync(`npm create hono@latest server -- --template cloudflare-workers --pm npm `, {
+      cwd: projectPath,
+      stdio: "inherit",
+      shell: true,
+    });
+
+    logger.info("Created Hono + React Project !");
+  } catch (error) {
+    logger.error("❌ Failed to set up Hono + react Project using cli");
     throw error;
   }
 }
