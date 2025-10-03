@@ -1,0 +1,13 @@
+.home .logos {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.home h1 {
+  margin-top: 0.25rem;
+}
+.home .card {
+  margin-top: 1rem;
+  display: inline-block;
+}
