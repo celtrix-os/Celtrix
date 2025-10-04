@@ -28,12 +28,12 @@ async function askStackQuestions() {
       choices: [
         { name: chalk.bold.blue("MERN") + " → MongoDB + Express + React + Node.js", value: "mern" },
         { name: chalk.bold.green("MERN") + " + Tailwind + Auth", value: "mern+tailwind+auth" },
-        { name: chalk.bold.blue("PERN") + " → Postgres + Express + React + Node.js", value: "pern" },
         { name: chalk.bold.red("MEAN") + " → MongoDB + Express + Angular + Node.js", value: "mean" },
         { name: chalk.bold.magenta("MEAN") + " + Tailwind + Auth", value: "mean+tailwind+auth" },
         { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
         { name: chalk.bold.yellow("MEVN") + " + Tailwind + Auth", value: "mevn+tailwind+auth" },
         { name: chalk.bold.yellow("Next.js") + " + tRPC + Prisma + Tailwind + Auth", value: "t3-stack" },
+        { name: chalk.bold.blue("PERN") + " → Postgres + Express + React + Node.js", value: "pern" },
 
       ],
       pageSize: 10,
