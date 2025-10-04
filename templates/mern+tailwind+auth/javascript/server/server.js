@@ -23,18 +23,22 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 
 // Safe MongoDB connection for scaffold
-if (!mongoURI || mongoURI === "your_mongodb_uri_here") {
-  console.warn("⚠️  No Mongo URI provided. Skipping DB connection. You can set it in .env later.");
-  app.listen(port, () => console.log(`Server running without DB on port ${port}`));
-} else {
-  mongoose
-    .connect(mongoURI)
-    .then(() => {
-      console.log("MongoDB connected");
-      app.listen(port, () => console.log(`Server running on port ${port}`));
-    })
-    .catch((err) => {
-      console.error("MongoDB connection failed:", err.message);
-      app.listen(port, () => console.log(`Server running without DB on port ${port}`));
-    });
+if (require.main === module) {
+  if (!mongoURI || mongoURI === "your_mongodb_uri_here") {
+    console.warn("⚠️  No Mongo URI provided. Skipping DB connection. You can set it in .env later.");
+    app.listen(port, () => console.log(`Server running without DB on port ${port}`));
+  } else {
+    mongoose
+      .connect(mongoURI)
+      .then(() => {
+        console.log("MongoDB connected");
+        app.listen(port, () => console.log(`Server running on port ${port}`));
+      })
+      .catch((err) => {
+        console.error("MongoDB connection failed:", err.message);
+        app.listen(port, () => console.log(`Server running without DB on port ${port}`));
+      });
+  }
 }
+
+module.exports = app;
