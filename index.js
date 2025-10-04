@@ -28,6 +28,7 @@ async function askStackQuestions() {
       choices: [
         { name: chalk.bold.blue("MERN") + " → MongoDB + Express + React + Node.js", value: "mern" },
         { name: chalk.bold.green("MERN") + " + Tailwind + Auth", value: "mern+tailwind+auth" },
+        { name: chalk.bold.blue("MERN (Turborepo)") + " → Monorepo (apps/client + apps/server)", value: "mern-turbo" },
         { name: chalk.bold.red("MEAN") + " → MongoDB + Express + Angular + Node.js", value: "mean" },
         { name: chalk.bold.magenta("MEAN") + " + Tailwind + Auth", value: "mean+tailwind+auth" },
         { name: chalk.bold.cyan("MEVN") + " → MongoDB + Express + Vue.js + Node.js", value: "mevn" },
@@ -84,8 +85,18 @@ async function main() {
       projectName = await askProjectName();
     }
     const stackAnswers = await askStackQuestions();
-    config = { ...stackAnswers, projectName };
-    
+
+    // Normalization + backward compatibility (old variant values)
+    let { stack, language } = stackAnswers;
+    if (stack === 'mern-turbo-js' || stack === 'mern-turbo-ts') {
+      // Older variant naming: keep user selected language instead of forcing
+      stack = 'mern-turbo';
+    }
+    // Fallback language if somehow undefined
+    if (!language) language = 'typescript';
+    if (!['javascript', 'typescript'].includes(language)) language = 'typescript';
+    config = { ...stackAnswers, stack, language, projectName };
+
 
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config);

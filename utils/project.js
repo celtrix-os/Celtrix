@@ -36,22 +36,28 @@ export async function setupProject(projectName, config) {
   );
 
   // --- Copy & Install ---
+  if (config.stack !== "mean" && config.stack !== "mean+tailwind+auth") {
   if(config.stack !== "mean" && config.stack !== "mean+tailwind+auth" && config.stack!=="hono"){
     copyTemplates(projectPath, config);
     installDependencies(projectPath, config, projectName);
   }
 
-  if(config.stack === "mean"){
+  if (config.stack === "mean") {
     angularSetup(projectPath, config);
     installDependencies(projectPath, config, projectName);
     copyTemplates(projectPath, config);
   }
+
+  if (config.stack === "mean+tailwind+auth") {
   
   if(config.stack === "mean+tailwind+auth"){
     angularTailwindSetup(projectPath, config, projectName);
     installDependencies(projectPath, config, projectName);
     copyTemplates(projectPath, config);
   }
+
+
+
   
   if(config.stack === "hono"){
    try{
@@ -71,12 +77,15 @@ export async function setupProject(projectName, config) {
   console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);
   console.log(chalk.gray("-------------------------------------------"))
   console.log(chalk.cyan("👉 Next Steps:\n"));
-  
-  if(config.stack === "mean" || config.stack === "mean+tailwind+auth") {
+
+  if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("ng serve")}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);
-  } else if(config.stack === "t3-stack") {
+  } else if (config.stack === "t3-stack") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/t3-app && ${chalk.green("npm run dev")}`);
+  } else if (config.stack === 'mern-turbo') {
+    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green("npm run dev")}`);
+    console.log(chalk.gray("   (Turbo will run both client and server concurrently)"));
   }else if(config.stack==="hono"){
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm run dev")}`);
@@ -84,7 +93,7 @@ export async function setupProject(projectName, config) {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);
   }
-  
+
   console.log(chalk.gray("-------------------------------------------"))
   console.log(chalk.gray("\n✨ Made with ❤️  by Celtrix ✨\n"));
 }
