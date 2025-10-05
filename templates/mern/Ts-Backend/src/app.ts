@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './constant/env.constant';
 import { UserRoutes } from './api/user/v1/user.routes';
-
 const app: Express = express();
 
 // Middleware

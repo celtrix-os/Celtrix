@@ -32,18 +32,26 @@
     "typescript-eslint": "^8.45.0"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.57",
+    "@langchain/core": "^0.3.78",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/helmet": "^4.0.0",
     "@types/morgan": "^1.9.10",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "fs": "link:langchain/document_loaders/fs",
     "helmet": "^8.1.0",
+    "json": "link:langchain/document_loaders/fs/json",
+    "langchain": "^0.3.35",
     "mongoose": "^8.19.0",
     "morgan": "^1.10.1",
+    "pdf-parse": "^2.1.7",
     "socket.io": "^4.8.1",
     "ts-node-dev": "^2.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   }
 }
