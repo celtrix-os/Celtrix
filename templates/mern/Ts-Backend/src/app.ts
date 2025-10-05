@@ -20,8 +20,6 @@ app.get('/', (req, res) => {
   });
 });
 
-
-
 app.use('/api', UserRoutes);
 
 export default app;

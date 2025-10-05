@@ -5,13 +5,10 @@ import xlsx from 'xlsx';
 import csv from 'csv-parser';
 import { createReadStream } from 'fs';
 
-import { CSVLoader } from "@langchain/community/document_loaders/fs/csv";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
+import { CSVLoader } from '@langchain/community/document_loaders/fs/csv';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { DocxLoader } from '@langchain/community/document_loaders/fs/docx';
 import { CsvRow, Document, XlsxRow } from '../type/FileSystem.type';
-
-
-
 
 class FileSystemUtility {
   /**
@@ -102,12 +99,14 @@ class FileSystemUtility {
 
     const workbook = xlsx.readFile(fullPath);
     const sheetNames = workbook.SheetNames;
-    const firstSheet = sheetNames[0] ? workbook.Sheets[sheetNames[0]] : undefined;
-    
+    const firstSheet = sheetNames[0]
+      ? workbook.Sheets[sheetNames[0]]
+      : undefined;
+
     if (!firstSheet) {
       throw new Error(`No sheets found in the XLSX file: ${fullPath}`);
     }
-    
+
     const data = xlsx.utils.sheet_to_json<XlsxRow>(firstSheet);
     return data;
   }
@@ -128,8 +127,6 @@ class FileSystemUtility {
     const docs = await loader.load();
     return docs;
   }
-
-
 
   /**
    * Read CSV file content using csv-parser
