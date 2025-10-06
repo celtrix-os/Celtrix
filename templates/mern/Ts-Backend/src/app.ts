@@ -2,6 +2,7 @@ import express, { Express, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import './cron/zipOldLogs';
 import { requestLogger } from './middlewares/requestLogger';
 import { env } from './constant/env.constant';
 import { UserRoutes } from './api/user/v1/user.routes';

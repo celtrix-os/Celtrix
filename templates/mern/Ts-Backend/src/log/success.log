@@ -1,9 +1,0 @@
-[2025-10-06 18:42:17] INFO: Root endpoint accessed
-[2025-10-06 18:42:17] INFO: GET / 200 - 13ms | IP: ::1 | Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
-[2025-10-06 18:42:17] WARN: GET /favicon.ico 404 - 3ms | IP: ::1 | Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
-[2025-10-06 18:47:33] INFO: App initialized in development mode
-[2025-10-06 18:48:00] WARN: GET /dfdf 404 - 10ms | IP: ::1 | Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
-[2025-10-06 18:48:19] WARN: GET /findUser 404 - 1ms | IP: ::1 | Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
-[2025-10-06 18:53:31] INFO: App initialized in development mode
-[2025-10-06 18:54:14] INFO: Root endpoint accessed
-[2025-10-06 18:54:14] INFO: GET / 304 - 4ms | IP: ::1 | Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
