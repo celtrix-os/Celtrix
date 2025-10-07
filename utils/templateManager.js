@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 export function copyTemplates(projectPath, config) {
   const { stack } = config;
 
+  if (stack !== "mean" && stack !== "mean+tailwind+auth" && stack !== "t3-stack" && stack !== "mern-turbo") {
   if(stack === "mern"){
     const backendTemplate = path.join(__dirname, "..","templates","mern","server")
     const serverPath = path.join(projectPath, "server");
@@ -45,14 +46,16 @@ export function copyTemplates(projectPath, config) {
     fs.copySync(frontendTemplate, clientPath);
     fs.copySync(backendTemplate, serverPath);
   }
+  if (stack === "mean" || stack === "mean+tailwind+auth") {
 
   else if(stack === "mean" || stack === "mean+tailwind+auth" ){
     const backendTemplate = path.join(__dirname, "..", "templates", stack, "server")
     const serverPath = path.join(projectPath, "server");
-    
+
     logger.info("📂 Copying template files...");
     fs.copySync(backendTemplate, serverPath);
   }
+  if (stack === "t3-stack") {
 
   else if(stack === "t3-stack" ){
     const frontendTemplate = path.join(__dirname, "..", "templates", stack, "t3-app");
@@ -61,5 +64,11 @@ export function copyTemplates(projectPath, config) {
 
     logger.info("📂 Copying template files...");
     fs.copySync(frontendTemplate, clientPath);
+  }
+  if (stack === "mern-turbo") {
+    const lang = config.language || 'typescript';
+    const rootTemplate = path.join(__dirname, "..", "templates", stack, lang);
+    logger.info(`📂 Copying Turborepo (MERN) template files (${lang})...`);
+    fs.copySync(rootTemplate, projectPath);
   }
 }

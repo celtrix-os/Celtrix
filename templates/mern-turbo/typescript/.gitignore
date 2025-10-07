@@ -1,0 +1,6 @@
+node_modules
+apps/*/node_modules
+apps/*/dist
+.env
+*.log
+.turbo
