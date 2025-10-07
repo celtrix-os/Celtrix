@@ -291,6 +291,7 @@ async function run() {
       commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${topMatch.number}\n\n`;
       commentBody += `🔒 **This issue has been automatically closed as a duplicate.**\n\n`;
       commentBody += `Please continue the discussion in the original issue above. If your problem is different, please open a new issue with more specific details.\n\n`;
+      commentBody += `⚠️ **Join the Celtrix's discussion on [Discord](https://discord.gg/Qp6qUdxf)**\n\n`
     }
 
     console.log(`🚨 HIGH SIMILARITY DUPLICATE detected! Similarity: ${similarityPercent}% with issue #${topMatch.number}`);
@@ -315,6 +316,7 @@ async function run() {
     commentBody += `- Issue #${topMatch.number}: "${topMatch.title}" (${similarityPercent}% similar)\n`;
     commentBody += `  Link: https://github.com/${OWNER}/${REPO}/issues/${topMatch.number}\n\n`;
     commentBody += `This issue is not identical but may be related. A maintainer will review to determine if they should be linked or if this is indeed a separate issue.\n\n`;
+    commentBody += `⚠️ **Join the Celtrix's discussion on [Discord](https://discord.gg/Qp6qUdxf)**\n\n`
     
     console.log(`🤔 POTENTIALLY RELATED issue detected! Similarity: ${similarityPercent}% with issue #${topMatch.number}`);
     
@@ -329,15 +331,15 @@ async function run() {
       commentBody += `Your edit has been processed and the issue still appears to be unique. Our duplicate detection database has been updated with your changes.\n\n`;
       commentBody += `Thank you for keeping your issue up to date! 🔄\n\n`;
     } else {
-      commentBody = `✅ **Unique Issue Detected** ✅\n\n`;
-      commentBody += `Thank you for finding and contributing this unique issue! This appears to be a new problem that hasn't been reported before.\n\n`;
+      commentBody = `Thank you for finding and contributing this unique issue! This appears to be a new problem that hasn't been reported before.\n\n`;
       commentBody += `Your contribution helps make this project better. We appreciate you taking the time to report this! 🙏\n\n`;
+      commentBody += `⚠️ **Join the Celtrix's discussion on [Discord](https://discord.gg/Qp6qUdxf)**\n\n`
     }
 
     console.log(`✅ UNIQUE issue confirmed. No similar issues found above 0.55 threshold.`);
   }
 
-  commentBody += `*This comment was generated automatically by Seroski-DupBot 🤖*\n\nCheck out the developer: [Portfolio](https://portfolio.rosk.dev)`;
+  commentBody += `*This comment was generated automatically by Seroski-DupBot 🤖*\n\nCheck out the dev: [Portfolio](https://portfolio.rosk.dev)`;
 
   console.log(`📊 Duplicate Detection Summary:`);
   console.log(`   Action: ${duplicateAction}`);

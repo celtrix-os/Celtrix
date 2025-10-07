@@ -15,17 +15,17 @@ permissions:
 
 jobs:
   check-duplicates:
-    if: github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     env:
       SIMILARITY_THRESHOLD: 0.7
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -57,14 +57,14 @@ jobs:
         continue-on-error: true
 
       - name: Handle check failure
-        if: failure()
+        if: ${{ failure() }}
         run: |
           echo "⚠️ Duplicate check failed, but continuing workflow"
           echo "This might be due to API limits or temporary issues"
           echo "Issue #$ISSUE_NUMBER will be processed normally"
 
   cleanup-closed-issue:
-    if: github.event.action == 'closed'
+    if: ${{ github.event.action == 'closed' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -92,7 +92,7 @@ jobs:
         continue-on-error: true
 
       - name: Handle cleanup failure
-        if: failure()
+        if: ${{ failure() }}
         run: |
           echo "⚠️ Cleanup of closed issue failed, but this is non-critical"
           echo "Issue #$ISSUE_NUMBER may remain in the vector database"

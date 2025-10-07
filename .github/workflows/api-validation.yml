@@ -9,10 +9,10 @@ on:
         default: 'all-apis'
         type: choice
         options:
-        - 'all-apis'
-        - 'pinecone-only'
-        - 'github-only'
-        - 'gemini-only'
+          - 'all-apis'
+          - 'pinecone-only'
+          - 'github-only'
+          - 'gemini-only'
 
 permissions:
   issues: read
@@ -21,13 +21,13 @@ permissions:
 jobs:
   validate-apis:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -35,7 +35,7 @@ jobs:
         run: npm install
 
       - name: Validate All APIs
-        if: github.event.inputs.validation_scope == 'all-apis'
+        if: ${{ github.event.inputs.validation_scope == 'all-apis' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -47,7 +47,7 @@ jobs:
           node scripts/validate-apis.js
 
       - name: Validate Pinecone Only
-        if: github.event.inputs.validation_scope == 'pinecone-only'
+        if: ${{ github.event.inputs.validation_scope == 'pinecone-only' }}
         env:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
           PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
@@ -56,7 +56,7 @@ jobs:
           node scripts/validate-apis.js pinecone
 
       - name: Validate GitHub Only
-        if: github.event.inputs.validation_scope == 'github-only'
+        if: ${{ github.event.inputs.validation_scope == 'github-only' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -65,7 +65,7 @@ jobs:
           node scripts/validate-apis.js github
 
       - name: Validate Gemini Only
-        if: github.event.inputs.validation_scope == 'gemini-only'
+        if: ${{ github.event.inputs.validation_scope == 'gemini-only' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -73,7 +73,7 @@ jobs:
           node scripts/validate-apis.js gemini
 
       - name: Validation Summary
-        if: always()
+        if: ${{ always() }}
         run: |
           echo "### 🔍 API Validation Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Validation Scope:** ${{ github.event.inputs.validation_scope }}" >> $GITHUB_STEP_SUMMARY
