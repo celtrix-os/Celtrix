@@ -10,7 +10,31 @@ const __dirname = path.dirname(__filename);
 export function copyTemplates(projectPath, config) {
   const { stack } = config;
 
-  if(stack !== "mean" && stack !== "mean+tailwind+auth" && stack !== "t3-stack"){
+  if(stack === "mern"){
+    const backendTemplate = path.join(__dirname, "..","templates","mern","server")
+    const serverPath = path.join(projectPath, "server");
+    
+    logger.info("📂 Copying backend template files...");
+    fs.copySync(backendTemplate, serverPath);
+  }
+
+  else if(stack === 'mern+tailwind+auth'){
+    const backendTemplate = path.join(__dirname,"..","templates","mern+tailwind+auth","server");
+    const serverPath = path.join(projectPath, "server");
+    
+    logger.info("📂 Copying backend template files...");
+    fs.copySync(backendTemplate, serverPath);
+  }
+
+  else if(stack=='mevn'){
+    const backendTemplate = path.join(__dirname,"..","templates","mevn","server");
+    const serverPath = path.join(projectPath, "server");
+    
+    logger.info("📂 Copying backend template files...");
+    fs.copySync(backendTemplate, serverPath);
+  }
+
+  else if(stack !== "mean" && stack !== "mean+tailwind+auth" && stack !== "t3-stack"){
     const frontendTemplate = path.join(__dirname, "..", "templates", stack, config.language, "client");
     const backendTemplate = path.join(__dirname, "..", "templates", stack, config.language, "server");
 
@@ -21,14 +45,16 @@ export function copyTemplates(projectPath, config) {
     fs.copySync(frontendTemplate, clientPath);
     fs.copySync(backendTemplate, serverPath);
   }
-  if(stack === "mean" || stack === "mean+tailwind+auth"){
+
+  else if(stack === "mean" || stack === "mean+tailwind+auth" ){
     const backendTemplate = path.join(__dirname, "..", "templates", stack, "server")
     const serverPath = path.join(projectPath, "server");
     
     logger.info("📂 Copying template files...");
     fs.copySync(backendTemplate, serverPath);
   }
-  if(stack === "t3-stack"){
+
+  else if(stack === "t3-stack" ){
     const frontendTemplate = path.join(__dirname, "..", "templates", stack, "t3-app");
 
     const clientPath = path.join(projectPath, "t3-app");

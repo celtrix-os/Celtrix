@@ -53,6 +53,12 @@ That's it! Follow the interactive prompts to customize your project.
 
 ---
 
+## FAQ
+
+You can now find the full list of FAQs here: [FAQ.md](./FAQ.md)
+
+---
+
 ## 📦 What You Get
 
 - **Production-ready** project structure
@@ -60,6 +66,27 @@ That's it! Follow the interactive prompts to customize your project.
 - **Responsive** starter templates
 - **Clean code** architecture
 - **Documentation** and examples
+
+---
+
+## ⭐ Star History
+
+<div align="center">
+  <h3>📈 Watch our journey grow!</h3>
+  <p><em>See how our community has grown over time</em></p>
+  <br>
+  
+  <a href="https://star-history.com/#celtrix-os/Celtrix&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=celtrix-os/Celtrix&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=celtrix-os/Celtrix&type=Date&theme=light" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=celtrix-os/Celtrix&type=Date&theme=light" width="600" />
+    </picture>
+  </a>
+  
+  <br>
+  <p><small>📊 <a href="https://star-history.com/#celtrix-os/Celtrix&Date">View interactive chart</a></small></p>
+</div>
 
 ---
 
@@ -75,6 +102,20 @@ We love contributions! Please feel free to:
 Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIBUTING.md) to see how to contribute to Celtrix.
 
 ---
+## 👥 Contributors
+
+Thanks goes to these wonderful people:  
+
+<br/>
+
+<div align="center">
+  <a href="https://github.com/celtrix-os/celtrix/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=celtrix-os/celtrix" />
+  </a>
+</div>
+
+<br/>
+
 
 <div align="center">
 
@@ -83,3 +124,4 @@ Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIB
 <h3>⭐ Star us on GitHub — it motivates us a lot!</h3>
 
 </div>
+

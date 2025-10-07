@@ -55,5 +55,8 @@
     "clear-all": "echo '⚠️  Use: npm run clear-all:force' && exit 1",
     "clear-all:force": "node scripts/clear-all-vectors.js --force",
     "check-duplicates": "node scripts/check-duplicates.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }
