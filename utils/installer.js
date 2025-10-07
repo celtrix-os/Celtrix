@@ -3,14 +3,14 @@ import { logger } from "./logger.js";
 import path from "path";
 import fs from "fs";
 
-export function installDependencies(projectPath, config, projectName,server=true,dependencies=[]) {
+export function installDependencies(projectPath, config, projectName, server = true, dependencies = []) {
   logger.info("📦 Installing dependencies...");
 
   try {
     const clientDir = fs.existsSync(path.join(projectPath, "client"))
       ? path.join(projectPath, "client")
       : path.join(projectPath, "client");
-    
+
     const serverDir = fs.existsSync(path.join(projectPath, "server"))
       ? path.join(projectPath, "server")
       : path.join(projectPath, "server");
@@ -101,14 +101,14 @@ export function HonoReactSetup(projectPath, config, projectName) {
 
   try {
     // 1. Create React project (inside projectPath)
-    if(config.language==="typescript"){
+    if (config.language === "typescript") {
 
       execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-    }else{
+    } else {
       execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
@@ -116,7 +116,7 @@ export function HonoReactSetup(projectPath, config, projectName) {
       });
 
     }
-    
+
     execSync(`npm create hono@latest server -- --template cloudflare-workers --pm npm `, {
       cwd: projectPath,
       stdio: "inherit",
@@ -135,14 +135,14 @@ export function mernSetup(projectPath, config, projectName) {
 
   try {
     // 1. Create MERN project
-    if(config.language==="typescript"){
+    if (config.language === "typescript") {
 
       execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-    }else{
+    } else {
       execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
@@ -151,15 +151,15 @@ export function mernSetup(projectPath, config, projectName) {
 
     }
 
-    if(config.language == 'javascript'){
+    if (config.language == 'javascript') {
 
-      
+
       const appJsxPath = path.join(projectPath, "client", "src", "App.jsx");
-      const appCssPath = path.join(projectPath,"client", "src", "index.css");
-      
+      const appCssPath = path.join(projectPath, "client", "src", "index.css");
+
       let appJsx = fs.readFileSync(appJsxPath, "utf-8");
       const lines = appJsx.split("\n");
-      
+
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes("</>")) {
           // inject badge right after opening fragment
@@ -167,11 +167,11 @@ export function mernSetup(projectPath, config, projectName) {
           break;
         }
       }
-      
+
       fs.writeFileSync(appJsxPath, lines.join("\n"), "utf-8");
-      
-    // append the fu*king CSS
-    const badgeCSS = `
+
+      // append the fu*king CSS
+      const badgeCSS = `
     .powered-badge {
       position: fixed;
       bottom: 1.5rem;
@@ -196,18 +196,18 @@ export function mernSetup(projectPath, config, projectName) {
         color: #4ade80;
         }
         `;
-        
-        fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
-        
+
+      fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
+
     }
 
-    if(config.language=="typescript"){
+    if (config.language == "typescript") {
       const appTsxPath = path.join(projectPath, "client", "src", "App.tsx");
-      const appCssPath = path.join(projectPath,"client", "src", "index.css");
-      
+      const appCssPath = path.join(projectPath, "client", "src", "index.css");
+
       let appTsx = fs.readFileSync(appTsxPath, "utf-8");
       const lines = appTsx.split("\n");
-      
+
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes("</>")) {
           // inject badge right after opening fragment
@@ -215,11 +215,11 @@ export function mernSetup(projectPath, config, projectName) {
           break;
         }
       }
-      
+
       fs.writeFileSync(appTsxPath, lines.join("\n"), "utf-8");
-      
-    // append the fu*king CSS
-    const badgeCSS = `
+
+      // append the fu*king CSS
+      const badgeCSS = `
     .powered-badge {
       position: fixed;
       bottom: 1.5rem;
@@ -244,12 +244,12 @@ export function mernSetup(projectPath, config, projectName) {
         color: #4ade80;
         }
         `;
-        
-        fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
-        
+
+      fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
+
     }
 
-    serverSetup(projectPath,config,projectName);
+    serverSetup(projectPath, config, projectName);
     logger.info("✅ MERN project created successfully!");
   } catch (error) {
     logger.error("❌ Failed to set up MERN");
@@ -257,21 +257,21 @@ export function mernSetup(projectPath, config, projectName) {
   }
 }
 
-export function serverSetup(projectPath,config,projectName){
-  try{
+export function serverSetup(projectPath, config, projectName) {
+  try {
     execSync(`npm init -y`, { cwd: path.join(projectPath, "server") });
-    installDependencies(projectPath,config,projectName,true,["dotenv","express","helmet","mongoose","cors","nodemon","morgan"])
+    installDependencies(projectPath, config, projectName, true, ["dotenv", "express", "helmet", "mongoose", "cors", "nodemon", "morgan"])
     logger.info("✅ Server project created successfully!");
-  }catch(error){
+  } catch (error) {
     logger.error("❌ Failed to set up server");
     throw error;
   }
 }
 
-export function serverAuthSetup(projectPath,config,projectName){
+export function serverAuthSetup(projectPath, config, projectName) {
   try {
     execSync(`npm init -y`, { cwd: path.join(projectPath, "server") });
-    installDependencies(projectPath,config,projectName,true,["bcrypt","jsonwebtoken","cookie-parser","dotenv","express","helmet","mongoose","cors","nodemon","morgan"])
+    installDependencies(projectPath, config, projectName, true, ["bcrypt", "jsonwebtoken", "cookie-parser", "dotenv", "express", "helmet", "mongoose", "cors", "nodemon", "morgan"])
     logger.info("✅ Server Auth project created successfully!");
   } catch (error) {
     logger.error("❌ Failed to set up server auth");
@@ -284,22 +284,22 @@ export function mernTailwindSetup(projectPath, config, projectName) {
     execSync(`npm install tailwindcss @tailwindcss/vite`, { cwd: path.join(projectPath, "client") });
 
     let isJs = config.language === 'javascript';
-    const viteConfigPath = isJs 
-      ? path.join(projectPath, "client", "vite.config.js") 
+    const viteConfigPath = isJs
+      ? path.join(projectPath, "client", "vite.config.js")
       : path.join(projectPath, "client", "vite.config.ts");
-    
+
     let viteConfigContent = fs.readFileSync(viteConfigPath, "utf-8");
 
-    const indexCssPath = path.join(projectPath,"client","src","index.css")
+    const indexCssPath = path.join(projectPath, "client", "src", "index.css")
     let indexCssPathContent = fs.readFileSync(indexCssPath, "utf-8");
 
     indexCssPathContent = indexCssPathContent.replace(
       /:root/g,
       "@import 'tailwindcss';\n\n:root"
     );
-    
 
-    fs.writeFileSync(indexCssPath,indexCssPathContent)
+
+    fs.writeFileSync(indexCssPath, indexCssPathContent)
 
     // Add tailwindcss import
     viteConfigContent = viteConfigContent.replace(
@@ -327,23 +327,23 @@ export function mernTailwindSetup(projectPath, config, projectName) {
 }
 
 
-export function mevnSetup(projectPath,config,projectName){
+export function mevnSetup(projectPath, config, projectName) {
   try {
     logger.info("⚡ Setting up MEVN...");
-    if(config.language=='javascript'){
+    if (config.language == 'javascript') {
       execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
 
 
     }
-    else{
+    else {
       execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
     }
 
-    
+
     const vueJsPath = path.join(projectPath, "client", "src", "components", "HelloWorld.vue");
-  
+
     let vueJsPathContent = fs.readFileSync(vueJsPath, "utf-8");
-  
+
     vueJsPathContent = vueJsPathContent.replace(
       /<p class="read-the-docs">Click on the Vite and Vue logos to learn more<\/p>/,
       `<p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
@@ -351,7 +351,7 @@ export function mevnSetup(projectPath,config,projectName){
       Powered by <span class="powered-highlight">Celtrix</span>
     </div>`
     );
-  
+
     fs.writeFileSync(vueJsPath, vueJsPathContent, "utf-8");
 
     // Replace <p> with new block
@@ -404,12 +404,91 @@ export function mevnSetup(projectPath,config,projectName){
     }
 
     fs.writeFileSync(vueJsPath, vueJsPathContent, "utf-8");
-    
+
     // serverSetup(projectPath,config,projectName);
     logger.info("✅ MEVN project created successfully!");
 
   } catch (error) {
     logger.error("❌ Failed to set up MEVN");
+    throw error;
+  }
+}
+
+export function mevnTailwindAuthSetup(projectPath, config, projectName) {
+  logger.info("⚡ Setting up MEVN + Tailwind + Auth...");
+
+  try {
+    // 1. Create Vue client with Vite (js / ts)
+    const template = config.language === "typescript" ? "vue-ts" : "vue";
+    execSync(`npm create vite@latest client -- --t ${template} --no-rolldown --no-interactive`, {
+      cwd: projectPath,
+      stdio: "inherit",
+      shell: true,
+    });
+
+    const clientPath = path.join(projectPath, "client");
+
+    // 2. Install Tailwind plugin for Vite in client
+    execSync(`npm install tailwindcss @tailwindcss/vite`, {
+      cwd: clientPath,
+      stdio: "inherit",
+      shell: true,
+    });
+
+    // 3. Patch Vite config (handle .js / .ts like mernTailwindSetup)
+    const isJs = config.language === "javascript";
+    const viteConfigPath = isJs
+      ? path.join(clientPath, "vite.config.js")
+      : path.join(clientPath, "vite.config.ts");
+
+    if (fs.existsSync(viteConfigPath)) {
+      let viteConfigContent = fs.readFileSync(viteConfigPath, "utf-8");
+
+      viteConfigContent = viteConfigContent.replace(
+        /import \{\s*defineConfig\s*\}\s*from\s*['"]vite['"]/,
+        `import { defineConfig } from 'vite'\nimport tailwindcss from '@tailwindcss/vite'`
+      );
+
+      viteConfigContent = viteConfigContent.replace(
+        /plugins:\s*\[([^\]]*)\]/,
+        (match, pluginsInside) => {
+          if (!pluginsInside.includes("tailwindcss()")) {
+            return `plugins: [${pluginsInside.trim()} , tailwindcss()]`;
+          }
+          return match;
+        }
+      );
+
+      fs.writeFileSync(viteConfigPath, viteConfigContent, "utf-8");
+    }
+
+    // 4. Ensure Tailwind import exists in client CSS (try common filenames)
+    const possibleCssPaths = [
+      path.join(clientPath, "src", "index.css"),
+      path.join(clientPath, "src", "style.css"),
+      path.join(clientPath, "src", "assets", "main.css"),
+    ];
+    const cssPath = possibleCssPaths.find((p) => fs.existsSync(p));
+    if (cssPath) {
+      let cssContent = fs.readFileSync(cssPath, "utf-8");
+      if (!cssContent.includes("@import 'tailwindcss'") && !cssContent.includes('@import "tailwindcss"')) {
+        // try to place import before :root or at top
+        if (/:root/.test(cssContent)) {
+          cssContent = cssContent.replace(/:root/, `@import 'tailwindcss';\n\n:root`);
+        } else {
+          cssContent = `@import 'tailwindcss';\n\n` + cssContent;
+        }
+        fs.writeFileSync(cssPath, cssContent, "utf-8");
+      }
+    }
+
+    // 5. Create server skeleton + install auth deps using existing helper (keeps behavior consistent)
+    // serverAuthSetup will run npm init -y and install auth-related dependencies
+    serverAuthSetup(projectPath, config, projectName);
+
+    logger.info("MEVN + Tailwind + Auth setup completed!");
+  } catch (error) {
+    logger.error("Failed to set up MEVN + Tailwind + Auth");
     throw error;
   }
 }
