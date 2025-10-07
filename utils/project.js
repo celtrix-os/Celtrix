@@ -37,6 +37,11 @@ export async function setupProject(projectName, config) {
 
   // --- Copy & Install ---
   if (config.stack !== "mean" && config.stack !== "mean+tailwind+auth" && config.stack !== "hono" && config.stack !== "mevn+tailwind+auth") {
+
+  if(config.stack !== "mean" && config.stack !== "mean+tailwind+auth" && config.stack !== "react+tailwind+firebase"){
+
+  if(config.stack !== "mean" && config.stack !== "mean+tailwind+auth" && config.stack!=="hono"){
+
     copyTemplates(projectPath, config);
     installDependencies(projectPath, config, projectName);
   }
@@ -74,6 +79,16 @@ export async function setupProject(projectName, config) {
     copyTemplates(projectPath, config);
   }
 
+
+  if(config.stack === "react+tailwind+firebase"){
+    copyTemplates(projectPath, config);
+    installDependencies(projectPath, config, projectName);
+  }
+
+  
+  if(config.stack === "hono"){
+   try{
+
   if (config.stack === "hono") {
     try {
 
@@ -103,6 +118,12 @@ export async function setupProject(projectName, config) {
   } else if (config.stack === "t3-stack") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/t3-app && ${chalk.green("npm run dev")}`);
   } else if (config.stack === "hono") {
+
+  } else if(config.stack === "react+tailwind+firebase") {
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
+    console.log(`   ${chalk.gray("📝 Don't forget to configure your Firebase project in .env file!")}`);
+
+  }else if(config.stack==="hono"){
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm run dev")}`);
   } else {
