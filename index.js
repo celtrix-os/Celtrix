@@ -2,7 +2,15 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import gradient from "gradient-string";
 import figlet from "figlet";
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import { createProject } from "./commands/scaffold.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const pkg = JSON.parse(readFileSync(join(__dirname, "./package.json"), "utf8"));
 
 const orange = chalk.hex("#FF6200");
 
@@ -17,6 +25,29 @@ function showBanner() {
     )
   );
   console.log(chalk.gray("⚡ Setup Web-apps in seconds, not hours ⚡\n"));
+}
+
+const args = process.argv.slice(2);
+
+if (args.includes("--version") || args.includes("-v")) {
+  console.log(chalk.greenBright(`celtrix version: ${pkg.version}`));
+  process.exit(0);
+}
+
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`
+${chalk.bold("Usage:")} celtrix [project-name] [options]
+
+${chalk.bold("Options:")}
+  -v, --version       Show version number
+  -h, --help          Show help information
+
+${chalk.bold("Examples:")}
+  $ celtrix my-app
+  $ celtrix --version
+  $ celtrix -h
+`);
+  process.exit(0);
 }
 
 console.log("\n")
