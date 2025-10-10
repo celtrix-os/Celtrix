@@ -3,36 +3,60 @@ import { logger } from "./logger.js";
 import path from "path";
 import fs from "fs";
 
-export function installDependencies(projectPath, config, projectName, server = true, dependencies = []) {
+/**
+ * Installs dependencies for T3 stack or client/server setup.
+ * Handles missing folders, slow installs, and cleaner npm commands.
+ */
+// FIX: Removed `async` as it's not needed with `execSync`.
+// FIX: Removed unused `projectName` parameter.
+export function installDependencies(projectPath, config, server = true) {
   try {
-    // Handle T3 stack which uses t3-app directory
-    if (config.stack === 't3-stack') {
-      const t3AppDir = path.join(projectPath, 't3-app');
-      if (fs.existsSync(t3AppDir)) {
-        logger.info("📦 Installing T3 stack dependencies...");
-        execSync("npm install", { cwd: t3AppDir, stdio: "inherit", shell: true });
-        logger.info("✅ T3 stack dependencies installed successfully");
+    const runInstall = (dir) => {
+      // The check is already here, so no need to check outside the function.
+      if (!fs.existsSync(dir)) {
+        logger.warn(`⚠️ Skipping install — directory not found: ${dir}`);
         return;
       }
-    }
-    
-    // Handle other stacks with client/server structure
-    const clientDir = path.join(projectPath, "client");
-    const serverDir = path.join(projectPath, "server");
-    
-    if (fs.existsSync(clientDir)) {
-      logger.info("📦 Installing Frontend dependencies...");
-      execSync("npm install", { cwd: clientDir, stdio: "inherit", shell: true });
-    }
-    
-    if (server && fs.existsSync(serverDir)) {
-      logger.info("📦 Installing Backend dependencies...");
-      execSync("npm install " + dependencies.join(" "), { cwd: serverDir, stdio: "inherit", shell: true });
+
+      // FIX: The command should ALWAYS be `npm install` to install dependencies
+      // from package.json, not to add new ones.
+      const installCmd = "npm install";
+
+      logger.info(`📦 Installing dependencies in ${path.basename(dir)}...`);
+      execSync(installCmd, {
+        cwd: dir,
+        stdio: "inherit",
+        shell: true,
+        env: {
+          ...process.env,
+          npm_config_loglevel: "error",
+          npm_config_progress: "false",
+        },
+      });
+      logger.success(`✅ Dependencies installed in ${path.basename(dir)}`);
+    };
+
+    // --- T3 Stack Logic ---
+    if (config.stack === "t3-stack") {
+      // FIX: T3 apps are in the project root, not a 't3-app' subfolder.
+      // We pass the projectPath directly to the installer.
+      runInstall(projectPath);
+      return;
     }
 
-    logger.info("✅ Dependencies installed successfully");
+    // --- Client/Server Logic ---
+    const clientDir = path.join(projectPath, "client");
+    const serverDir = path.join(projectPath, "server");
+
+    runInstall(clientDir);
+    if (server) {
+      // FIX: Do not pass the `dependencies` array.
+      runInstall(serverDir);
+    }
+
+    logger.info("🎉 All dependencies installed successfully!");
   } catch (err) {
-    logger.error("❌ Failed to install dependencies");
+    logger.error("❌ Failed to install dependencies:");
     logger.error(err.message);
     throw err;
   }
