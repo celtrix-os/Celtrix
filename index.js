@@ -121,6 +121,18 @@ async function askProjectName() {
   return projectName;
 }
 
+async function askInstallDependencies() {
+  const { installDeps } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "installDeps",
+      message: chalk.cyan("Do you want to install dependencies? (npm i)"),
+      default: true,
+    },
+  ]);
+  return installDeps;
+}
+
 function getVersion() {
   try {
     const __filename = fileURLToPath(import.meta.url);
@@ -170,6 +182,7 @@ function showHelp() {
 
 async function main() {
   const args = process.argv.slice(2);
+  const skipInstall = args.includes('--skip-install');
 
   // Handle version flag
   if (args.includes('--version') || args.includes('-v')) {
@@ -195,8 +208,11 @@ async function main() {
     const stackAnswers = await askStackQuestions();
     config = { ...stackAnswers, projectName };
 
+    const installDeps = skipInstall ? false : await askInstallDependencies();
+
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
-    await createProject(projectName, config);
+
+    await createProject(projectName, config, installDeps);
 
   } catch (err) {
     console.log(chalk.red("❌ Error:"), err.message);

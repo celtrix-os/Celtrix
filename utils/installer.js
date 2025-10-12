@@ -3,7 +3,13 @@ import { logger } from "./logger.js";
 import path from "path";
 import fs from "fs";
 
-export function installDependencies(projectPath, config, projectName, server = true, dependencies = []) {
+export function installDependencies(projectPath, config, projectName, server = true, dependencies = [], installDeps = true) {
+  // Early return if installDeps is false
+  if (!installDeps) {
+    logger.info("⏭️  Skipping dependency installation");
+    return;
+  }
+
   try {
     // Handle T3 stack which uses t3-app directory
     if (config.stack === 't3-stack') {
@@ -39,7 +45,7 @@ export function installDependencies(projectPath, config, projectName, server = t
 }
 
 
-export function angularSetup(projectPath, config, projectName) {
+export function angularSetup(projectPath, config, projectName, installDeps = true) {
   logger.info("⚡ Setting up Angular...");
 
   try {
@@ -50,7 +56,7 @@ export function angularSetup(projectPath, config, projectName) {
       shell: true, 
     });
 
-    serverSetup(projectPath,config,projectName);
+    serverSetup(projectPath, config, projectName, installDeps);
     logger.info("✅ Angular project created successfully!");
     
     return true;
@@ -60,12 +66,12 @@ export function angularSetup(projectPath, config, projectName) {
   }
 }
 
-export function angularTailwindSetup(projectPath, config, projectName) {
+export function angularTailwindSetup(projectPath, config, projectName, installDeps = true) {
   logger.info("⚡ Setting up Angular + Tailwind...");
 
   try {
     // 1. Create Angular project (inside projectPath)
-    execSync(`npx -y @angular/cli new client --style css`, {
+    execSync(`npx -y @angular/cli new client --style css --skip-install`, {
       cwd: projectPath,
       stdio: "inherit",
       shell: true,
@@ -73,12 +79,15 @@ export function angularTailwindSetup(projectPath, config, projectName) {
 
     const clientPath = path.join(projectPath, "client");
 
-    // 2. Install Tailwind + PostCSS
-    execSync(`npm install tailwindcss @tailwindcss/postcss postcss --force`, {
-      cwd: clientPath,
-      stdio: "inherit",
-      shell: true,
-    });
+    // Only install dependencies if installDeps is true
+    if (installDeps) {
+      // 2. Install Tailwind + PostCSS
+      execSync(`npm install tailwindcss @tailwindcss/postcss postcss --force`, {
+        cwd: clientPath,
+        stdio: "inherit",
+        shell: true,
+      });
+    }
 
     // 3. Create tailwind.config.js
     const tailwindConfigPath = path.join(clientPath, ".postcssrc.json");
@@ -97,7 +106,6 @@ export function angularTailwindSetup(projectPath, config, projectName) {
     fs.writeFileSync(
       stylesPath,
       `@import "tailwindcss";\n`
-
     );
 
     logger.info("✅ Angular + Tailwind setup completed!");
@@ -109,35 +117,35 @@ export function angularTailwindSetup(projectPath, config, projectName) {
 }
 
 
-export function HonoReactSetup(projectPath, config, projectName) {
+export function HonoReactSetup(projectPath, config, projectName, installDeps = true) {
   logger.info("⚡ Setting up Hono+ React...");
 
   try {
+    const skipInstallFlag = installDeps ? "" : "--skip-install";
+    
     // 1. Create React project (inside projectPath)
-    if(config.language==="typescript"){
-
-      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
+    if (config.language === "typescript") {
+      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-    }else{
-      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
+    } else {
+      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-
     }
     
-    execSync(`npm create hono@latest server -- --template cloudflare-workers --pm npm `, {
+    execSync(`npm create hono@latest server -- --template cloudflare-workers --pm npm`, {
       cwd: projectPath,
       stdio: "inherit",
       shell: true,
     });
 
-    logger.info("Created Hono + React Project !");
-    serverAuthSetup(projectPath,config,projectName);
+    logger.info("Created Hono + React Project!");
+    serverAuthSetup(projectPath, config, projectName, installDeps);
 
   } catch (error) {
     logger.error("❌ Failed to set up Hono + react Project using cli");
@@ -145,32 +153,30 @@ export function HonoReactSetup(projectPath, config, projectName) {
   }
 }
 
-export function mernSetup(projectPath, config, projectName) {
+export function mernSetup(projectPath, config, projectName, installDeps = true) {
   logger.info("⚡ Setting up MERN...");
 
   try {
     // 1. Create MERN project
-    if(config.language==="typescript"){
-
-      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
+    const skipInstallFlag = installDeps ? "" : "--skip-install";
+    
+    if (config.language === "typescript") {
+      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-    }else{
-      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
+    } else {
+      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-
     }
 
-    if(config.language == 'javascript'){
-
-      
+    if (config.language == 'javascript') {
       const appJsxPath = path.join(projectPath, "client", "src", "App.jsx");
-      const appCssPath = path.join(projectPath,"client", "src", "index.css");
+      const appCssPath = path.join(projectPath, "client", "src", "index.css");
       
       // Check if App.jsx exists before trying to read it
       if (!fs.existsSync(appJsxPath)) {
@@ -203,8 +209,8 @@ export function mernSetup(projectPath, config, projectName) {
         return;
       }
       
-    // Append badge CSS styles
-    const badgeCSS = `
+      // Append badge CSS styles
+      const badgeCSS = `
     .powered-badge {
       position: fixed;
       bottom: 50%;
@@ -234,22 +240,21 @@ export function mernSetup(projectPath, config, projectName) {
     }
     `;
         
-        // Check if CSS file exists before appending
-        if (!fs.existsSync(appCssPath)) {
-          logger.warn(`⚠️ index.css not found at ${appCssPath}, skipping CSS injection`);
-        } else {
-          try {
-            fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
-          } catch (error) {
-            logger.error(`❌ Failed to append CSS: ${error.message}`);
-          }
+      // Check if CSS file exists before appending
+      if (!fs.existsSync(appCssPath)) {
+        logger.warn(`⚠️ index.css not found at ${appCssPath}, skipping CSS injection`);
+      } else {
+        try {
+          fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
+        } catch (error) {
+          logger.error(`❌ Failed to append CSS: ${error.message}`);
         }
-        
+      }
     }
 
-    if(config.language=="typescript"){
+    if (config.language == "typescript") {
       const appTsxPath = path.join(projectPath, "client", "src", "App.tsx");
-      const appCssPath = path.join(projectPath,"client", "src", "index.css");
+      const appCssPath = path.join(projectPath, "client", "src", "index.css");
       
       // Check if App.tsx exists before trying to read it
       if (!fs.existsSync(appTsxPath)) {
@@ -281,8 +286,8 @@ export function mernSetup(projectPath, config, projectName) {
         return;
       }
       
-    // Append badge CSS styles
-    const badgeCSS = `
+      // Append badge CSS styles
+      const badgeCSS = `
     .powered-badge {
       position: fixed;
       bottom: 50%;
@@ -312,24 +317,23 @@ export function mernSetup(projectPath, config, projectName) {
     }
     `;
         
-        // Check if CSS file exists before appending
-        if (!fs.existsSync(appCssPath)) {
-          logger.warn(`⚠️ index.css not found at ${appCssPath}, skipping CSS injection`);
-        } else {
-          try {
-            fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
-          } catch (error) {
-            logger.error(`❌ Failed to append CSS: ${error.message}`);
-          }
+      // Check if CSS file exists before appending
+      if (!fs.existsSync(appCssPath)) {
+        logger.warn(`⚠️ index.css not found at ${appCssPath}, skipping CSS injection`);
+      } else {
+        try {
+          fs.appendFileSync(appCssPath, badgeCSS, "utf-8");
+        } catch (error) {
+          logger.error(`❌ Failed to append CSS: ${error.message}`);
         }
-        
+      }
     }
 
-    if(config.stack === "mern+tailwind+auth"){
-      serverAuthSetup(projectPath,config,projectName);
-    }
-    else if(config.stack === "mern"){
-      serverSetup(projectPath,config,projectName);
+    if (config.stack === "mern+tailwind+auth") {
+      mernTailwindSetup(projectPath, config, projectName, installDeps);
+      serverAuthSetup(projectPath, config, projectName, installDeps);
+    } else if (config.stack === "mern") {
+      serverSetup(projectPath, config, projectName, installDeps);
     }
     logger.info("✅ MERN project created successfully!");
   } catch (error) {
@@ -338,9 +342,15 @@ export function mernSetup(projectPath, config, projectName) {
   }
 }
 
-export function mernTailwindSetup(projectPath, config, projectName) {
+export function mernTailwindSetup(projectPath, config, projectName, installDeps = true) {
   try {
-    execSync(`npm install tailwindcss @tailwindcss/vite`, { cwd: path.join(projectPath, "client") });
+    if (installDeps) {
+      execSync(`npm install tailwindcss @tailwindcss/vite`, { 
+        cwd: path.join(projectPath, "client"),
+        stdio: "inherit",
+        shell: true
+      });
+    }
 
     let isJs = config.language === 'javascript';
     const viteConfigPath = isJs 
@@ -349,16 +359,15 @@ export function mernTailwindSetup(projectPath, config, projectName) {
     
     let viteConfigContent = fs.readFileSync(viteConfigPath, "utf-8");
 
-    const indexCssPath = path.join(projectPath,"client","src","index.css")
+    const indexCssPath = path.join(projectPath, "client", "src", "index.css");
     let indexCssPathContent = fs.readFileSync(indexCssPath, "utf-8");
 
     indexCssPathContent = indexCssPathContent.replace(
       /:root/g,
       "@import 'tailwindcss';\n\n:root"
     );
-    
 
-    fs.writeFileSync(indexCssPath,indexCssPathContent)
+    fs.writeFileSync(indexCssPath, indexCssPathContent);
 
     // Add tailwindcss import
     viteConfigContent = viteConfigContent.replace(
@@ -386,19 +395,25 @@ export function mernTailwindSetup(projectPath, config, projectName) {
 }
 
 
-export function mevnSetup(projectPath,config,projectName){
+export function mevnSetup(projectPath, config, projectName, installDeps = true) {
   try {
     logger.info("⚡ Setting up MEVN...");
-    if(config.language=='javascript'){
-      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
-
-
-    }
-    else{
-      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
-    }
-
+    const skipInstallFlag = installDeps ? "" : "--skip-install";
     
+    if (config.language == 'javascript') {
+      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive ${skipInstallFlag}`, { 
+        cwd: projectPath, 
+        stdio: "inherit", 
+        shell: true 
+      });
+    } else {
+      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive ${skipInstallFlag}`, { 
+        cwd: projectPath, 
+        stdio: "inherit", 
+        shell: true 
+      });
+    }
+
     const vueJsPath = path.join(projectPath, "client", "src", "components", "HelloWorld.vue");
     const scriptPath = path.join(projectPath, "client", "src", "components", "HelloWorld.vue");
 
@@ -434,7 +449,7 @@ export function mevnSetup(projectPath,config,projectName){
   
     fs.writeFileSync(vueJsPath, vueJsPathContent, "utf-8");
 
-    // Replace <style> block (or append if missing)~
+    // Replace <style> block (or append if missing)
     const newStyles = `<style scoped>
     .powered-badge {
       position: fixed;
@@ -477,7 +492,7 @@ export function mevnSetup(projectPath,config,projectName){
     fs.writeFileSync(vueJsPath, vueJsPathContent, "utf-8");
     
     logger.info("✅ MEVN project created successfully!");
-    serverSetup(projectPath,config,projectName);
+    serverSetup(projectPath, config, projectName, installDeps);
 
   } catch (error) {
     logger.error("❌ Failed to set up MEVN");
@@ -485,22 +500,21 @@ export function mevnSetup(projectPath,config,projectName){
   }
 }
 
-export function mevnTailwindAuthSetup(projectPath, config, projectName) {
+export function mevnTailwindAuthSetup(projectPath, config, projectName, installDeps = true) {
   logger.info("⚡ Setting up MEVN + Tailwind + Auth...");
 
   try {
+    const skipInstallFlag = installDeps ? "" : "--skip-install";
+    
     // 1. Create Vue client with Vite (js / ts)
-    if(config.language==='javascript'){
-
-      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive`, {
+    if (config.language === 'javascript') {
+      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
-    }
-
-    else{
-      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive`, {
+    } else {
+      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive ${skipInstallFlag}`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
@@ -509,12 +523,14 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName) {
 
     const clientPath = path.join(projectPath, "client");
 
-    // 2. Install Tailwind plugin for Vite in client
-    execSync(`npm install tailwindcss @tailwindcss/vite`, {
-      cwd: clientPath,
-      stdio: "inherit",
-      shell: true,
-    });
+    // 2. Install Tailwind plugin for Vite in client (only if installDeps is true)
+    if (installDeps) {
+      execSync(`npm install tailwindcss @tailwindcss/vite`, {
+        cwd: clientPath,
+        stdio: "inherit",
+        shell: true,
+      });
+    }
 
     // 3. Patch Vite config (handle .js / .ts like mernTailwindSetup)
     const isJs = config.language === "javascript";
@@ -600,7 +616,6 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName) {
 
     fs.writeFileSync(scriptPath, scriptPathContent, "utf-8");
 
-
     let vuejsPathContent = fs.readFileSync(vueJsPath, "utf-8");
     vuejsPathContent = vuejsPathContent.replace(
       /<p class="read-the-docs">Click on the Vite and Vue logos to learn more<\/p>/,
@@ -620,15 +635,15 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName) {
 
     logger.info("MEVN + Tailwind + Auth setup completed!");
 
-    serverAuthSetup(projectPath,config,projectName);
+    serverAuthSetup(projectPath, config, projectName, installDeps);
   } catch (error) {
     logger.error("Failed to set up MEVN + Tailwind + Auth");
     throw error;
   }
 }
 
-export function serverSetup(projectPath,config,projectName){
-  try{
+export function serverSetup(projectPath, config, projectName, installDeps = true) {
+  try {
     const serverDir = path.join(projectPath, "server");
     
     // Create server directory if it doesn't exist
@@ -643,15 +658,22 @@ export function serverSetup(projectPath,config,projectName){
       shell: true
     });
 
-    installDependencies(projectPath,config,projectName,true,["express","dotenv","mongoose","nodemon","cors","helmet","express-rate-limit"])
+    installDependencies(
+      projectPath, 
+      config, 
+      projectName, 
+      true, 
+      ["express", "dotenv", "mongoose", "nodemon", "cors", "helmet", "express-rate-limit"], 
+      installDeps
+    );
 
-  }catch(error){
+  } catch (error) {
     logger.error("❌ Failed to set up server");
     throw error;
   }
 }
 
-export function serverAuthSetup(projectPath,config,projectName){
+export function serverAuthSetup(projectPath, config, projectName, installDeps = true) {
   try {
     const serverDir = path.join(projectPath, "server");
     
@@ -668,10 +690,17 @@ export function serverAuthSetup(projectPath,config,projectName){
         shell: true
       });
     } catch (error) {
-      logger.info()
+      logger.info("Package.json already exists or error initializing");
     }
 
-    installDependencies(projectPath,config,projectName,true,["bcrypt","jsonwebtoken","cookie-parser","dotenv","express","helmet","mongoose","cors","nodemon","morgan"])
+    installDependencies(
+      projectPath, 
+      config, 
+      projectName, 
+      true, 
+      ["bcrypt", "jsonwebtoken", "cookie-parser", "dotenv", "express", "helmet", "mongoose", "cors", "nodemon", "morgan"], 
+      installDeps
+    );
 
   } catch (error) {
     logger.error("❌ Failed to set up server auth");
