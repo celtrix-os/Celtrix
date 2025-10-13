@@ -39,7 +39,7 @@ export function installDependencies(projectPath, config, projectName, server = t
 }
 
 
-export function angularSetup(projectPath, config, projectName) {
+export function angularSetup(projectPath, config, projectName,installDeps) {
   logger.info("⚡ Setting up Angular...");
 
   try {
@@ -50,7 +50,7 @@ export function angularSetup(projectPath, config, projectName) {
       shell: true, 
     });
 
-    serverSetup(projectPath,config,projectName);
+    serverSetup(projectPath,config,projectName,installDeps);
     logger.info("✅ Angular project created successfully!");
     
     return true;
@@ -109,7 +109,7 @@ export function angularTailwindSetup(projectPath, config, projectName) {
 }
 
 
-export function HonoReactSetup(projectPath, config, projectName) {
+export function HonoReactSetup(projectPath, config, projectName,installDeps) {
   logger.info("⚡ Setting up Hono+ React...");
 
   try {
@@ -137,7 +137,7 @@ export function HonoReactSetup(projectPath, config, projectName) {
     });
 
     logger.info("Created Hono + React Project !");
-    serverAuthSetup(projectPath,config,projectName);
+    serverAuthSetup(projectPath,config,projectName,installDeps);
 
   } catch (error) {
     logger.error("❌ Failed to set up Hono + react Project using cli");
@@ -145,7 +145,7 @@ export function HonoReactSetup(projectPath, config, projectName) {
   }
 }
 
-export function mernSetup(projectPath, config, projectName) {
+export function mernSetup(projectPath, config, projectName,installDeps) {
   logger.info("⚡ Setting up MERN...");
 
   try {
@@ -326,10 +326,10 @@ export function mernSetup(projectPath, config, projectName) {
     }
 
     if(config.stack === "mern+tailwind+auth"){
-      serverAuthSetup(projectPath,config,projectName);
+      serverAuthSetup(projectPath,config,projectName,installDeps);
     }
     else if(config.stack === "mern"){
-      serverSetup(projectPath,config,projectName);
+      serverSetup(projectPath,config,projectName,installDeps);
     }
     logger.info("✅ MERN project created successfully!");
   } catch (error) {
@@ -386,7 +386,7 @@ export function mernTailwindSetup(projectPath, config, projectName) {
 }
 
 
-export function mevnSetup(projectPath,config,projectName){
+export function mevnSetup(projectPath,config,projectName,installDeps){
   try {
     logger.info("⚡ Setting up MEVN...");
     if(config.language=='javascript'){
@@ -477,7 +477,7 @@ export function mevnSetup(projectPath,config,projectName){
     fs.writeFileSync(vueJsPath, vueJsPathContent, "utf-8");
     
     logger.info("✅ MEVN project created successfully!");
-    serverSetup(projectPath,config,projectName);
+    serverSetup(projectPath,config,projectName,installDeps);
 
   } catch (error) {
     logger.error("❌ Failed to set up MEVN");
@@ -485,7 +485,7 @@ export function mevnSetup(projectPath,config,projectName){
   }
 }
 
-export function mevnTailwindAuthSetup(projectPath, config, projectName) {
+export function mevnTailwindAuthSetup(projectPath, config, projectName,installDeps) {
   logger.info("⚡ Setting up MEVN + Tailwind + Auth...");
 
   try {
@@ -620,7 +620,7 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName) {
 
     logger.info("MEVN + Tailwind + Auth setup completed!");
 
-    serverAuthSetup(projectPath,config,projectName);
+    serverAuthSetup(projectPath,config,projectName,installDeps);
   } catch (error) {
     logger.error("Failed to set up MEVN + Tailwind + Auth");
     throw error;

@@ -39,38 +39,38 @@ export async function setupProject(projectName, config, installDeps) {
 
 
   if (config.stack === "mern") {
-    mernSetup(projectPath, config, projectName);
+    mernSetup(projectPath, config, projectName,installDeps);
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName, false, [])
   }
 
   else if (config.stack === 'mevn') {
-    mevnSetup(projectPath, config, projectName)
+    mevnSetup(projectPath, config, projectName,installDeps)
     copyTemplates(projectPath, config)
     if (installDeps) installDependencies(projectPath, config, projectName, false, [])
   }
 
   else if (config.stack === "mean") {
-    angularSetup(projectPath, config, projectName);
+    angularSetup(projectPath, config, projectName,installDeps);
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName);
   }
 
   else if (config.stack === "mern+tailwind+auth") {
-    mernSetup(projectPath, config, projectName);
+    mernSetup(projectPath, config, projectName,installDeps);
     copyTemplates(projectPath, config);
     mernTailwindSetup(projectPath, config, projectName);
     serverAuthSetup(projectPath, config, projectName, installDeps);
   }
 
   else if (config.stack === 'mevn+tailwind+auth') {
-    mevnTailwindAuthSetup(projectPath, config, projectName);
+    mevnTailwindAuthSetup(projectPath, config, projectName,installDeps);
     copyTemplates(projectPath, config);
     serverAuthSetup(projectPath, config, projectName, installDeps)
   }
 
   else if (config.stack === "mean+tailwind+auth") {
-    angularTailwindSetup(projectPath, config, projectName);
+    angularTailwindSetup(projectPath, config, projectName,installDeps);
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName);
     serverAuthSetup(projectPath, config, projectName, installDeps);
@@ -85,7 +85,7 @@ export async function setupProject(projectName, config, installDeps) {
 
   else if (config.stack === "hono") {
     try {
-      HonoReactSetup(projectPath, config, projectName);
+      HonoReactSetup(projectPath, config, projectName,installDeps);
       copyTemplates(projectPath, config);
       if (installDeps) installDependencies(projectPath, config, projectName, false);
     }
