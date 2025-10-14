@@ -39,18 +39,24 @@ export function copyTemplates(projectPath, config) {
       break;
     }
 
-    case 'hono': {
+ case 'hono': {
       const clientPath = path.join(projectPath, 'client');
       const serverPath = path.join(projectPath, 'server');
-      // const frontendTemplate = path.join(
-      //   __dirname, '..', 'templates', stack, config.language, 'client'
-      // );
+      const frontendTemplate = path.join(
+        __dirname, '..', 'templates', stack, config.language, 'client'
+      );
       const backendTemplate = path.join(
         __dirname, '..', 'templates', stack, config.language, 'server'
       );
-      
+
       logger.info('📂 Copying template files...');
+      // Always ensure server template exists (Cloudflare Workers structure)
       fs.copySync(backendTemplate, serverPath);
+      // Fallback: only copy client template if CLI didn't create it
+      if (!fs.existsSync(clientPath) || fs.readdirSync(clientPath).length === 0) {
+        logger.warn('⚠️ Hono client not found after CLI step — copying fallback client template');
+        fs.copySync(frontendTemplate, clientPath);
+      }
       break;
     }
     
