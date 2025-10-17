@@ -22,6 +22,7 @@ export async function setupProject(projectName, config, installDeps) {
     ${chalk.bold("🌐 Stack:")}  ${chalk.green(config.stack)}
     ${chalk.bold("📦 Project Name:")}  ${chalk.blue(projectName)}
     ${chalk.bold("📖 Language:")}  ${chalk.red(config.language)}
+    ${chalk.bold("📦 Package Manager")}  ${chalk.magenta(config.packageManager)}
     `;
 
   console.log(
@@ -111,22 +112,39 @@ export async function setupProject(projectName, config, installDeps) {
   console.log(chalk.gray("-------------------------------------------"))
   console.log(chalk.cyan("👉 Next Steps:\n"));
 
+  // Provide package-manager commands for dev/start
+  const cmd = (script) => {
+    switch (config.packageManager) {
+      case "yarn":
+        return `yarn ${script}`;
+      case "pnpm":
+        // pnpm supports both `pnpm run <script>` and `pnpm <script>`. Use run for clarity
+        return script === "dev" ? "pnpm run dev" : "pnpm start";
+      case "bun":
+        // use `bun run <script>` for consistency
+        return `bun run ${script}`;
+      case "npm":
+      default:
+        return script === "dev" ? "npm run dev" : "npm start";
+    }
+  };
+
   if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm start")}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
   } else if (config.stack === "nextjs") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green("npm run dev")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
 
   } else if (config.stack === "react+tailwind+firebase") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
     console.log(`   ${chalk.gray("📝 Don't forget to configure your Firebase project in .env file!")}`);
 
   } else if (config.stack === "hono") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm run dev")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("dev"))}`);
   } else {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green("npm run dev")}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green("npm start")}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
   }
 
   console.log(chalk.gray("-------------------------------------------"))

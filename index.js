@@ -9,6 +9,16 @@ import { createProject } from "./commands/scaffold.js";
 
 const orange = chalk.hex("#FF6200");
 
+function detectPackageManager() {
+  const userAgent = process.env.npm_config_user_agent;
+  if (!userAgent) return "npm";
+  if (userAgent.includes("pnpm")) return "pnpm";
+  if (userAgent.includes("yarn")) return "yarn";
+  if (userAgent.includes("bun")) return "bun";
+  if (userAgent.includes("npm")) return "npm";
+  return "npm";
+}
+
 function showBanner() {
   console.log(
     gradient.pastel(
@@ -121,6 +131,24 @@ async function askProjectName() {
   return projectName;
 }
 
+async function askPackageManager() {
+  return await inquirer.prompt([
+    {
+      type: "list",
+      name: "packageManager",
+      message: "Choose a package manager:",
+      choices: [
+        { name: chalk.bold.red("npm"), value: "npm" },
+        { name: chalk.bold.cyan("yarn"), value: "yarn" },
+        { name: chalk.bold.yellow("pnpm"), value: "pnpm" },
+        { name: chalk.bold.white("bun"), value: "bun" },
+      ],
+      pageSize: 10,
+      default: detectPackageManager(),
+    },
+  ]);
+}
+
 function getVersion() {
   try {
     const __filename = fileURLToPath(import.meta.url);
@@ -169,8 +197,13 @@ function showHelp() {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-
+  let packageManager = detectPackageManager();
+  let args;
+  if(packageManager == "npm" || packageManager == "bun") {
+    args = process.argv.slice(2);
+  } else {
+    args = process.argv.slice(3);
+  }  
   // Handle version flag
   if (args.includes('--version') || args.includes('-v')) {
     showVersion();
@@ -189,11 +222,18 @@ async function main() {
   let config;
 
   try {
+
     if (!projectName) {
       projectName = await askProjectName();
     }
     const stackAnswers = await askStackQuestions();
-    config = { ...stackAnswers, projectName };
+    
+    // Handle package manager flag
+    if (args.includes('--package-manager') || args.includes('-p')) {
+      packageManager = (await askPackageManager()).packageManager;
+    }
+
+    config = { ...stackAnswers, projectName, packageManager };
 
     // Ask whether to install dependencies (handled in main script)
     const { installDeps } = await inquirer.prompt([

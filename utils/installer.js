@@ -10,7 +10,7 @@ export function installDependencies(projectPath, config, projectName, server = t
       const t3AppDir = path.join(projectPath, 't3-app');
       if (fs.existsSync(t3AppDir)) {
         logger.info("📦 Installing T3 stack dependencies...");
-        execSync("npm install", { cwd: t3AppDir, stdio: "inherit", shell: true });
+        execSync(`${config.packageManager} install`, { cwd: t3AppDir, stdio: "inherit", shell: true });
         logger.info("✅ T3 stack dependencies installed successfully");
         return;
       }
@@ -22,12 +22,12 @@ export function installDependencies(projectPath, config, projectName, server = t
 
     if (fs.existsSync(clientDir)) {
       logger.info("📦 Installing Frontend dependencies...");
-      execSync("npm install", { cwd: clientDir, stdio: "inherit", shell: true });
+      execSync(`${config.packageManager} install`, { cwd: clientDir, stdio: "inherit", shell: true });
     }
 
     if (server && fs.existsSync(serverDir)) {
       logger.info("📦 Installing Backend dependencies...");
-      execSync("npm install " + dependencies.join(" "), { cwd: serverDir, stdio: "inherit", shell: true });
+      execSync(`${config.packageManager} ${config.packageManager == "npm" ? "install" : "add"} ` + dependencies.join(" "), { cwd: serverDir, stdio: "inherit", shell: true });
     }
 
     logger.info("✅ Dependencies installed successfully");
@@ -74,7 +74,7 @@ export function angularTailwindSetup(projectPath, config, projectName) {
     const clientPath = path.join(projectPath, "client");
 
     // 2. Install Tailwind + PostCSS
-    execSync(`npm install tailwindcss @tailwindcss/postcss postcss --force`, {
+    execSync(`${config.packageManager} ${config.packageManager == "npm" ? "install" : "add"} tailwindcss @tailwindcss/postcss postcss --force`, {
       cwd: clientPath,
       stdio: "inherit",
       shell: true,
@@ -152,13 +152,13 @@ export function mernSetup(projectPath, config, projectName, installDeps) {
     // 1. Create MERN project
     if (config.language === "typescript") {
 
-      execSync(`npm create vite@latest client -- --t react-ts --no-rolldown --no-interactive `, {
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t react-ts --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
     } else {
-      execSync(`npm create vite@latest client -- --t react --no-rolldown --no-interactive `, {
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t react --no-rolldown --no-interactive `, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
@@ -340,7 +340,7 @@ export function mernSetup(projectPath, config, projectName, installDeps) {
 
 export function mernTailwindSetup(projectPath, config, projectName) {
   try {
-    execSync(`npm install tailwindcss @tailwindcss/vite`, { cwd: path.join(projectPath, "client") });
+    execSync(`${config.packageManager} ${config.packageManager == "npm" ? "install" : "add"} tailwindcss @tailwindcss/vite`, { cwd: path.join(projectPath, "client") });
 
     let isJs = config.language === 'javascript';
     const viteConfigPath = isJs
@@ -390,12 +390,12 @@ export function mevnSetup(projectPath, config, projectName, installDeps) {
   try {
     logger.info("⚡ Setting up MEVN...");
     if (config.language == 'javascript') {
-      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t vue --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
 
 
     }
     else {
-      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t vue-ts --no-rolldown --no-interactive`, { cwd: projectPath, stdio: "inherit", shell: true });
     }
 
 
@@ -492,7 +492,7 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
     // 1. Create Vue client with Vite (js / ts)
     if (config.language === 'javascript') {
 
-      execSync(`npm create vite@latest client -- --t vue --no-rolldown --no-interactive`, {
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t vue --no-rolldown --no-interactive`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
@@ -500,7 +500,7 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
     }
 
     else {
-      execSync(`npm create vite@latest client -- --t vue-ts --no-rolldown --no-interactive`, {
+      execSync(`${config.packageManager} create ${config.packageManager == "npm" ? "vite@latest" : "vite"} client ${config.packageManager == "npm" ? "--" : ""} --t vue-ts --no-rolldown --no-interactive`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
@@ -510,7 +510,7 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
     const clientPath = path.join(projectPath, "client");
 
     // 2. Install Tailwind plugin for Vite in client
-    execSync(`npm install tailwindcss @tailwindcss/vite`, {
+    execSync(`${config.packageManager} ${config.packageManager == "npm" ? "install" : "add"} tailwindcss @tailwindcss/vite`, {
       cwd: clientPath,
       stdio: "inherit",
       shell: true,
@@ -629,9 +629,24 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
 
 export function nextSetup(projectPath, config, projectName) {
   try {
+    // next command based on package manager
+    function nextCommand() {
+      switch (config.packageManager) {
+        case "npm":
+          return "npx create-next-app@latest";
+        case "pnpm":
+          return "pnpm dlx create-next-app@latest";
+        case "yarn":
+          return "yarn dlx create-next-app@latest";
+        case "bun":
+          return "bunx create-next-app@latest";
+        default:
+          return "npx create-next-app@latest";  
+      }
+    }
     if (config.language === "typescript") {
       console.log("⚡ Setting up Next.js with TypeScript...");
-      execSync(`npx create-next-app@latest . \
+      execSync(`${nextCommand()} . \
             --typescript \
             --eslint \
             --tailwind \
@@ -647,7 +662,7 @@ export function nextSetup(projectPath, config, projectName) {
       });
     } else if (config.language === "javascript") {
       logger.info("⚡ Setting up Next.js with JavaScript...");
-      execSync(`npx create-next-app@latest . --eslint --tailwind --src-dir --app --turbo --import-alias @/* --yes`, {
+      execSync(`${nextCommand()} . --eslint --tailwind --src-dir --app --turbo --import-alias @/* --yes`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true
