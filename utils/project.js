@@ -4,7 +4,18 @@ import chalk from "chalk";
 import boxen from "boxen";
 import { logger } from "./logger.js";
 import { copyTemplates } from "./templateManager.js";
-import { HonoReactSetup,mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
+import {
+  HonoReactSetup,
+  mernTailwindSetup,
+  installDependencies,
+  mernSetup,
+  serverAuthSetup,
+  serverSetup,
+  mevnSetup,
+  mevnTailwindAuthSetup,
+  nextSetup,
+  mernSocketioSetup,
+} from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
 
 export async function setupProject(projectName, config, installDeps) {
@@ -38,66 +49,55 @@ export async function setupProject(projectName, config, installDeps) {
 
   // --- Copy & Install ---
 
-
   if (config.stack === "mern") {
     mernSetup(projectPath, config, projectName, installDeps);
     copyTemplates(projectPath, config);
-    if (installDeps) installDependencies(projectPath, config, projectName, false, [])
-  }
+    if (installDeps)
+      installDependencies(projectPath, config, projectName, false, []);
+  } else if (config.stack === "mern-socketio") {
+    // Copy template files into the new project directory first
+    await copyTemplates(projectPath, config);
 
-  else if (config.stack === 'mevn') {
-    mevnSetup(projectPath, config, projectName, installDeps)
-    copyTemplates(projectPath, config)
-    if (installDeps) installDependencies(projectPath, config, projectName, false, [])
-  }
-
-  else if (config.stack === "mean") {
+    // Then run the socketio-specific setup which installs dependencies
+    await mernSocketioSetup(projectPath, config, projectName, installDeps);
+  } else if (config.stack === "mevn") {
+    mevnSetup(projectPath, config, projectName, installDeps);
+    copyTemplates(projectPath, config);
+    if (installDeps)
+      installDependencies(projectPath, config, projectName, false, []);
+  } else if (config.stack === "mean") {
     angularSetup(projectPath, config, projectName, installDeps);
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName);
-  }
-
-  else if (config.stack === "mern+tailwind+auth") {
+  } else if (config.stack === "mern+tailwind+auth") {
     mernSetup(projectPath, config, projectName, installDeps);
     copyTemplates(projectPath, config);
     mernTailwindSetup(projectPath, config, projectName);
     serverAuthSetup(projectPath, config, projectName, installDeps);
-  }
-
-  else if (config.stack === 'mevn+tailwind+auth') {
+  } else if (config.stack === "mevn+tailwind+auth") {
     mevnTailwindAuthSetup(projectPath, config, projectName, installDeps);
     copyTemplates(projectPath, config);
-    serverAuthSetup(projectPath, config, projectName, installDeps)
-  }
-
-  else if (config.stack === "mean+tailwind+auth") {
+    serverAuthSetup(projectPath, config, projectName, installDeps);
+  } else if (config.stack === "mean+tailwind+auth") {
     angularTailwindSetup(projectPath, config, projectName);
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName);
     serverAuthSetup(projectPath, config, projectName, installDeps);
-  }
-
-
-  else if (config.stack === "react+tailwind+firebase") {
+  } else if (config.stack === "react+tailwind+firebase") {
     copyTemplates(projectPath, config);
     if (installDeps) installDependencies(projectPath, config, projectName);
-  }
-
-
-  else if (config.stack === "hono") {
+  } else if (config.stack === "hono") {
     try {
       HonoReactSetup(projectPath, config, projectName, installDeps);
       copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false);
-    }
-    catch {
+      if (installDeps)
+        installDependencies(projectPath, config, projectName, false);
+    } catch {
       copyTemplates(projectPath, config);
     }
-  }
-
-  else if (config.stack === 'nextjs') {
+  } else if (config.stack === "nextjs") {
     try {
-       nextSetup(projectPath,config,projectName);
+      nextSetup(projectPath, config, projectName);
       logger.info("✅ Next.js project created successfully!");
     } catch (error) {
       logger.error("❌ Failed to set up Next.js");
@@ -107,9 +107,15 @@ export async function setupProject(projectName, config, installDeps) {
   }
 
   // --- Success + Next Steps ---
-  console.log(chalk.gray("-------------------------------------------"))
-  console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);
-  console.log(chalk.gray("-------------------------------------------"))
+  console.log(chalk.gray("-------------------------------------------"));
+  console.log(
+    `${chalk.greenBright(
+      `✅ Project ${chalk.bold.yellow(
+        `${projectName}`
+      )} created successfully! 🎉`
+    )}`
+  );
+  console.log(chalk.gray("-------------------------------------------"));
   console.log(chalk.cyan("👉 Next Steps:\n"));
 
   // Provide package-manager commands for dev/start
@@ -130,23 +136,55 @@ export async function setupProject(projectName, config, installDeps) {
   };
 
   if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(
+        cmd("start")
+      )}`
+    );
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(
+        cmd("start")
+      )}`
+    );
   } else if (config.stack === "nextjs") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
-
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`
+    );
   } else if (config.stack === "react+tailwind+firebase") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
-    console.log(`   ${chalk.gray("📝 Don't forget to configure your Firebase project in .env file!")}`);
-
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(
+        cmd("dev")
+      )}`
+    );
+    console.log(
+      `   ${chalk.gray(
+        "📝 Don't forget to configure your Firebase project in .env file!"
+      )}`
+    );
   } else if (config.stack === "hono") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("dev"))}`);
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(
+        cmd("dev")
+      )}`
+    );
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(
+        cmd("dev")
+      )}`
+    );
   } else {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(
+        cmd("dev")
+      )}`
+    );
+    console.log(
+      `   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(
+        cmd("start")
+      )}`
+    );
   }
 
-  console.log(chalk.gray("-------------------------------------------"))
+  console.log(chalk.gray("-------------------------------------------"));
   console.log(chalk.gray("\n✨ Made with ❤️  by Celtrix ✨\n"));
 }
