@@ -103,18 +103,6 @@ async function askStackQuestions() {
       pageSize: 10,
       default: "mern",
     },
-    {
-      name: "projectType",
-      type: "list",
-      message: "Select a project type:",
-      choices: [
-        "MERN",
-        "MEAN",
-        "MEVN",
-        "MERN (Real-Time with Socket.io)",
-        "PERN",
-      ],
-    },
     // Show only JavaScript when user picked the socket template
     {
       type: "list",
