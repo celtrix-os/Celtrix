@@ -1,8 +1,26 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-// Use the backend URL from your server.
-// The server is running on port 5000.
-const URL = 'http://localhost:5000';
-const socket = io(URL);
+const URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// enable reconnection and transports, and log connection attempts
+const socket = io(URL, {
+  transports: ["websocket", "polling"],
+  reconnectionAttempts: 5,
+  autoConnect: true,
+});
+
+socket.on("connect_error", (err) => {
+  // will show CORS / version / network errors
+  console.error("Socket connect_error:", err.message || err);
+});
+socket.on("reconnect_attempt", () => {
+  console.info("Socket reconnect attempt");
+});
+socket.on("connect", () => {
+  console.info("Socket connected, id=", socket.id);
+});
+socket.on("disconnect", (reason) => {
+  console.info("Socket disconnected:", reason);
+});
 
 export default socket;

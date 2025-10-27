@@ -54,7 +54,7 @@ async function askStackQuestions() {
         {
           name:
             orange.bold("⚡ MERN + Socket.io") +
-            chalk.gray(" → Real-time chat setup"),
+            chalk.gray(" → Generic Socket Setup"),
           value: "mern-socketio",
         },
         {

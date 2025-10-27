@@ -1,86 +1,56 @@
-# MERN Socket.io Real-Time Chat Application
+# MERN + Socket.io Generic Real-Time Template
 
-This project is a simple chat application built using the MERN stack (MongoDB, Express, React, Node.js) with real-time communication capabilities powered by Socket.io.
+This project is a generic template for building real-time applications using Express, React, and Socket.io. It provides a clean foundation for features like live notifications, data broadcasting, and direct client-server communication.
 
 ## Project Structure
 
 ```
-mern-socketio-app
-├── client                # React frontend
-│   ├── public
-│   │   └── index.html    # Main HTML file
-│   ├── src
-│   │   ├── components
-│   │   │   └── Chat.js    # Chat component for real-time messaging
-│   │   ├── App.js         # Main App component
-│   │   └── index.js       # Entry point for React application
-│   └── package.json       # React dependencies
-├── server                # Express backend
-│   ├── models
-│   │   └── Message.js     # Mongoose model for messages
-│   ├── routes
-│   │   └── messages.js     # API routes for messages
-│   ├── index.js           # Entry point for Express server
-│   └── package.json       # Express dependencies
-├── package.json           # Main configuration file for the project
-└── README.md              # Project documentation
+mern-socketio/
+├── client/                # Vite + React frontend
+│   ├── src/
+│   │   ├── App.jsx        # Main UI component with socket logic
+│   │   ├── App.css        # Styles for the application
+│   │   ├── main.jsx       # React entry point
+│   │   └── socket.js      # Socket.io client setup
+│   ├── index.html         # Main HTML file
+│   └── package.json       # Frontend dependencies
+└── server/                # Express + Socket.io backend
+    ├── socketHandler.js   # Core logic for handling all socket events
+    ├── index.js           # Express server entry point
+    ├── .env.example       # Example environment variables
+    └── package.json       # Backend dependencies
 ```
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js
-- MongoDB
-
-### Installation
-
-1. Clone the repository:
-
-   ```
-   git clone <repository-url>
-   cd mern-socketio-app
-   ```
-
-2. Install server dependencies:
-
-   ```
-   cd server
-   npm install
-   ```
-
-3. Install client dependencies:
-
-   ```
-   cd client
-   npm install
-   ```
+This template is designed to be scaffolded by the Celtrix CLI. After the project is created, all dependencies will be installed automatically if you selected that option during setup.
 
 ### Running the Application
 
-1. Start the MongoDB server.
+To run the application, you need to open two separate terminal windows inside your newly created project folder.
 
-2. Start the Express server:
+**1. Start the Backend Server:**
 
-   ```
-   cd server
-   npm start
-   ```
+```bash
+cd server
+npm start
+```
 
-3. Start the React client:
+The server will start on `http://localhost:5000`.
 
-   ```
-   cd client
-   npm start
-   ```
+**2. Start the Frontend Client:**
 
-### Usage
+```bash
+cd client
+npm run dev
+```
 
-- Open your browser and navigate to `http://localhost:3000` to access the chat application.
-- You can send and receive messages in real-time.
+The client application will open in your browser at `http://localhost:3000`.
 
-### Features
+## Features
 
-- Real-time messaging using Socket.io.
-- Messages are stored in a MongoDB database.
-- Simple and clean user interface.
+- **Generic Real-Time Foundation:** A clean starting point for any real-time feature.
+- **Socket.io Event Handling:** Demonstrates connection, disconnection, broadcasting, and direct request/response patterns.
+- **Clean UI:** A simple interface to visualize the connection status, emit events, and view a real-time log of socket activity.
+- **Decoupled Backend:** Server setup is separated from real-time event handling (`index.js` vs. `socketHandler.js`).
+- **No Database Required:** Runs out-of-the-box without needing a database setup.
