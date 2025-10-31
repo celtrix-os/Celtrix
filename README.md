@@ -67,7 +67,17 @@ You can now find the full list of FAQs here: [FAQ.md](./FAQ.md)
 
 ---
 
-# ⭐ Star History
+# Analytics
+
+<div align="center">
+  
+![Alt](https://repobeats.axiom.co/api/embed/a7eb78008e8600eecc1e03ef4a546cf9104411dc.svg "Repobeats analytics image")
+
+</div>
+
+---
+
+# Star History
 
 <div align="center">
   <h3>📈 Watch our journey grow!</h3>
@@ -92,10 +102,10 @@ You can now find the full list of FAQs here: [FAQ.md](./FAQ.md)
 
 We love contributions! Please feel free to:
 
-- 🐞 Report bugs
-- 💡 Suggest new features
-- 🔧 Submit pull requests
-- ⭐ Star this repository
+- Report bugs
+- Suggest new features or ideas
+- Submit pull requests
+- Star this repository
 
 Check out [CONTRIBUTING](https://github.com/celtrix-os/Celtrix/blob/main/CONTRIBUTING.md) to see how to contribute to Celtrix.
 
