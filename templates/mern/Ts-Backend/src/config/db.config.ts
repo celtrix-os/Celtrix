@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 import { env } from '../constant/env.constant';
 
-const connectDB = async ()  => {
+const connectDB = async () => {
   try {
-   const conn =  await mongoose.connect(env.DB_CONNECTION_STRING, {
+    const conn = await mongoose.connect(env.DB_CONNECTION_STRING, {
       dbName: env.DB_NAME,
       autoIndex: env.NODE_ENV !== 'production',
     });
@@ -14,6 +14,5 @@ const connectDB = async ()  => {
     process.exit(1);
   }
 };
-
 
 export default connectDB;
