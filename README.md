@@ -10,7 +10,7 @@
   [![npm version](https://img.shields.io/npm/v/celtrix.svg)](https://www.npmjs.com/package/celtrix)
   ![npm](https://img.shields.io/npm/dt/celtrix)
   [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-  [![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da?logo=discord&logoColor=white)](https://discord.gg/7MQePxW2)
+  [![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da?logo=discord&logoColor=white)](https://discord.gg/GkDcAErQbD)
 
   
 </div>
