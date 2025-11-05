@@ -4,7 +4,7 @@ import chalk from 'chalk';
 const CELTRIX_SITE = 'https://celtrix-dev.netlify.app/';
 
 export async function loginCommand() {
-  console.log(chalk.cyan('\n🔐 Opening Celtrix login page...\n'));
+  console.log(chalk.cyan('\n Opening Celtrix login page...\n'));
   console.log(chalk.gray(`🌐 Visit: ${CELTRIX_SITE}`));
   console.log(chalk.gray('📋 Follow the instructions on the website to login.\n'));
   
