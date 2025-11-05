@@ -42,6 +42,7 @@
     "inquirer": "^12.9.4",
     "log-symbols": "^7.0.1",
     "node-fetch": "^3.3.2",
+    "open": "^10.2.0",
     "ora": "^8.2.0"
   },
   "scripts": {

@@ -1,3 +1,4 @@
+
 import inquirer from "inquirer";
 import chalk from "chalk";
 import gradient from "gradient-string";
@@ -6,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createProject } from "./commands/scaffold.js";
+import { loginCommand } from "./commands/login.js";
 
 const orange = chalk.hex("#FF6200");
 
@@ -213,6 +215,11 @@ async function main() {
   // Handle help flag
   if (args.includes('--help') || args.includes('-h')) {
     showHelp();
+    process.exit(0);
+  }
+
+  if (args.includes('login')) {
+    await loginCommand();
     process.exit(0);
   }
 
