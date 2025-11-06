@@ -169,6 +169,13 @@ export function copyTemplates(projectPath, config) {
       break;
     }
 
+    case 'nextjs' : {
+      const backendTemplate = path.join(__dirname, '..', 'templates', stack);
+      logger.info('📂 Copying template files...');
+      fs.copySync(backendTemplate, projectPath);
+      break;
+    }
+
     case 'hono': {
       const clientPath = path.join(projectPath, 'client');
       const serverPath = path.join(projectPath, 'server');
