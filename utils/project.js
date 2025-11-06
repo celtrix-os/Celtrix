@@ -97,7 +97,8 @@ export async function setupProject(projectName, config, installDeps) {
 
   else if (config.stack === 'nextjs') {
     try {
-       nextSetup(projectPath,config,projectName);
+      nextSetup(projectPath,config,projectName);
+      copyTemplates(projectPath,config)
       logger.info("✅ Next.js project created successfully!");
     } catch (error) {
       logger.error("❌ Failed to set up Next.js");
