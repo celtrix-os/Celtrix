@@ -11,6 +11,11 @@ import { loginCommand } from "./commands/login.js";
 
 const orange = chalk.hex("#FF6200");
 
+const quickTemplates = {
+  "mern-js": { stack: "mern", language: "javascript" },
+  "mern-ts": { stack: "mern", language: "typescript" }
+};
+
 function detectPackageManager() {
   const userAgent = process.env.npm_config_user_agent;
   if (!userAgent) return "npm";
@@ -227,19 +232,43 @@ async function main() {
 
   let projectName = args.find(arg => !arg.startsWith('--') && !arg.startsWith('-'));
   let config;
+  const quickKey = args[0];
+let isQuick = false;
+let quickConfig = null;
+
+if (quickTemplates[quickKey]) {
+  isQuick = true;
+  quickConfig = quickTemplates[quickKey];
+}
 
   try {
 
-    if (!projectName) {
-      projectName = await askProjectName();
-    }
-    const stackAnswers = await askStackQuestions();
-    
-    packageManager = (await askPackageManager()).packageManager;
-    
+   if (isQuick) {
+  // QUICK MODE (mern-js / mern-ts)
+  console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
 
-    config = { ...stackAnswers, projectName, packageManager };
+  projectName = args[1] || (await askProjectName());
 
+  packageManager = (await askPackageManager()).packageManager;
+
+  config = {
+    stack: quickConfig.stack,       // always mern
+    language: quickConfig.language, // js or ts
+    projectName,
+    packageManager
+  };
+
+} else {
+  // NORMAL MODE (unchanged)
+  if (!projectName) {
+    projectName = await askProjectName();
+  }
+
+  const stackAnswers = await askStackQuestions();
+  packageManager = (await askPackageManager()).packageManager;
+
+  config = { ...stackAnswers, projectName, packageManager };
+}
     // Ask whether to install dependencies (handled in main script)
     const { installDeps } = await inquirer.prompt([
       {
