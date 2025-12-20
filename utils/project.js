@@ -6,6 +6,7 @@ import { logger } from "./logger.js";
 import { copyTemplates } from "./templateManager.js";
 import { HonoReactSetup,mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
+import { applyCustomizations } from "./customization.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
@@ -18,11 +19,45 @@ export async function setupProject(projectName, config, installDeps) {
   fs.mkdirSync(projectPath);
 
   // --- Pretty Project Config (Boxed) ---
-  const configText = `
+  let configText = `
     ${chalk.bold("🌐 Stack:")}  ${chalk.green(config.stack)}
     ${chalk.bold("📦 Project Name:")}  ${chalk.blue(projectName)}
     ${chalk.bold("📖 Language:")}  ${chalk.red(config.language)}
-    ${chalk.bold("📦 Package Manager")}  ${chalk.magenta(config.packageManager)}
+    ${chalk.bold("📦 Package Manager")}  ${chalk.magenta(config.packageManager)}`;
+
+  // Add customization info if enabled
+  if (config.customization) {
+    const custom = config.customization;
+    configText += `
+    ${chalk.bold("🎨 Customizations:")}  ${chalk.cyan("Enabled")}`;
+    
+    if (custom.serverPort) {
+      configText += `
+    ${chalk.bold("🔌 Server Port:")}  ${chalk.yellow(custom.serverPort)}`;
+    }
+    
+    if (custom.clientPort) {
+      configText += `
+    ${chalk.bold("🔌 Client Port:")}  ${chalk.yellow(custom.clientPort)}`;
+    }
+    
+    if (custom.initGit) {
+      configText += `
+    ${chalk.bold("📦 Git:")}  ${chalk.green("Yes")}`;
+    }
+    
+    if (custom.setupDocker) {
+      configText += `
+    ${chalk.bold("🐳 Docker:")}  ${chalk.green("Yes")}`;
+    }
+
+    if (custom.additionalFeatures && custom.additionalFeatures.length > 0) {
+      configText += `
+    ${chalk.bold("🚀 Features:")}  ${chalk.cyan(custom.additionalFeatures.join(", "))}`;
+    }
+  }
+
+  configText += `
     `;
 
   console.log(
@@ -105,6 +140,11 @@ export async function setupProject(projectName, config, installDeps) {
       logger.error(error.message);
       throw error;
     }
+  }
+
+  // Apply customizations if enabled
+  if (config.customization) {
+    await applyCustomizations(projectPath, config);
   }
 
   // --- Success + Next Steps ---

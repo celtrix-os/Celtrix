@@ -156,6 +156,87 @@ async function askPackageManager() {
   ]);
 }
 
+async function askCustomizationOptions() {
+  return await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "enableCustomization",
+      message: chalk.cyan("🎨 Would you like to customize your project configuration?"),
+      default: false,
+    },
+  ]);
+}
+
+async function askAdvancedOptions(stackSupportsDocker = true) {
+  const questions = [
+    {
+      type: "input",
+      name: "serverPort",
+      message: chalk.cyan("🔌 Server port:"),
+      default: "5000",
+      validate: (input) => {
+        const port = parseInt(input);
+        if (isNaN(port) || port < 1 || port > 65535) {
+          return chalk.red("Please enter a valid port number (1-65535)");
+        }
+        return true;
+      },
+    },
+    {
+      type: "input",
+      name: "clientPort",
+      message: chalk.cyan("🔌 Client port:"),
+      default: "3000",
+      validate: (input) => {
+        const port = parseInt(input);
+        if (isNaN(port) || port < 1 || port > 65535) {
+          return chalk.red("Please enter a valid port number (1-65535)");
+        }
+        return true;
+      },
+    },
+    {
+      type: "confirm",
+      name: "initGit",
+      message: chalk.cyan("📦 Initialize Git repository?"),
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "setupDocker",
+      message: chalk.cyan("🐳 Include Docker configuration?"),
+      default: false,
+      when: () => stackSupportsDocker,
+    },
+    {
+      type: "list",
+      name: "codingStyle",
+      message: chalk.cyan("✨ Code formatting setup:"),
+      choices: [
+        { name: chalk.bold("ESLint + Prettier"), value: "eslint-prettier" },
+        { name: chalk.bold("ESLint only"), value: "eslint" },
+        { name: chalk.bold("None"), value: "none" },
+      ],
+      default: "eslint-prettier",
+    },
+    {
+      type: "checkbox",
+      name: "additionalFeatures",
+      message: chalk.cyan("🚀 Select additional features:"),
+      choices: [
+        { name: "API Documentation (Swagger)", value: "swagger" },
+        { name: "Environment variables (.env template)", value: "env-template" },
+        { name: "VS Code settings", value: "vscode-settings" },
+        { name: "Pre-commit hooks (Husky)", value: "husky" },
+        { name: "GitHub Actions CI/CD", value: "github-actions" },
+      ],
+      default: ["env-template"],
+    },
+  ];
+
+  return await inquirer.prompt(questions);
+}
+
 function getVersion() {
   try {
     const __filename = fileURLToPath(import.meta.url);
@@ -267,7 +348,21 @@ if (quickTemplates[quickKey]) {
   const stackAnswers = await askStackQuestions();
   packageManager = (await askPackageManager()).packageManager;
 
-  config = { ...stackAnswers, projectName, packageManager };
+  // Ask for customization options
+  const { enableCustomization } = await askCustomizationOptions();
+  
+  let customOptions = {};
+  if (enableCustomization) {
+    const stackSupportsDocker = ['mern', 'mean', 'mevn', 'mern+tailwind+auth', 'mean+tailwind+auth', 'mevn+tailwind+auth', 'hono'].includes(stackAnswers.stack);
+    customOptions = await askAdvancedOptions(stackSupportsDocker);
+  }
+
+  config = { 
+    ...stackAnswers, 
+    projectName, 
+    packageManager,
+    customization: enableCustomization ? customOptions : null
+  };
 }
     // Ask whether to install dependencies (handled in main script)
     const { installDeps } = await inquirer.prompt([
