@@ -39,6 +39,22 @@
 
 ---
 
+### **🎨 Advanced Customization** _(New!)_
+-  **Port Configuration** - Choose custom ports for server and client
+-  **Git Initialization** - Auto-setup Git with sensible `.gitignore`
+-  **Docker Support** - Optional Docker configuration
+-  **Code Quality** - ESLint + Prettier setup options
+-  **Additional Features**:
+   - API Documentation (Swagger)
+   - Environment templates
+   - VS Code workspace settings
+   - Pre-commit hooks (Husky)
+   - GitHub Actions CI/CD
+
+📖 **[Learn more about customization options →](./CUSTOMIZATION.md)**
+
+---
+
 # Quick Start
 
 No global installation needed! Get started instantly:
