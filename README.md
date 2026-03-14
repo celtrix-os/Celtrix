@@ -12,7 +12,14 @@
   [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
   [![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da?logo=discord&logoColor=white)](https://discord.gg/GkDcAErQbD)
 
-  
+
+## ☕ Support Celtrix
+
+If you like this project, consider supporting development.
+
+<a href="https://www.buymeacoffee.com/joe_celtrix">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="60" width="217" alt="Buy Me A Coffee">
+</a>
 </div>
 
 
@@ -132,4 +139,5 @@ Thanks goes to these wonderful people:
 <h3>⭐ Star us on GitHub — it motivates us a lot!</h3>
 
 </div>
+
 
