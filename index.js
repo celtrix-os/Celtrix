@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createProject } from "./commands/scaffold.js";
+import { createGithubRepo } from "./createGithubRepo.js";
 import { loginCommand } from "./commands/login.js";
 
 const orange = chalk.hex("#FF6200");
@@ -281,6 +282,7 @@ if (quickTemplates[quickKey]) {
 
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config, installDeps);
+    await createGithubRepo(projectName);
 
   } catch (err) {
     console.log(chalk.red("❌ Error:"), err.message);

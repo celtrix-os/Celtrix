@@ -13,6 +13,7 @@
   },
   "files": [
     "bin/",
+    "createGithubRepo.js",
     "index.js",
     "commands/",
     "utils/",
