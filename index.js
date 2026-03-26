@@ -279,6 +279,16 @@ if (quickTemplates[quickKey]) {
       },
     ]);
 
+    // Ask whether to create a github repo
+    const { createGitHubRepo } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "createGitHubRepo",
+        message: "Do you want to create a GitHub Repository?",
+        default: true,
+      },
+    ]);
+
     console.log(chalk.yellow("\n🚀 Creating your project...\n"));
     await createProject(projectName, config, installDeps);
 
