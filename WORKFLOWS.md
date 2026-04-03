@@ -1,158 +1,217 @@
-# 🤖 Database Management Workflows
+# Celtrix GitHub Workflows
 
-This repository includes several GitHub Actions workflows for managing your Pinecone vector database and duplicate detection system.
+This document explains the automated and manual workflows that power Celtrix's duplicate issue detection, database management, and API validation systems. Read this before running any workflow manually, especially operations that modify or delete data.
 
-## 📋 Available Workflows
+---
 
-### 1. �️ Database Operations (Manual)
-**File:** `.github/workflows/database-operations.yml`
+## Table of Contents
 
-Pure database management operations - no validation mixed in.
+- [Overview](#overview)
+- [Workflow 1 - Duplicate Issue Management](#workflow-1---duplicate-issue-management)
+- [Workflow 2 - Database Operations](#workflow-2---database-operations)
+- [Workflow 3 - API Validation](#workflow-3---api-validation)
+- [Recommended Workflow Order](#recommended-workflow-order)
+- [Local npm Commands](#local-npm-commands)
+- [Required Secrets](#required-secrets)
+- [Safety Rules](#safety-rules)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
 
-**Operations Available:**
-- **Populate Issues** - Add existing GitHub issues to Pinecone database (skips duplicates)
-- **Cleanup Duplicates** - Remove duplicate vectors (requires force flag)
-- **Debug Database** - View database contents and statistics
-- **Clear All Vectors** - ⚠️ **DANGER:** Delete all vectors (requires force flag)
+---
 
-**How to use:**
-1. Go to **Actions** tab in your repository
-2. Select **"Database Operations"**
-3. Click **"Run workflow"**
-4. Choose your operation and enable force flag if needed
-5. Click **"Run workflow"**
+## Overview
 
-### 2. 🔍 API Validation (Manual)
-**File:** `.github/workflows/api-validation.yml`
+Celtrix uses three GitHub Actions workflows to maintain a healthy issue tracker and vector database. These workflows are designed to:
 
-Pure API connection testing - run before database operations.
+- Automatically detect and flag duplicate issues as they are opened.
+- Allow maintainers to manage the Pinecone vector database through manual triggers.
+- Validate API connections before running database operations.
 
-**Validation Scopes:**
-- **All APIs** - Test all connections (Pinecone, GitHub, Gemini)
-- **Pinecone Only** - Test only Pinecone database connection
-- **GitHub Only** - Test only GitHub API connection  
-- **Gemini Only** - Test only Gemini AI API connection
+Each workflow is isolated by responsibility. API validation, database operations, and duplicate detection are separate concerns and run independently.
 
-**How to use:**
-1. Go to **Actions** tab in your repository
-2. Select **"API Validation"**
-3. Click **"Run workflow"**
-4. Choose validation scope
-5. Click **"Run workflow"**
+---
 
-### 3. 🔍 Duplicate Issue Management (Automatic + Manual)
+## Workflow 1 - Duplicate Issue Management
+
 **File:** `.github/workflows/duplicate-issue.yml`
 
-Handles duplicate detection automatically and allows manual checks.
+This workflow runs automatically whenever an issue is opened, edited, or reopened. It checks the new issue against the Pinecone vector database to identify semantic duplicates and labels or comments accordingly.
 
 **Automatic triggers:**
-- When issues are opened, edited, or reopened
-- Automatically cleans up when issues are closed
+- Issue opened
+- Issue edited
+- Issue reopened
+- Issue closed (triggers cleanup of the corresponding vector)
 
-**Manual triggers:**
-- Check any specific issue number for duplicates
+**Manual trigger:**
 
-## 🎯 **Usage Examples:**
+You can also run this workflow manually to check a specific issue number for duplicates without waiting for an automatic event.
 
-### **Recommended Workflow:**
-1. **Validate APIs First:** Actions → API Validation → Choose "all-apis" → Run
-2. **Then Perform Operations:** Actions → Database Operations → Choose your operation
+**How to run manually:**
+1. Go to the **Actions** tab in the repository.
+2. Select **Duplicate Issue Management**.
+3. Click **Run workflow**.
+4. Enter the issue number you want to check.
+5. Click **Run workflow**.
 
-### **Common Operations:**
-- **Validate APIs:** Actions → API Validation → Choose "all-apis" → Run
-- **Populate Issues:** Actions → Database Operations → Choose "populate-issues" → Run
-- **Clean Up Duplicates:** Actions → Database Operations → Choose "cleanup-duplicates" → ✅ Enable Force → Run
-- **Check Database Health:** Actions → Database Operations → Choose "debug-database" → Run
-- **Emergency Clear All:** Actions → Database Operations → Choose "clear-all-vectors" → ✅ Enable Force → Run
+---
 
-## 🛠️ Local Scripts (npm commands)
+## Workflow 2 - Database Operations
 
-You can also run these operations locally:
+**File:** `.github/workflows/database-operations.yml`
+
+This workflow handles all direct operations on the Pinecone vector database. It is manual-only and requires deliberate input before any destructive operations can run.
+
+**Available operations:**
+
+| Operation | Description |
+|---|---|
+| Populate Issues | Adds all existing GitHub issues to the Pinecone database. Skips issues that already exist. |
+| Cleanup Duplicates | Removes duplicate vectors from the database. Requires the force flag. |
+| Debug Database | Displays current database contents and health statistics. Safe to run at any time. |
+| Clear All Vectors | Deletes all vectors from the database. Irreversible. Requires the force flag. |
+
+**How to run:**
+1. Go to the **Actions** tab.
+2. Select **Database Operations**.
+3. Click **Run workflow**.
+4. Choose your operation from the dropdown.
+5. Enable the force flag if your operation requires it.
+6. Click **Run workflow**.
+
+Always run **API Validation** before running database operations to confirm all connections are healthy.
+
+---
+
+## Workflow 3 - API Validation
+
+**File:** `.github/workflows/api-validation.yml`
+
+This workflow tests API connections without modifying any data. Run this first before any database operation to confirm that Pinecone, GitHub, and Gemini APIs are all reachable and correctly configured.
+
+**Validation scopes:**
+
+| Scope | What It Tests |
+|---|---|
+| All APIs | Tests Pinecone, GitHub, and Gemini connections together |
+| Pinecone Only | Tests only the Pinecone database connection |
+| GitHub Only | Tests only the GitHub API connection |
+| Gemini Only | Tests only the Gemini AI API connection |
+
+**How to run:**
+1. Go to the **Actions** tab.
+2. Select **API Validation**.
+3. Click **Run workflow**.
+4. Choose your validation scope.
+5. Click **Run workflow**.
+
+---
+
+## Recommended Workflow Order
+
+For any database-related task, follow this sequence:
+
+1. Run **API Validation** with scope set to `all-apis`.
+2. Confirm all connections pass.
+3. Run **Database Operations** with your intended operation.
+4. Use **Debug Database** after the operation to verify the result.
+
+For routine maintenance:
+
+1. Run **Debug Database** to check current health.
+2. Run **Cleanup Duplicates** (with force flag) if duplicates are detected.
+3. Run **Debug Database** again to confirm the cleanup result.
+
+---
+
+## Local npm Commands
+
+All workflows can also be triggered locally using the following npm commands. These are useful for development, debugging, and running operations without going through GitHub Actions.
 
 ```bash
-# API Validation (NEW!)
-npm run validate              # Test all API connections
-npm run validate:pinecone     # Test only Pinecone connection  
-npm run validate:github       # Test only GitHub connection
-npm run validate:gemini       # Test only Gemini API connection
+# API Validation
+npm run validate               # Test all API connections
+npm run validate:pinecone      # Test only Pinecone connection
+npm run validate:github        # Test only GitHub connection
+npm run validate:gemini        # Test only Gemini API connection
 
-# Safe operations
-npm run populate-issues       # Add existing issues to database
-npm run debug-db             # Check database status
-npm run check-duplicates     # Check for duplicates
+# Safe database operations
+npm run populate-issues        # Add existing issues to the database
+npm run debug-db               # View database contents and statistics
+npm run check-duplicates       # Check for duplicate vectors
 
-# Cleanup operations  
-npm run cleanup-duplicates --force    # Remove duplicates
-npm run cleanup-issue                 # Remove specific closed issue
+# Cleanup operations
+npm run cleanup-duplicates --force    # Remove duplicate vectors
+npm run cleanup-issue                 # Remove a specific closed issue from the database
 
-# Dangerous operations (use with caution!)
-npm run clear-all:force              # ⚠️ Delete ALL vectors
+# Destructive operations - use with caution
+npm run clear-all:force              # Delete all vectors from the database
 ```
 
-## 🔐 Required Secrets
+---
 
-Make sure these secrets are configured in your repository:
+## Required Secrets
 
-- `GITHUB_TOKEN` - Automatically provided by GitHub
-- `GEMINI_API_KEY` - Your Google Gemini API key
-- `PINECONE_API_KEY` - Your Pinecone API key
-- `PINECONE_INDEX` - Your Pinecone index name
+These secrets must be configured in your repository settings under **Settings > Secrets and variables > Actions** before any workflow can run successfully.
 
-## 🚨 Safety Features
+| Secret | Description |
+|---|---|
+| `GITHUB_TOKEN` | Automatically provided by GitHub Actions. No manual setup required. |
+| `GEMINI_API_KEY` | Your Google Gemini API key. |
+| `PINECONE_API_KEY` | Your Pinecone API key. |
+| `PINECONE_INDEX` | The name of your Pinecone index. |
 
-- **Force flags required** for destructive operations
-- **Confirmation prompts** in scripts
-- **Continue-on-error** for non-critical operations
-- **Detailed logging** for troubleshooting
-- **Verification steps** after dangerous operations
+If a workflow fails immediately, check that all secrets are present and correctly named.
 
-## 📊 Workflow Status
+---
 
-Check the **Actions** tab to see:
-- ✅ Successful operations
-- ❌ Failed operations with detailed logs
-- 📋 Summary reports for each run
+## Safety Rules
 
-## 🆘 Troubleshooting
+The following rules apply to all database operations and must be respected by all contributors and maintainers.
 
-### Common Issues:
+**Force flag required for destructive operations.** Cleanup Duplicates and Clear All Vectors will not execute unless the force flag is explicitly enabled. This is intentional and cannot be bypassed.
 
-1. **API Rate Limits**
-   - Wait a few minutes and retry
-   - Check the logs for specific error messages
+**Debug before you delete.** Always run Debug Database before running any cleanup or clear operation. Understand the current state of the database before modifying it.
 
-2. **Connection Failures**
-   - Use "Test Connection" in Quick Actions
-   - Verify your API keys are correct
+**Clear All Vectors is irreversible.** Once executed, all vectors are permanently deleted. The database can be repopulated from GitHub issues, but any data not sourced from issues will be lost.
 
-3. **Database Issues**
-   - Use "Debug Database" to check current state
-   - Check Pinecone dashboard for index status
+**Test in isolation.** If you are testing a workflow change, run it against a development environment or a test index before running it against production data.
 
-4. **Permission Errors**
-   - Ensure GitHub token has `issues: write` permission
-   - Check repository secrets are properly set
+**API rate limits.** If a workflow fails due to rate limiting, wait a few minutes and retry. Do not run multiple database operations in rapid succession.
 
-### Getting Help:
+---
 
-1. Check workflow logs for detailed error messages
-2. Use the debug tools to understand current state
-3. Run test connections to verify API access
-4. Check this README for common solutions
+## Troubleshooting
 
-## 🎯 Best Practices
+**Workflow fails immediately with an authentication error.**
+Check that all required secrets are present in repository settings and that secret names match exactly.
 
-1. **Regular Maintenance:**
-   - Run "Populate Issues" after major issue imports
-   - Use "Debug Status" to monitor database health
-   - Clean up duplicates periodically
+**API connection test fails.**
+Verify that your API keys are valid and have not expired. Check the Pinecone dashboard and Google Cloud console for key status.
 
-2. **Before Major Operations:**
-   - Always run "Debug Database" first
-   - Test connections to ensure APIs are working
-   - Have a backup plan (you can repopulate from scratch)
+**Populate Issues skips all issues.**
+This is expected behavior if all issues are already present in the database. Run Debug Database to confirm.
 
-3. **Safety First:**
-   - Never use force flags unless you understand the consequences
-   - Test operations in a development environment first
-   - Keep your API keys secure and rotated regularly
+**Duplicate detection is not triggering on new issues.**
+Check that the `duplicate-issue.yml` workflow is enabled in the Actions tab and that the Pinecone index contains existing issues. Run Populate Issues if the database is empty.
+
+**Clear All Vectors ran but issues are still appearing.**
+The duplicate detection workflow will re-add issues to the database as they are opened or edited. Clearing vectors only removes the stored embeddings - it does not affect GitHub issues themselves.
+
+If you encounter an issue not covered here, open a GitHub Discussion or ask in the Discord server.
+
+---
+
+## Best Practices
+
+**Before any database operation,** run API Validation to confirm all connections are healthy.
+
+**After any database operation,** run Debug Database to verify the result matches your expectation.
+
+**Run Populate Issues** after a large batch of new issues are opened to keep the database current and improve duplicate detection accuracy.
+
+**Run Cleanup Duplicates periodically** - monthly is sufficient for most repositories - to keep the database lean and accurate.
+
+**Keep your API keys rotated** on a regular schedule. Update repository secrets immediately after rotating keys.
+
+**Never share API keys** in issues, pull requests, or public channels. If a key is accidentally exposed, revoke it immediately and generate a new one.
