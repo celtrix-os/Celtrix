@@ -1,6 +1,6 @@
 <div style="text-align: center">
   <p align="center">
-    <img width="3144" height="1056" alt="lop" src="https://github.com/user-attachments/assets/2a784007-1f76-4c9e-b8be-fd1bdc3c09c6" />
+    <img width="3144" height="700" alt="lop" src="https://github.com/user-attachments/assets/2a784007-1f76-4c9e-b8be-fd1bdc3c09c6" />
     <br><br>
    <i> Celtrix is a modern web-app scaffolder where you can Setup web apps in seconds, not hours, with your preferred stack.</i>
   </p>
