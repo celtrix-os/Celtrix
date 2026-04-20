@@ -3,6 +3,8 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import gradient from "gradient-string";
 import figlet from "figlet";
+import ora from "ora";
+import boxen from "boxen";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -25,6 +27,38 @@ function detectPackageManager() {
   if (userAgent.includes("bun")) return "bun";
   if (userAgent.includes("npm")) return "npm";
   return "npm";
+}
+
+/**
+ * Returns true when an inquirer prompt was cancelled with Ctrl+C.
+ *
+ * @param {unknown} error - Prompt error.
+ * @returns {boolean}
+ */
+function isPromptCancellation(error) {
+  return (
+    error instanceof Error &&
+    (error.name === "ExitPromptError" ||
+      error.message.toLowerCase().includes("force closed"))
+  );
+}
+
+/**
+ * Parses CLI arguments by stripping the Node binary and the script/package
+ * runner prefix. Works reliably across npm, npx, pnpm, yarn, and bun
+ * regardless of how many segments the runner injects.
+ *
+ * @returns {string[]}
+ */
+function parseArgs() {
+  // Find the exact argument that represents the CLI entry point
+  const idx = process.argv.findIndex((arg, i) => {
+    if (i === 0) return false;
+    const basename = path.basename(arg);
+    return basename === "celtrix.js" || basename === "index.js" || basename === "celtrix";
+  });
+
+  return idx !== -1 ? process.argv.slice(idx + 1) : process.argv.slice(2);
 }
 
 function showBanner() {
@@ -92,7 +126,7 @@ async function askStackQuestions() {
         {
           name:
             chalk.whiteBright.bold("⚡ Next.js") +
-            chalk.gray(" → vannila modern stack"),
+            chalk.gray(" → vanilla modern stack"),
           value: "nextjs",
         },
         {
@@ -115,6 +149,44 @@ async function askStackQuestions() {
       ],
       pageSize: 10,
       default: "typescript",
+    },
+  ]);
+}
+
+async function askFrontendQuestions() {
+  return await inquirer.prompt([
+    {
+      type: "list",
+      name: "frontend",
+      message: "Select a frontend framework:",
+      choices: [
+        { name: chalk.blueBright.bold("React Router"), value: "react-router" },
+        { name: chalk.whiteBright.bold("Next.js"), value: "nextjs" },
+        { name: chalk.greenBright.bold("Nuxt"), value: "nuxt" },
+        { name: chalk.cyanBright.bold("TanStack"), value: "tanstack" },
+        { name: chalk.white.bold("Astro"), value: "astro" },
+        { name: chalk.redBright.bold("Svelte"), value: "svelte" },
+        { name: chalk.blue.bold("Solid"), value: "solid" },
+      ],
+      pageSize: 10,
+    },
+  ]);
+}
+
+async function askBackendFramework() {
+  return await inquirer.prompt([
+    {
+      type: "list",
+      name: "backend",
+      message: "Select a backend framework:",
+      choices: [
+        { name: chalk.magentaBright.bold("Hono"), value: "hono" },
+        { name: chalk.green.bold("Fastify"), value: "fastify" },
+        { name: chalk.blueBright.bold("Express"), value: "express" },
+        { name: orange.bold("Convex"), value: "convex" },
+        { name: chalk.gray("None (Frontend only)"), value: "none" },
+      ],
+      default: "express",
     },
   ]);
 }
@@ -201,17 +273,69 @@ function showHelp() {
   console.log(`  ${chalk.whiteBright('T3 Stack')}    ${chalk.gray('Next.js + tRPC + Prisma + Tailwind')}`);
   console.log(`  ${chalk.magentaBright('Hono')}        ${chalk.gray('Hono + Prisma + React')}`);
 
+  console.log(chalk.bold('\nSupported Frontends:'));
+  console.log(`  ${chalk.blueBright('React Router')}  ${chalk.gray('SPA routing with React')}`);
+  console.log(`  ${chalk.whiteBright('Next.js')}       ${chalk.gray('Full-stack React framework')}`);
+  console.log(`  ${chalk.greenBright('Nuxt')}          ${chalk.gray('Full-stack Vue framework')}`);
+  console.log(`  ${chalk.cyanBright('TanStack')}      ${chalk.gray('Type-safe routing & data fetching')}`);
+  console.log(`  ${chalk.white('Astro')}         ${chalk.gray('Content-driven static sites')}`);
+  console.log(`  ${chalk.redBright('Svelte')}        ${chalk.gray('Compile-time reactive UI')}`);
+  console.log(`  ${chalk.blue('Solid')}         ${chalk.gray('Fine-grained reactive UI')}`);
+
   console.log(chalk.gray('\nFor more information, visit: https://github.com/celtrix-os/Celtrix'));
 }
 
+/**
+ * Formats elapsed milliseconds into a human-readable string.
+ *
+ * @param {number} ms - Elapsed time in milliseconds.
+ * @returns {string}
+ */
+function formatElapsed(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/**
+ * Renders a styled post-scaffold summary box.
+ *
+ * @param {object} opts
+ * @param {string} opts.projectName
+ * @param {object} opts.config
+ * @param {boolean} opts.installedDeps
+ * @param {boolean} opts.createdRepo
+ * @param {number} opts.elapsed  - Scaffold duration in ms.
+ */
+function showSummaryBox({ projectName, config, installedDeps, createdRepo, elapsed }) {
+  const lines = [
+    `${chalk.bold("📦 Project:")}      ${chalk.greenBright(projectName)}`,
+    `${chalk.bold("🌐 Stack:")}        ${chalk.cyanBright(config.stack)}`,
+    `${chalk.bold("📖 Language:")}     ${chalk.yellow(config.language)}`,
+    ...(config.frontend ? [`${chalk.bold("🎨 Frontend:")}     ${chalk.blueBright(config.frontend)}`] : []),
+    ...(config.backend ? [`${chalk.bold("⚙️ Backend:")}      ${chalk.magentaBright(config.backend)}`] : []),
+    `${chalk.bold("📦 Pkg Manager:")}  ${chalk.magenta(config.packageManager)}`,
+    `${chalk.bold("📥 Deps:")}         ${installedDeps ? chalk.green("installed") : chalk.gray("skipped")}`,
+    `${chalk.bold("🐙 GitHub Repo:")}  ${createdRepo ? chalk.green("created") : chalk.gray("skipped")}`,
+    `${chalk.bold("⏱  Time:")}         ${chalk.white(formatElapsed(elapsed))}`,
+  ];
+
+  console.log(
+    boxen(lines.join("\n"), {
+      padding: 1,
+      margin: { top: 1, bottom: 1, left: 0, right: 0 },
+      borderColor: "green",
+      borderStyle: "round",
+      title: chalk.greenBright.bold("✅ Project Created"),
+      titleAlignment: "center",
+    })
+  );
+
+  console.log(chalk.gray("✨ Made with ❤️  by Celtrix ✨\n"));
+}
+
 async function main() {
-  let packageManager = detectPackageManager();
-  let args;
-  if(packageManager == "npm" || packageManager == "bun") {
-    args = process.argv.slice(2);
-  } else {
-    args = process.argv.slice(3);
-  }  
+  const args = parseArgs();
+
   // Handle version flag
   if (args.includes('--version') || args.includes('-v')) {
     showVersion();
@@ -232,44 +356,52 @@ async function main() {
   showBanner();
 
   let projectName = args.find(arg => !arg.startsWith('--') && !arg.startsWith('-'));
+  let packageManager = detectPackageManager();
   let config;
   const quickKey = args[0];
-let isQuick = false;
-let quickConfig = null;
+  let isQuick = false;
+  let quickConfig = null;
 
-if (quickTemplates[quickKey]) {
-  isQuick = true;
-  quickConfig = quickTemplates[quickKey];
-}
+  if (quickTemplates[quickKey]) {
+    isQuick = true;
+    quickConfig = quickTemplates[quickKey];
+  }
 
   try {
 
-   if (isQuick) {
-  // QUICK MODE (mern-js / mern-ts)
-  console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
+    if (isQuick) {
+      // QUICK MODE (mern-js / mern-ts)
+      console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
 
-  projectName = args[1] || (await askProjectName());
+      projectName = args[1] || (await askProjectName());
 
-  packageManager = (await askPackageManager()).packageManager;
+      packageManager = (await askPackageManager()).packageManager;
 
-  config = {
-    stack: quickConfig.stack,       // always mern
-    language: quickConfig.language, // js or ts
-    projectName,
-    packageManager
-  };
+      config = {
+        stack: quickConfig.stack,       // always mern
+        language: quickConfig.language, // js or ts
+        projectName,
+        packageManager
+      };
 
-} else {
-  // NORMAL MODE (unchanged)
-  if (!projectName) {
-    projectName = await askProjectName();
-  }
+    } else {
+      // NORMAL MODE (unchanged)
+      if (!projectName) {
+        projectName = await askProjectName();
+      }
 
-  const stackAnswers = await askStackQuestions();
-  packageManager = (await askPackageManager()).packageManager;
+      const stackAnswers = await askStackQuestions();
+      const frontendAnswers = await askFrontendQuestions();
+      const backendAnswers = await askBackendFramework();
+      packageManager = (await askPackageManager()).packageManager;
 
-  config = { ...stackAnswers, projectName, packageManager };
-}
+      config = { ...stackAnswers, ...frontendAnswers, ...backendAnswers, projectName, packageManager };
+    }
+
+    if (config.backend === "none") {
+      console.log(chalk.yellow("⚠️ Note: No backend framework selected. Creating a frontend-only project."));
+    }
+
     // Ask whether to install dependencies (handled in main script)
     const { installDeps } = await inquirer.prompt([
       {
@@ -290,14 +422,53 @@ if (quickTemplates[quickKey]) {
       },
     ]);
 
-    console.log(chalk.yellow("\n🚀 Creating your project...\n"));
-    await createProject(projectName, config, installDeps);
+    // --- Scaffold with spinner + timing ---
+    const startTime = Date.now();
+    const scaffoldSpinner = ora({
+      text: chalk.yellow("Scaffolding your project…"),
+      spinner: "dots12",
+    }).start();
 
-    if (createGitHubRepo) {
-      await createGithubRepo(projectName);
+    try {
+      await createProject(projectName, config, installDeps);
+      const elapsed = Date.now() - startTime;
+      scaffoldSpinner.succeed(
+        chalk.green(`Project scaffolded in ${formatElapsed(elapsed)}`)
+      );
+    } catch (err) {
+      scaffoldSpinner.fail(chalk.red("Scaffolding failed"));
+      throw err;
     }
 
+    // --- GitHub repo ---
+    let repoCreated = false;
+    if (createGitHubRepo) {
+      const repoSpinner = ora({
+        text: chalk.yellow("Starting GitHub repository setup…"),
+        spinner: "dots12",
+      }).start();
+      repoSpinner.stop(); // stop before interactive prompts inside createGithubRepo
+      await createGithubRepo(projectName);
+      repoCreated = true;
+    }
+
+    // --- Summary box ---
+    const totalElapsed = Date.now() - startTime;
+    showSummaryBox({
+      projectName,
+      config,
+      installedDeps: installDeps,
+      createdRepo: repoCreated,
+      elapsed: totalElapsed,
+    });
+
   } catch (err) {
+    // Graceful cancellation (Ctrl+C during any prompt)
+    if (isPromptCancellation(err)) {
+      console.log(chalk.yellow("\n👋 Cancelled — see you next time!\n"));
+      process.exit(0);
+    }
+
     console.log(chalk.red("❌ Error:"), err.message);
     process.exit(1);
   }
