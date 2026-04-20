@@ -191,6 +191,21 @@ async function askBackendFramework() {
   ]);
 }
 
+async function askRuntimeEnvironment() {
+  return await inquirer.prompt([
+    {
+      type: "list",
+      name: "runtime",
+      message: "Select a runtime environment:",
+      choices: [
+        { name: chalk.greenBright.bold("Node.js"), value: "node" },
+        { name: chalk.white.bold("Bun"), value: "bun" },
+      ],
+      default: "node",
+    },
+  ]);
+}
+
 async function askProjectName() {
   const { projectName } = await inquirer.prompt([
     {
@@ -313,6 +328,7 @@ function showSummaryBox({ projectName, config, installedDeps, createdRepo, elaps
     `${chalk.bold("📖 Language:")}     ${chalk.yellow(config.language)}`,
     ...(config.frontend ? [`${chalk.bold("🎨 Frontend:")}     ${chalk.blueBright(config.frontend)}`] : []),
     ...(config.backend ? [`${chalk.bold("⚙️ Backend:")}      ${chalk.magentaBright(config.backend)}`] : []),
+    `${chalk.bold("⚡ Runtime:")}      ${config.runtime === 'bun' ? chalk.white("Bun") : chalk.greenBright("Node.js")}`,
     `${chalk.bold("📦 Pkg Manager:")}  ${chalk.magenta(config.packageManager)}`,
     `${chalk.bold("📥 Deps:")}         ${installedDeps ? chalk.green("installed") : chalk.gray("skipped")}`,
     `${chalk.bold("🐙 GitHub Repo:")}  ${createdRepo ? chalk.green("created") : chalk.gray("skipped")}`,
@@ -376,12 +392,14 @@ async function main() {
       projectName = args[1] || (await askProjectName());
 
       packageManager = (await askPackageManager()).packageManager;
+      const runtimeAnswers = await askRuntimeEnvironment();
 
       config = {
         stack: quickConfig.stack,       // always mern
         language: quickConfig.language, // js or ts
         projectName,
-        packageManager
+        packageManager,
+        runtime: runtimeAnswers.runtime
       };
 
     } else {
@@ -393,9 +411,10 @@ async function main() {
       const stackAnswers = await askStackQuestions();
       const frontendAnswers = await askFrontendQuestions();
       const backendAnswers = await askBackendFramework();
+      const runtimeAnswers = await askRuntimeEnvironment();
       packageManager = (await askPackageManager()).packageManager;
 
-      config = { ...stackAnswers, ...frontendAnswers, ...backendAnswers, projectName, packageManager };
+      config = { ...stackAnswers, ...frontendAnswers, ...backendAnswers, ...runtimeAnswers, projectName, packageManager };
     }
 
     if (config.backend === "none") {
