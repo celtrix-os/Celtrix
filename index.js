@@ -11,6 +11,8 @@ import { fileURLToPath } from "url";
 import { createProject } from "./commands/scaffold.js";
 import { createGithubRepo } from "./createGithubRepo.js";
 import { loginCommand } from "./commands/login.js";
+import { gatherCustomConfig } from "./prompts/index.js";
+import { isPromptCancellation } from "./utils/shared.js";
 
 const orange = chalk.hex("#FF6200");
 
@@ -29,19 +31,7 @@ function detectPackageManager() {
   return "npm";
 }
 
-/**
- * Returns true when an inquirer prompt was cancelled with Ctrl+C.
- *
- * @param {unknown} error - Prompt error.
- * @returns {boolean}
- */
-function isPromptCancellation(error) {
-  return (
-    error instanceof Error &&
-    (error.name === "ExitPromptError" ||
-      error.message.toLowerCase().includes("force closed"))
-  );
-}
+const isVerbose = process.argv.includes("--verbose");
 
 /**
  * Parses CLI arguments by stripping the Node binary and the script/package
@@ -75,12 +65,19 @@ function showBanner() {
 }
 
 async function askStackQuestions() {
-  return await inquirer.prompt([
+  const stackAnswer = await inquirer.prompt([
     {
       type: "list",
       name: "stack",
       message: "Choose your stack:",
       choices: [
+        {
+          name:
+            gradient.pastel.multiline("⚡ Custom Stack") +
+            chalk.gray(" → Pick every piece of your stack"),
+          value: "custom",
+        },
+        new inquirer.Separator(chalk.gray("  ── Preset Stacks ──")),
         {
           name:
             chalk.blueBright.bold("⚡ MERN") +
@@ -136,9 +133,17 @@ async function askStackQuestions() {
           value: "hono",
         },
       ],
-      pageSize: 10,
-      default: "mern",
+      pageSize: 12,
+      default: "custom",
     },
+  ]);
+
+  // Skip language prompt for custom stack — it has its own language step.
+  if (stackAnswer.stack === "custom") {
+    return stackAnswer;
+  }
+
+  const langAnswer = await inquirer.prompt([
     {
       type: "list",
       name: "language",
@@ -151,44 +156,31 @@ async function askStackQuestions() {
       default: "typescript",
     },
   ]);
+
+  return { ...stackAnswer, ...langAnswer };
 }
 
-async function askFrontendQuestions() {
-  return await inquirer.prompt([
-    {
-      type: "list",
-      name: "frontend",
-      message: "Select a frontend framework:",
-      choices: [
-        { name: chalk.blueBright.bold("React Router"), value: "react-router" },
-        { name: chalk.whiteBright.bold("Next.js"), value: "nextjs" },
-        { name: chalk.greenBright.bold("Nuxt"), value: "nuxt" },
-        { name: chalk.cyanBright.bold("TanStack"), value: "tanstack" },
-        { name: chalk.white.bold("Astro"), value: "astro" },
-        { name: chalk.redBright.bold("Svelte"), value: "svelte" },
-        { name: chalk.blue.bold("Solid"), value: "solid" },
-      ],
-      pageSize: 10,
-    },
-  ]);
-}
-
-async function askBackendFramework() {
-  return await inquirer.prompt([
-    {
-      type: "list",
-      name: "backend",
-      message: "Select a backend framework:",
-      choices: [
-        { name: chalk.magentaBright.bold("Hono"), value: "hono" },
-        { name: chalk.green.bold("Fastify"), value: "fastify" },
-        { name: chalk.blueBright.bold("Express"), value: "express" },
-        { name: orange.bold("Convex"), value: "convex" },
-        { name: chalk.gray("None (Frontend only)"), value: "none" },
-      ],
-      default: "express",
-    },
-  ]);
+/**
+ * Returns human-readable frontend/backend labels derived from the chosen stack.
+ * The stack selection already determines which frameworks are used, so these
+ * labels are for display purposes only (summary box, config box).
+ *
+ * @param {string} stack - The selected stack identifier.
+ * @returns {{ frontend: string|null, backend: string|null }}
+ */
+function getStackMeta(stack) {
+  const meta = {
+    "mern":                    { frontend: "React",   backend: "Express" },
+    "mean":                    { frontend: "Angular", backend: "Express" },
+    "mevn":                    { frontend: "Vue",     backend: "Express" },
+    "mern+tailwind+auth":      { frontend: "React",   backend: "Express" },
+    "mean+tailwind+auth":      { frontend: "Angular", backend: "Express" },
+    "mevn+tailwind+auth":      { frontend: "Vue",     backend: "Express" },
+    "react+tailwind+firebase": { frontend: "React",   backend: null },
+    "nextjs":                  { frontend: "Next.js", backend: null },
+    "hono":                    { frontend: "React",   backend: "Hono" },
+  };
+  return meta[stack] || { frontend: null, backend: null };
 }
 
 async function askRuntimeEnvironment() {
@@ -271,7 +263,8 @@ function showHelp() {
 
   console.log(chalk.bold('Options:'));
   console.log(`  ${chalk.cyan('--version, -v')}     Show version number`);
-  console.log(`  ${chalk.cyan('--help, -h')}        Show help information\n`);
+  console.log(`  ${chalk.cyan('--help, -h')}        Show help information`);
+  console.log(`  ${chalk.cyan('--verbose')}         Show detailed error output\n`);
 
   console.log(chalk.bold('Examples:'));
   console.log(`  ${chalk.cyan('npx celtrix')}                 ${chalk.gray('# Interactive mode')}`);
@@ -279,23 +272,37 @@ function showHelp() {
   console.log(`  ${chalk.cyan('npx celtrix --version')}       ${chalk.gray('# Show version')}`);
   console.log(`  ${chalk.cyan('npx celtrix --help')}          ${chalk.gray('# Show this help')}\n`);
 
-  console.log(chalk.bold('Supported Stacks:'));
-  console.log(`  ${chalk.blueBright('MERN')}        ${chalk.gray('MongoDB + Express + React + Node.js')}`);
-  console.log(`  ${chalk.redBright('MEAN')}        ${chalk.gray('MongoDB + Express + Angular + Node.js')}`);
-  console.log(`  ${chalk.cyanBright('MEVN')}        ${chalk.gray('MongoDB + Express + Vue + Node.js')}`);
-  console.log(`  ${chalk.greenBright('MERN+Auth')}   ${chalk.gray('MERN with Tailwind & Authentication')}`);
-  console.log(`  ${chalk.magentaBright('React+Firebase')} ${chalk.gray('React + Tailwind + Firebase')}`);
-  console.log(`  ${chalk.whiteBright('T3 Stack')}    ${chalk.gray('Next.js + tRPC + Prisma + Tailwind')}`);
-  console.log(`  ${chalk.magentaBright('Hono')}        ${chalk.gray('Hono + Prisma + React')}`);
+  console.log(chalk.bold('Modes:'));
+  console.log(`  ${chalk.magentaBright('Custom Stack')}     ${chalk.gray('Pick every piece of your stack interactively')}`);
+  console.log(`  ${chalk.gray('Preset Stacks')}    ${chalk.gray('Choose a pre-configured full-stack template')}`);
 
-  console.log(chalk.bold('\nSupported Frontends:'));
-  console.log(`  ${chalk.blueBright('React Router')}  ${chalk.gray('SPA routing with React')}`);
-  console.log(`  ${chalk.whiteBright('Next.js')}       ${chalk.gray('Full-stack React framework')}`);
-  console.log(`  ${chalk.greenBright('Nuxt')}          ${chalk.gray('Full-stack Vue framework')}`);
-  console.log(`  ${chalk.cyanBright('TanStack')}      ${chalk.gray('Type-safe routing & data fetching')}`);
-  console.log(`  ${chalk.white('Astro')}         ${chalk.gray('Content-driven static sites')}`);
-  console.log(`  ${chalk.redBright('Svelte')}        ${chalk.gray('Compile-time reactive UI')}`);
-  console.log(`  ${chalk.blue('Solid')}         ${chalk.gray('Fine-grained reactive UI')}`);
+  console.log(chalk.bold('\nPreset Stacks:'));
+  console.log(`  ${chalk.blueBright('MERN')}             ${chalk.gray('MongoDB + Express + React + Node.js')}`);
+  console.log(`  ${chalk.redBright('MEAN')}             ${chalk.gray('MongoDB + Express + Angular + Node.js')}`);
+  console.log(`  ${chalk.cyanBright('MEVN')}             ${chalk.gray('MongoDB + Express + Vue + Node.js')}`);
+  console.log(`  ${chalk.greenBright('MERN+Auth')}        ${chalk.gray('MERN with Tailwind & Authentication')}`);
+  console.log(`  ${chalk.magentaBright('React+Firebase')}   ${chalk.gray('React + Tailwind + Firebase')}`);
+  console.log(`  ${chalk.whiteBright('Next.js')}          ${chalk.gray('Full-stack React framework')}`);
+  console.log(`  ${chalk.magentaBright('Hono')}             ${chalk.gray('Hono + Prisma + React')}`);
+
+  console.log(chalk.bold('\nCustom Stack — Frontends:'));
+  console.log(`  ${chalk.cyanBright('React Router')}     ${chalk.gray('React with file-based routing')}`);
+  console.log(`  ${chalk.white('Next.js')}          ${chalk.gray('Full-stack React framework')}`);
+  console.log(`  ${chalk.greenBright('Nuxt')}             ${chalk.gray('Full-stack Vue framework')}`);
+  console.log(`  ${chalk.hex('#FF6200')('TanStack')}         ${chalk.gray('Type-safe routing & data fetching')}`);
+  console.log(`  ${chalk.magentaBright('Astro')}            ${chalk.gray('Content-focused, island architecture')}`);
+  console.log(`  ${chalk.redBright('SvelteKit')}        ${chalk.gray('Cybernetically enhanced web apps')}`);
+  console.log(`  ${chalk.blueBright('SolidStart')}       ${chalk.gray('Fine-grained reactive UI framework')}`);
+
+  console.log(chalk.bold('\nCustom Stack — Backends:'));
+  console.log(`  ${chalk.hex('#FF6200')('Hono')}             ${chalk.gray('Ultrafast edge-ready web framework')}`);
+  console.log(`  ${chalk.white('Fastify')}          ${chalk.gray('Fast & low-overhead Node.js framework')}`);
+  console.log(`  ${chalk.yellowBright('Express')}          ${chalk.gray('Minimalist Node.js web framework')}`);
+  console.log(`  ${chalk.magentaBright('Convex')}           ${chalk.gray('Reactive backend-as-a-service')}`);
+
+  console.log(chalk.bold('\nSupported Runtimes:'));
+  console.log(`  ${chalk.greenBright('Node.js')}          ${chalk.gray('The standard JavaScript runtime')}`);
+  console.log(`  ${chalk.white('Bun')}              ${chalk.gray('Fast all-in-one JS runtime & toolkit')}`);
 
   console.log(chalk.gray('\nFor more information, visit: https://github.com/celtrix-os/Celtrix'));
 }
@@ -322,18 +329,45 @@ function formatElapsed(ms) {
  * @param {number} opts.elapsed  - Scaffold duration in ms.
  */
 function showSummaryBox({ projectName, config, installedDeps, createdRepo, elapsed }) {
+  const isCustom = config.stack === "custom";
+  const { frontend, backend } = isCustom
+    ? { frontend: config.frontend, backend: config.backend }
+    : getStackMeta(config.stack);
+
   const lines = [
     `${chalk.bold("📦 Project:")}      ${chalk.greenBright(projectName)}`,
-    `${chalk.bold("🌐 Stack:")}        ${chalk.cyanBright(config.stack)}`,
+    `${chalk.bold("🌐 Stack:")}        ${chalk.cyanBright(isCustom ? "Custom" : config.stack)}`,
     `${chalk.bold("📖 Language:")}     ${chalk.yellow(config.language)}`,
-    ...(config.frontend ? [`${chalk.bold("🎨 Frontend:")}     ${chalk.blueBright(config.frontend)}`] : []),
-    ...(config.backend ? [`${chalk.bold("⚙️ Backend:")}      ${chalk.magentaBright(config.backend)}`] : []),
+    ...(frontend && frontend !== "none" ? [`${chalk.bold("🎨 Frontend:")}     ${chalk.blueBright(frontend)}`] : []),
+    ...(backend && backend !== "none"   ? [`${chalk.bold("⚙️  Backend:")}      ${chalk.magentaBright(backend)}`] : []),
     `${chalk.bold("⚡ Runtime:")}      ${config.runtime === 'bun' ? chalk.white("Bun") : chalk.greenBright("Node.js")}`,
     `${chalk.bold("📦 Pkg Manager:")}  ${chalk.magenta(config.packageManager)}`,
+  ];
+
+  // Custom-stack expanded fields
+  if (isCustom) {
+    if (config.database && config.database.type !== "none") {
+      lines.push(`${chalk.bold("🗄️  Database:")}     ${chalk.cyanBright(config.database.type)}${config.database.provider ? chalk.gray(" via ") + chalk.white(config.database.provider) : ""}`);
+    }
+    if (config.orm && config.orm !== "none") {
+      lines.push(`${chalk.bold("🔗 ORM:")}           ${chalk.greenBright(config.orm)}`);
+    }
+    if (config.api && config.api !== "none") {
+      lines.push(`${chalk.bold("🔌 API:")}           ${chalk.blueBright(config.api)}`);
+    }
+    if (config.auth && config.auth !== "none") {
+      lines.push(`${chalk.bold("🔐 Auth:")}          ${chalk.magentaBright(config.auth)}`);
+    }
+    if (config.addons && config.addons.length > 0) {
+      lines.push(`${chalk.bold("🧩 Add-ons:")}       ${chalk.yellow(config.addons.join(", "))}`);
+    }
+  }
+
+  lines.push(
     `${chalk.bold("📥 Deps:")}         ${installedDeps ? chalk.green("installed") : chalk.gray("skipped")}`,
     `${chalk.bold("🐙 GitHub Repo:")}  ${createdRepo ? chalk.green("created") : chalk.gray("skipped")}`,
     `${chalk.bold("⏱  Time:")}         ${chalk.white(formatElapsed(elapsed))}`,
-  ];
+  );
 
   console.log(
     boxen(lines.join("\n"), {
@@ -403,22 +437,32 @@ async function main() {
       };
 
     } else {
-      // NORMAL MODE (unchanged)
+      // NORMAL MODE
       if (!projectName) {
         projectName = await askProjectName();
       }
 
       const stackAnswers = await askStackQuestions();
-      const frontendAnswers = await askFrontendQuestions();
-      const backendAnswers = await askBackendFramework();
-      const runtimeAnswers = await askRuntimeEnvironment();
-      packageManager = (await askPackageManager()).packageManager;
 
-      config = { ...stackAnswers, ...frontendAnswers, ...backendAnswers, ...runtimeAnswers, projectName, packageManager };
+      if (stackAnswers.stack === "custom") {
+        // ── Custom Stack Flow ──
+        console.log(chalk.gray("\n── Customise your tech stack ──\n"));
+        const customConfig = await gatherCustomConfig();
+        packageManager = (await askPackageManager()).packageManager;
+        config = { stack: "custom", ...customConfig, projectName, packageManager };
+      } else {
+        // ── Preset Stack Flow ──
+        const runtimeAnswers = await askRuntimeEnvironment();
+        packageManager = (await askPackageManager()).packageManager;
+        config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
+      }
     }
 
-    if (config.backend === "none") {
-      console.log(chalk.yellow("⚠️ Note: No backend framework selected. Creating a frontend-only project."));
+    if (config.stack !== "custom") {
+      const { backend: stackBackend } = getStackMeta(config.stack);
+      if (!stackBackend) {
+        console.log(chalk.yellow("⚠️ Note: This stack is frontend-only — no backend server will be created."));
+      }
     }
 
     // Ask whether to install dependencies (handled in main script)
@@ -427,6 +471,16 @@ async function main() {
         type: "confirm",
         name: "installDeps",
         message: "Do you want to install dependencies?",
+        default: true,
+      },
+    ]);
+
+    // Ask whether to initialize a git repo
+    const { initGit } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "initGit",
+        message: "Initialize a git repository?",
         default: true,
       },
     ]);
@@ -459,14 +513,25 @@ async function main() {
       throw err;
     }
 
+    // --- Git init ---
+    if (initGit && !createGitHubRepo) {
+      // Only run standalone git init when NOT creating a GitHub repo
+      // (createGithubRepo handles git init + remote + push itself)
+      const projectPath = path.join(process.cwd(), projectName);
+      try {
+        const { execSync } = await import("child_process");
+        execSync("git init", { cwd: projectPath, stdio: "ignore" });
+        execSync("git add .", { cwd: projectPath, stdio: "ignore" });
+        execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: "ignore" });
+        console.log(chalk.green("\n🎉 Git repository initialized with initial commit."));
+      } catch {
+        console.log(chalk.yellow("\n⚠️  Could not initialize git — you can run 'git init' manually."));
+      }
+    }
+
     // --- GitHub repo ---
     let repoCreated = false;
     if (createGitHubRepo) {
-      const repoSpinner = ora({
-        text: chalk.yellow("Starting GitHub repository setup…"),
-        spinner: "dots12",
-      }).start();
-      repoSpinner.stop(); // stop before interactive prompts inside createGithubRepo
       await createGithubRepo(projectName);
       repoCreated = true;
     }
@@ -489,6 +554,9 @@ async function main() {
     }
 
     console.log(chalk.red("❌ Error:"), err.message);
+    if (isVerbose && err.stack) {
+      console.log(chalk.gray(err.stack));
+    }
     process.exit(1);
   }
 }

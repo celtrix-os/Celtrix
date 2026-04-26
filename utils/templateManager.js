@@ -22,9 +22,15 @@ function addClientDockerfile(projectPath, _config) {
     return;
   }
 
+  // Select base image and install command based on runtime
+  const useBun = _config.runtime === "bun";
+  const baseImage = useBun ? "oven/bun:alpine" : "node:20-alpine";
+  const installCmd = useBun ? "bun install" : "npm install";
+  const buildCmd = useBun ? "bun run build" : "npm run build";
+
   // Create client Dockerfile for Vite-based projects
   const dockerfileContent = `# Build stage
-FROM node:20-alpine AS builder
+FROM ${baseImage} AS builder
 
 WORKDIR /app
 
@@ -32,13 +38,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN ${installCmd}
 
 # Copy source code
 COPY . .
 
 # Build the app
-RUN npm run build
+RUN ${buildCmd}
 
 # Production stage
 FROM nginx:alpine
