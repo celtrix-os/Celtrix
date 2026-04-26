@@ -1,5 +1,3 @@
-import chalk from "chalk";
-
 /**
  * Returns true when an inquirer prompt was cancelled with Ctrl+C.
  * Shared across the entire CLI to avoid duplicating this check.
