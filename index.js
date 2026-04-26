@@ -1,4 +1,3 @@
-
 import inquirer from "inquirer";
 import chalk from "chalk";
 import gradient from "gradient-string";
@@ -157,6 +156,33 @@ async function askPackageManager() {
   ]);
 }
 
+async function askApiType() {
+  const { apiType } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "apiType",
+      message: "Choose your API type:",
+      choices: [
+        {
+          name: chalk.bold.cyanBright("tRPC") + chalk.gray(" → end-to-end typesafe APIs"),
+          value: "trpc",
+        },
+        {
+          name: chalk.bold.magentaBright("oRPC") + chalk.gray(" → OpenAPI-compatible typesafe RPC"),
+          value: "orpc",
+        },
+        {
+          name: chalk.bold.gray("None") + chalk.gray(" → skip API layer setup"),
+          value: "none",
+        },
+      ],
+      pageSize: 10,
+      default: "none",
+    },
+  ]);
+  return apiType;
+}
+
 function getVersion() {
   try {
     const __filename = fileURLToPath(import.meta.url);
@@ -234,42 +260,54 @@ async function main() {
   let projectName = args.find(arg => !arg.startsWith('--') && !arg.startsWith('-'));
   let config;
   const quickKey = args[0];
-let isQuick = false;
-let quickConfig = null;
+  let isQuick = false;
+  let quickConfig = null;
 
-if (quickTemplates[quickKey]) {
-  isQuick = true;
-  quickConfig = quickTemplates[quickKey];
-}
+  if (quickTemplates[quickKey]) {
+    isQuick = true;
+    quickConfig = quickTemplates[quickKey];
+  }
 
   try {
 
-   if (isQuick) {
-  // QUICK MODE (mern-js / mern-ts)
-  console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
+    if (isQuick) {
+      // QUICK MODE (mern-js / mern-ts)
+      console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
 
-  projectName = args[1] || (await askProjectName());
+      projectName = args[1] || (await askProjectName());
 
-  packageManager = (await askPackageManager()).packageManager;
+      packageManager = (await askPackageManager()).packageManager;
 
-  config = {
-    stack: quickConfig.stack,       // always mern
-    language: quickConfig.language, // js or ts
-    projectName,
-    packageManager
-  };
+      const apiType = await askApiType();
 
-} else {
-  // NORMAL MODE (unchanged)
-  if (!projectName) {
-    projectName = await askProjectName();
-  }
+      config = {
+        stack: quickConfig.stack,
+        language: quickConfig.language,
+        projectName,
+        packageManager,
+        apiType,
+      };
 
-  const stackAnswers = await askStackQuestions();
-  packageManager = (await askPackageManager()).packageManager;
+    } else {
+      // NORMAL MODE
+      if (!projectName) {
+        projectName = await askProjectName();
+      }
 
-  config = { ...stackAnswers, projectName, packageManager };
-}
+      const stackAnswers = await askStackQuestions();
+      packageManager = (await askPackageManager()).packageManager;
+
+      const apiType = await askApiType();
+
+      config = { ...stackAnswers, projectName, packageManager, apiType };
+    }
+
+    if (config.apiType === "none") {
+      console.log(chalk.gray("  ℹ  Skipping API layer setup.\n"));
+    } else {
+      console.log(chalk.cyanBright(`  ✔  API type set to ${chalk.bold(config.apiType)}.\n`));
+    }
+
     // Ask whether to install dependencies (handled in main script)
     const { installDeps } = await inquirer.prompt([
       {
