@@ -5,6 +5,7 @@ import fetch from "node-fetch";
 import { existsSync } from "fs";
 import path from "path";
 import { spawn } from "child_process";
+import { isPromptCancellation } from "./utils/shared.js";
 
 const GITHUB_OAUTH_CLIENT_ID =
   process.env.GITHUB_OAUTH_CLIENT_ID ||
@@ -72,19 +73,6 @@ function runGitCommand(args, cwd, stdioMode = "pipe") {
   });
 }
 
-/**
- * Returns true when an inquirer prompt was cancelled with Ctrl+C.
- *
- * @param {unknown} error - Prompt error.
- * @returns {boolean}
- */
-function isPromptCancellation(error) {
-  return (
-    error instanceof Error &&
-    (error.name === "ExitPromptError" ||
-      error.message.toLowerCase().includes("force closed"))
-  );
-}
 
 /**
  * Sends a form-encoded POST request and returns the JSON response.
