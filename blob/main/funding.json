@@ -1,0 +1,61 @@
+{
+    "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+    "version": "v1.0.0",
+    "entity": {
+        "type": "individual",
+        "role": "maintainer",
+        "name": "Joe Celaster R",
+        "email": "joecelaster2006@gmail.com",
+        "phone": "+919043073419",
+        "description": "A developer who is Passionate about open-source and creating real-world impactful systems.",
+        "webpageUrl": {
+            "url": "https://celaster.me"
+        }
+    },
+    "projects": [{
+        "guid": "celtrix",
+        "name": "Celtrix",
+        "description": "Celtrix – an open-source scaffolding tool that helps you set up full-stack projects instantly with one command. Whether it's MERN, MEAN, Nextjs, or other popular stacks, you can scaffold everything with just one command.",
+        "webpageUrl": {
+            "url": "https://celtrix.tech"
+        },
+        "repositoryUrl": {
+            "url": "https://github.com/celtrix-os/Celtrix"
+        },
+        "licenses": ["spdx:MIT"],
+        "tags": ["javascript", "shell", "scaffold", "cli", "tool","npm"]
+    }],
+    "funding": {
+        "channels": [
+            {
+                "guid": "buymeacoffee",
+                "type": "payment-provider",
+                "address": "https://buymeacoffee.com/joe_celtrix",
+                "description": "Support me via Buy Me a Coffee"
+            }
+        ],
+        "plans": [
+            {
+                "guid": "support-monthly",
+                "status": "active",
+                "name": "Support the Project",
+                "description": "Help me continue building and improving this project.",
+                "amount": 10,
+                "currency": "USD",
+                "frequency": "monthly",
+                "channels": ["buymeacoffee"]
+            },
+            {
+                "guid": "one-time",
+                "status": "active",
+                "name": "Support the Project",
+                "description": "Help me continue building and improving this project. Buy me a coffee!",
+                "amount": 50,
+                "currency": "USD",
+                "frequency": "monthly",
+                "channels": ["buymeacoffee"]
+            }
+        ]
+    }
+}
+
