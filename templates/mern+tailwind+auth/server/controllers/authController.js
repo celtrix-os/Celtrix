@@ -2,20 +2,29 @@ const User = require("../models/User.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+
 // Register
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body || {};
+
+    if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
+      return res.status(400).json({ message: "Invalid input" });
+    }
+
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await User.create({ name, email, password: hashedPassword });
+    const user = await User.create({ name: cleanName, email: cleanEmail, password: hashedPassword });
 
     // Generate JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -32,10 +41,16 @@ const register = async (req, res) => {
 // Login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+
+    if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const cleanEmail = email.trim();
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     // Check password
