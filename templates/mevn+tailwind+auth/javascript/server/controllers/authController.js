@@ -1,8 +1,7 @@
 const User = require("../models/User.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
-const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+const { isNonEmptyString, normalizeEmail } = require("../utils/validation.js");
 
 // Register
 const register = async (req, res) => {
@@ -14,7 +13,7 @@ const register = async (req, res) => {
     }
 
     const cleanName = name.trim();
-    const cleanEmail = email.trim();
+    const cleanEmail = normalizeEmail(email);
 
     // Check if user exists
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -47,7 +46,7 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const cleanEmail = email.trim();
+    const cleanEmail = normalizeEmail(email);
 
     // Find user
     const user = await User.findOne({ email: cleanEmail });
