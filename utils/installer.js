@@ -402,7 +402,7 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
   }
 }
 
-export function nextSetup(projectPath, config, projectName) {
+export function nextSetup(projectPath, config, projectName, installDeps) {
   try {
     function nextCommand() {
       switch (config.packageManager) {
@@ -414,16 +414,18 @@ export function nextSetup(projectPath, config, projectName) {
       }
     }
 
+    const installFlag = installDeps ? "" : " --skip-install";
+
     if (config.language === "typescript") {
       logger.info("⚡ Setting up Next.js with TypeScript...");
-      execSync(`${nextCommand()} . --typescript --eslint --tailwind --src-dir --app --no-turbo --import-alias="@/*" --yes`, {
+      execSync(`${nextCommand()} . --typescript --eslint --tailwind --src-dir --app --no-turbo --import-alias="@/*"${installFlag} --yes`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
       });
     } else if (config.language === "javascript") {
       logger.info("⚡ Setting up Next.js with JavaScript...");
-      execSync(`${nextCommand()} . --eslint --tailwind --src-dir --app --turbo --import-alias @/* --yes`, {
+      execSync(`${nextCommand()} . --eslint --tailwind --src-dir --app --turbo --import-alias @/*${installFlag} --yes`, {
         cwd: projectPath,
         stdio: "inherit",
         shell: true,
