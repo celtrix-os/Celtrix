@@ -228,7 +228,7 @@ export async function setupProject(projectName, config, installDeps) {
     }
 
     else if (config.stack === 'nextjs') {
-      nextSetup(projectPath, config, projectName);
+      nextSetup(projectPath, config, projectName, installDeps);
       copyTemplates(projectPath, config);
       logger.info("✅ Next.js project created successfully!");
     }
