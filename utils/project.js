@@ -6,6 +6,7 @@ import { logger } from "./logger.js";
 import { copyTemplates } from "./templateManager.js";
 import { HonoReactSetup, mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
+import { scaffoldCustomProject } from "./customScaffolder.js";
 
 /**
  * Generates starter files for a custom-stack project so the user doesn't
@@ -173,9 +174,9 @@ export async function setupProject(projectName, config, installDeps) {
 
   try {
     if (isCustom) {
-      logger.info("📋 Bootstrapping custom stack project...");
-      bootstrapCustomProject(projectPath, projectName, config);
-      logger.success(`✅ Project scaffolded with README, .gitignore, package.json, and config`);
+      logger.info("📋 Initializing Celtrix Custom Scaffolder pipeline...");
+      await scaffoldCustomProject(projectPath, projectName, config, installDeps);
+      logger.success(`✅ Custom stack project successfully scaffolded!`);
     }
 
     else if (config.stack === "mern") {
