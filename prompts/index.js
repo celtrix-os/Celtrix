@@ -10,6 +10,11 @@ import { askORM } from "./web-parts/orm.js";
 import { askAPI } from "./web-parts/api.js";
 import { askAuth } from "./web-parts/auth.js";
 import { askAddons } from "./web-parts/addons.js";
+import {
+  getCompatibleORMs,
+  getCompatibleAPIs,
+  getCompatibleAuths
+} from "./web-parts/compatibility.js";
 
 const TOTAL_STEPS = 10;
 
@@ -108,28 +113,81 @@ export async function gatherCustomConfig() {
     const { runtime } = await askRuntime(step(4));
 
     // 5. Database (includes conditional provider/setup prompt)
-    const { database } = await askDatabase(step(5));
+    let database = { type: "none", provider: "" };
+    if (backend === "convex") {
+      console.log(
+        chalk.gray(
+          `   ${step(5)} Database selection skipped ${chalk.dim(
+            "(Convex includes a built-in document store)"
+          )}`
+        )
+      );
+    } else if (backend === "none") {
+      console.log(
+        chalk.gray(
+          `   ${step(5)} Database selection skipped ${chalk.dim(
+            "(Frontend-only projects do not require a backend database)"
+          )}`
+        )
+      );
+    } else {
+      const dbResult = await askDatabase(step(5));
+      database = dbResult.database;
+    }
 
     // 6. ORM — skip when no database is selected
     let orm = "none";
     if (database.type !== "none") {
-      const ormResult = await askORM(step(6));
-      orm = ormResult.orm;
+      const allowedORMs = getCompatibleORMs(database.type, language);
+      if (allowedORMs.length === 1) {
+        orm = allowedORMs[0];
+        console.log(
+          chalk.green(
+            `   ⚡ Automatically selected ${
+              orm === "prisma" ? "Prisma" : "Drizzle"
+            } ${chalk.dim(`(only compatible ORM for ${database.type} in ${language})`)}`
+          )
+        );
+      } else {
+        const ormResult = await askORM(step(6), allowedORMs);
+        orm = ormResult.orm;
+      }
     } else {
       console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
     }
 
-    // 7. API type — skip when no backend is selected
+    // 7. API type — skip when no backend or Convex is selected
     let api = "none";
-    if (backend !== "none") {
-      const apiResult = await askAPI(step(7));
-      api = apiResult.api;
-    } else {
+    if (backend === "convex") {
+      console.log(
+        chalk.gray(
+          `   ${step(7)} API type selection skipped ${chalk.dim(
+            "(Convex handles its own client-server communication)"
+          )}`
+        )
+      );
+    } else if (backend === "none") {
       console.log(chalk.gray(`   ${step(7)} API type selection skipped ${chalk.dim("(no backend)")}`));
+    } else {
+      const allowedAPIs = getCompatibleAPIs(backend, language);
+      if (allowedAPIs.length === 1) {
+        api = allowedAPIs[0];
+        console.log(
+          chalk.green(
+            `   ⚡ Automatically selected None ${chalk.dim(
+              "(tRPC/oRPC require TypeScript, defaulting to REST/None)"
+            )}`
+          )
+        );
+      } else {
+        const apiResult = await askAPI(step(7), allowedAPIs);
+        api = apiResult.api;
+      }
     }
 
     // 8. Auth provider
-    const { auth } = await askAuth(step(8));
+    const allowedAuths = getCompatibleAuths(backend, language, database.type);
+    const { auth } = await askAuth(step(8), allowedAuths);
 
     // 9. Add-ons (multi-select)
     const { addons } = await askAddons(step(9));
