@@ -15,23 +15,26 @@ const ORM_OPTIONS = [
  * Should be skipped when the database selection is "none".
  *
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[6/10]".
+ * @param {string[]} [allowedORMs] - List of compatible ORMs for this selection.
  * @returns {Promise<{ orm: string }>}
  */
-export async function askORM(stepLabel = "") {
+export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"]) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
+
+  const filteredOptions = ORM_OPTIONS.filter((opt) => allowedORMs.includes(opt.value));
 
   const { orm } = await inquirer.prompt([
     {
       type: "list",
       name: "orm",
       message: chalk.bold(`${prefix}Select an ORM:`),
-      choices: ORM_OPTIONS.map((opt) => ({
+      choices: filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: "drizzle",
+      default: filteredOptions[0]?.value || "drizzle",
     },
   ]);
 

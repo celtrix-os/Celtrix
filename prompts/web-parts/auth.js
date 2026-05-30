@@ -14,23 +14,26 @@ const AUTH_OPTIONS = [
  * Prompts the user to select an authentication provider.
  *
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[8/10]".
+ * @param {string[]} [allowedAuths] - List of compatible auth options.
  * @returns {Promise<{ auth: string }>}
  */
-export async function askAuth(stepLabel = "") {
+export async function askAuth(stepLabel = "", allowedAuths = ["clerk", "better-auth", "none"]) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
+
+  const filteredOptions = AUTH_OPTIONS.filter((opt) => allowedAuths.includes(opt.value));
 
   const { auth } = await inquirer.prompt([
     {
       type: "list",
       name: "auth",
       message: chalk.bold(`${prefix}Select an auth provider:`),
-      choices: AUTH_OPTIONS.map((opt) => ({
+      choices: filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: "better-auth",
+      default: allowedAuths.includes("better-auth") ? "better-auth" : filteredOptions[0]?.value,
     },
   ]);
 
