@@ -1,6 +1,6 @@
 {
   "name": "celtrix",
-  "version": "2.3.5",
+  "version": "3.0.0",
   "description": "CLI to create MERN apps quickly",
   "repository": {
     "type": "git",
