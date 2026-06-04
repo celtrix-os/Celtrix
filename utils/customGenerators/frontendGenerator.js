@@ -42,9 +42,9 @@ export async function generateFrontend(context) {
   }
 
   if (context.config.frontend === "svelte") {
-    // Run SvelteKit CLI non-interactively
-    const types = context.isTs ? "ts" : "js";
-    execSync(`npm create svelte@latest . -- --template default --types ${types} --no-playwright --no-vitest --no-eslint --no-prettier`, {
+    // Run SvelteKit CLI non-interactively using modern sv CLI
+    const types = context.isTs ? "ts" : "jsdoc";
+    execSync(`npx sv create . --template minimal --types ${types} --no-add-ons --no-install --no-dir-check`, {
       cwd: targetDir,
       stdio: "inherit"
     });
