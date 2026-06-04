@@ -1,29 +1,8 @@
 
-import inquirer from "inquirer";
 import chalk from "chalk";
-import gradient from "gradient-string";
-import figlet from "figlet";
-import ora from "ora";
-import boxen from "boxen";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { createProject } from "./commands/scaffold.js";
-import { loginCommand } from "./commands/login.js";
-import { gatherCustomConfig } from "./prompts/index.js";
-import { isPromptCancellation } from "./utils/shared.js";
-import { askStackQuestions } from "./prompts/stack/stack.js";
-import { askProjectName } from "./prompts/user/projectName.js";
-import { showBanner } from "./prompts/stable/showBanner.js";
-import { getStackMeta } from "./prompts/stable/getStackMeta.js";
-import { askRuntimeEnvironment } from "./prompts/stack/runtime.js";
-import { askPackageManager } from "./prompts/common/askPackageManager.js";
 import { showVersion } from "./prompts/info/showVersion.js";
 import { showHelp } from "./prompts/info/showHelp.js";
-import { formatElapsed } from "./prompts/info/formatElapsed.js";
-import { showSummaryBox } from "./prompts/info/summary.js";
 import { parseArgs } from "./prompts/stable/parseArgs.js";
-import { detectPackageManager } from "./prompts/stable/detectPackageManager.js";
 
 const orange = chalk.hex("#FF6200");
 
@@ -31,7 +10,6 @@ const quickTemplates = {
   "mern-js": { stack: "mern", language: "javascript" },
   "mern-ts": { stack: "mern", language: "typescript" }
 };
-
 
 const isVerbose = process.argv.includes("--verbose");
 
@@ -51,9 +29,45 @@ async function main() {
   }
 
   if (args.includes('login')) {
+    const { loginCommand } = await import("./commands/login.js");
     await loginCommand();
     process.exit(0);
   }
+
+  // Dynamically load all packages needed for interactive flow in parallel
+  const [
+    { createProject },
+    { gatherCustomConfig },
+    { isPromptCancellation },
+    { askStackQuestions },
+    { askProjectName },
+    { showBanner },
+    { getStackMeta },
+    { askRuntimeEnvironment },
+    { askPackageManager },
+    { formatElapsed },
+    { showSummaryBox },
+    { detectPackageManager },
+    { default: inquirer },
+    { default: ora },
+    { default: path }
+  ] = await Promise.all([
+    import("./commands/scaffold.js"),
+    import("./prompts/index.js"),
+    import("./utils/shared.js"),
+    import("./prompts/stack/stack.js"),
+    import("./prompts/user/projectName.js"),
+    import("./prompts/stable/showBanner.js"),
+    import("./prompts/stable/getStackMeta.js"),
+    import("./prompts/stack/runtime.js"),
+    import("./prompts/common/askPackageManager.js"),
+    import("./prompts/info/formatElapsed.js"),
+    import("./prompts/info/summary.js"),
+    import("./prompts/stable/detectPackageManager.js"),
+    import("inquirer"),
+    import("ora"),
+    import("path")
+  ]);
 
   showBanner();
 
