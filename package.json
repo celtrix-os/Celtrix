@@ -16,6 +16,7 @@
     "createGithubRepo.js",
     "index.js",
     "commands/",
+    "prompts/",
     "utils/",
     "templates/"
   ],
