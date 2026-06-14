@@ -24,6 +24,7 @@ async function main() {
 
   // Handle help flag
   if (args.includes('--help') || args.includes('-h')) {
+
     showHelp();
     process.exit(0);
   }
@@ -104,11 +105,12 @@ async function main() {
 
     } else {
       // NORMAL MODE
+      const stackAnswers = await askStackQuestions();
+      
       if (!projectName) {
         projectName = await askProjectName();
       }
-
-      const stackAnswers = await askStackQuestions();
+     
 
       if (stackAnswers.stack === "custom") {
         // ── Custom Stack Flow ──
