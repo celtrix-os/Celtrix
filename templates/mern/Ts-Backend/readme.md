@@ -95,3 +95,9 @@ API documentation is available at `/api-docs` when the server is running.
 - `npm start` - Start production server
 - `npm test` - Run tests
 - `npm run lint` - Run linting checks
+
+## Security
+
+This project uses [helmet](https://helmetjs.github.io/) to automatically set
+secure HTTP response headers, protecting against common web vulnerabilities
+including XSS, clickjacking, and MIME sniffing.

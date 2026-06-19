@@ -1,10 +1,12 @@
 const express = require("express");
+const helmet = require("helmet");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
 dotenv.config();
 
 const app = express();
+app.use(helmet());
 
 const mongoUri = process.env.MONGO_URI; 
 const port = process.env.PORT || 5000;
