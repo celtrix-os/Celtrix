@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const cors = require("cors");
+const helmet = require("helmet");
 
 dotenv.config();
 
@@ -11,6 +13,8 @@ const port = process.env.PORT || 5000;
 
 // Middleware to parse JSON
 app.use(express.json());
+app.use(cors());
+app.use(helmet());
 
 // Connect to MongoDB and start server
 // Safe MongoDB connection for scaffold
