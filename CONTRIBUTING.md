@@ -25,7 +25,7 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
 
 ### Reporting Bugs or Issues
 
-- Search [issues](https://github.com/gunjanghate/Celtrix/issues) to see if your bug or suggestion is already reported.
+- Search [issues](https://github.com/celtrix-os/Celtrix/issues) to see if your bug or suggestion is already reported.
 - If not, open a new issue and **follow this structure for better understanding:**
   - **Title:** Clear and descriptive
   - **Description:**
@@ -41,7 +41,7 @@ Following this structure helps maintainers and contributors understand and resol
 
 ### Suggesting Enhancements
 
-- Check if your idea is already discussed in [issues](https://github.com/gunjanghate/Celtrix/issues).
+- Check if your idea is already discussed in [issues](https://github.com/celtrix-os/Celtrix/issues).
 - Open a new issue for new suggestions. Please include:
   - Motivation and use case
   - Example scenarios
@@ -77,7 +77,7 @@ Following these rules helps reviewers understand your contribution and speeds up
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/gunjanghate/Celtrix.git
+   git clone https://github.com/celtrix-os/Celtrix.git
    cd Celtrix
    ```
 2. **Install dependencies:**
@@ -96,9 +96,10 @@ Following these rules helps reviewers understand your contribution and speeds up
 - `index.js` – Main entry point for the CLI.
 - `bin/` – CLI executable scripts.
 - `commands/` – CLI command handlers (e.g., scaffold logic).
-- `templates/` – Project templates (MERN, MEVN, T3, etc.).
+- `prompts/` – Function Modules.
+- `templates/` – Preset Project templates.
 - `utils/` – Utility modules (installer, logger, project management, etc.).
-- `tests/` – Test cases and scripts.
+- `tests/` – Test cases and scripts (Under development).
 
 ## Coding Guidelines
 
@@ -114,7 +115,7 @@ Here are some common git commands you may find useful when contributing:
 
 - **Clone the repository:**
   ```sh
-  git clone https://github.com/gunjanghate/Celtrix.git
+  git clone https://github.com/celtrix-os/Celtrix.git
   ```
 - **Create a new branch:**
   ```sh
@@ -150,18 +151,9 @@ Here are some common git commands you may find useful when contributing:
 
 ---
 
-## Template Contributions
-
-To add or update a template:
-
-1. Place new templates in the appropriate subfolder under `templates/`.
-2. Ensure the template includes all necessary files (`package.json`, configs, etc.).
-3. Test the template by scaffolding a project and running it.
-4. Document any special instructions in the template's `README.md`.
-
 ## Community & Support
 
-- For questions, open a [discussion](https://github.com/gunjanghate/Celtrix/discussions) or join the community chat (if available).
+- For questions, open a [discussion](https://github.com/celtrix-os/Celtrix/discussions) or join the community chat (if available).
 - Be respectful and constructive in all communications.
 
 ---
