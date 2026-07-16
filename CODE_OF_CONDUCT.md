@@ -2,7 +2,7 @@
 
 ## About Celtrix OS
 
-Celtrix OS simplifies web app setup—getting developers from zero to running apps in seconds, not hours. Our motto is clear: No Setup, No Sh*t. Based in India, we strive to build an efficient, friendly, and inclusive community that reflects the same clarity and speed our product delivers.
+Celtrix OS simplifies web app setup - getting developers from zero to running apps in seconds, not hours. We strive to build an efficient, friendly, and inclusive community that reflects the same clarity and speed our product delivers.
 
 
 - Contact: celtrix.org@gmail.com  
