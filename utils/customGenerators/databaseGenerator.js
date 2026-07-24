@@ -2,6 +2,10 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { getInstallCommand } from "../shared.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function generateDatabase(context) {
   const isMonorepo = context.hasFrontend && context.hasBackend;
@@ -19,6 +23,13 @@ export async function generateDatabase(context) {
     types: "./src/index.ts"
   };
   fs.writeJsonSync(path.join(targetDir, "package.json"), pkgJson, { spaces: 2 });
+
+  // Add .gitignore for database package from template
+  const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+  const databaseGitignorePath = path.join(templatesDir, "database.gitignore");
+  if (fs.existsSync(databaseGitignorePath)) {
+    fs.copyFileSync(databaseGitignorePath, path.join(targetDir, ".gitignore"));
+  }
 
   fs.ensureDirSync(path.join(targetDir, "src"));
 

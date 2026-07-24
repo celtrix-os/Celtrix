@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { logger } from "./logger.js";
+import { fileURLToPath } from "url";
 
 // Generator Imports
 import { generateFrontend } from "./customGenerators/frontendGenerator.js";
@@ -10,6 +11,10 @@ import { generateDatabase } from "./customGenerators/databaseGenerator.js";
 import { generateAPI } from "./customGenerators/apiGenerator.js";
 import { generateAuth } from "./customGenerators/authGenerator.js";
 import { generateAddons } from "./customGenerators/addonsGenerator.js";
+
+// Get the directory where this file is located
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function scaffoldCustomProject(projectPath, projectName, config, installDeps) {
   const context = {
@@ -23,7 +28,8 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
     packageManager: config.packageManager || "npm",
     isTs: config.language === "typescript",
     ext: config.language === "typescript" ? "ts" : "js",
-    jsxExt: config.language === "typescript" ? "tsx" : "jsx"
+    jsxExt: config.language === "typescript" ? "tsx" : "jsx",
+    templatesDir: path.join(__dirname, "../templates/gitignore")
   };
 
   logger.info("📦 Phase 1: Bootstrapping project workspace & Turborepo...");
@@ -100,7 +106,13 @@ function bootstrapWorkspace(context) {
     };
     fs.writeJsonSync(path.join(context.projectPath, "package.json"), rootPkg, { spaces: 2 });
 
-    // 2. turbo.json
+    // 2. Root .gitignore for monorepo
+    const rootGitignorePath = path.join(context.templatesDir, "root.gitignore");
+    if (fs.existsSync(rootGitignorePath)) {
+      fs.copyFileSync(rootGitignorePath, path.join(context.projectPath, ".gitignore"));
+    }
+
+    // 3. turbo.json
     const turboConfig = {
       $schema: "https://turbo.build/schema.json",
       tasks: {
@@ -119,7 +131,7 @@ function bootstrapWorkspace(context) {
     };
     fs.writeJsonSync(path.join(context.projectPath, "turbo.json"), turboConfig, { spaces: 2 });
 
-    // 3. packages/tsconfig workspace configs
+    // 4. packages/tsconfig workspace configs
     const tsconfigDir = path.join(context.projectPath, "packages", "tsconfig");
     fs.ensureDirSync(tsconfigDir);
     fs.writeJsonSync(path.join(tsconfigDir, "package.json"), {
@@ -127,6 +139,12 @@ function bootstrapWorkspace(context) {
       version: "1.0.0",
       private: true
     }, { spaces: 2 });
+
+    // Add .gitignore for tsconfig package
+    const tsconfigGitignorePath = path.join(context.templatesDir, "tsconfig.gitignore");
+    if (fs.existsSync(tsconfigGitignorePath)) {
+      fs.copyFileSync(tsconfigGitignorePath, path.join(tsconfigDir, ".gitignore"));
+    }
 
     const baseTsconfig = {
       compilerOptions: {

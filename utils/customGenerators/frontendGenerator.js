@@ -2,6 +2,10 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { buildViteCommand } from "../shared.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function generateFrontend(context) {
   const targetDir = context.hasBackend 
@@ -17,6 +21,13 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    
+    // Add .gitignore for frontend from template
+    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+    }
     return;
   }
 
@@ -28,6 +39,13 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    
+    // Add .gitignore for frontend from template
+    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+    }
     return;
   }
 
@@ -38,6 +56,13 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    
+    // Add .gitignore for frontend from template
+    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+    }
     return;
   }
 
@@ -48,6 +73,13 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    
+    // Add .gitignore for frontend from template
+    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+    }
     return;
   }
 
@@ -59,6 +91,13 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    
+    // Add .gitignore for frontend from template
+    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+    }
     return;
   }
 
@@ -68,6 +107,13 @@ export async function generateFrontend(context) {
   const viteCmd = buildViteCommand(context.config, templateName, ".");
 
   execSync(viteCmd, { cwd: targetDir, stdio: "inherit", shell: true });
+
+  // Add .gitignore for frontend from template
+  const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+  const packageGitignorePath = path.join(templatesDir, "package.gitignore");
+  if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
+    fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
+  }
 
   // Injects base stylesheets and components
   fs.writeFileSync(
@@ -93,19 +139,68 @@ function getFrontendAppTemplate(frontend, isTs) {
 export default function App() {
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      backgroundColor: '#0a0a0a',
-      color: '#ffffff',
+      minHeight: '100vh',
+      backgroundColor: '#ffffff',
       fontFamily: 'system-ui, sans-serif'
     }}>
-      <h1 style={{ fontSize: '3rem', margin: 0, color: '#4ade80' }}>⚡ Welcome to Celtrix</h1>
-      <p style={{ fontSize: '1.25rem', color: '#a3a3a3' }}>
-        Bootstrapped with production-grade ${frontend}!
-      </p>
+      {/* Navbar */}
+      <nav style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '1rem 2rem',
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #e9ecef'
+      }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' , textDecoration: 'underline', cursor: 'pointer'}} 
+        onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>
+          Celtrix
+        </div>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <a href="#" style={{
+            textDecoration: 'none',
+            color: '#333',
+            fontSize: '1rem'
+          }}>Home</a>
+          <a href="#" style={{
+            textDecoration: 'none',
+            color: '#333',
+            fontSize: '1rem'
+          }}>Dashboard</a>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flex: 1,
+        padding: '2rem'
+      }}>
+        <h1 style={{ fontSize: '2rem', color: '#333', marginBottom: '0.5rem' }}>
+          Welcome to your application
+        </h1>
+        <p style={{ fontSize: '1rem', color: '#666' }}>
+          Built with ${frontend}
+        </p>
+      </main>
+
+      {/* Powered by Celtrix Badge */}
+      <div style={{
+        position: 'fixed',
+        bottom: '2rem',
+        right: '2rem',
+        backgroundColor: '#000',
+        color: '#fff',
+        padding: '0.5rem 1rem',
+        borderRadius: '0.5rem',
+        fontSize: '0.875rem',
+        cursor: 'pointer'
+      }} onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>
+        🔗 Powered by <span style={{ fontWeight: 'bold', color: '#4ade80' }}>Celtrix</span>
+      </div>
     </div>
   );
 }`;
