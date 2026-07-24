@@ -51,6 +51,17 @@ export async function generateFrontend(context) {
     return;
   }
 
+  if (context.config.frontend === "tanstack") {
+    // Run TanStack Start CLI non-interactively using the new @tanstack/cli
+    const installFlag = context.installDeps ? "" : "--no-install";
+    const pmFlag = `--package-manager ${context.packageManager}`;
+    execSync(`npx -y @tanstack/cli create . -y ${pmFlag} ${installFlag}`, {
+      cwd: targetDir,
+      stdio: "inherit"
+    });
+    return;
+  }
+
   // Vite Boilerplate for React, Vue, Svelte, Solid
   const baseTemplate = getBaseTemplate(context.config.frontend);
   const templateName = context.isTs ? `${baseTemplate}-ts` : baseTemplate;
