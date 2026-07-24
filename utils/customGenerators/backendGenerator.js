@@ -2,6 +2,10 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { getInstallCommand } from "../shared.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function generateBackend(context) {
   const targetDir = context.hasFrontend 
@@ -21,6 +25,13 @@ export async function generateBackend(context) {
     }
   };
   fs.writeJsonSync(path.join(targetDir, "package.json"), pkgJson, { spaces: 2 });
+
+  // Add .gitignore for backend from template
+  const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
+  const backendGitignorePath = path.join(templatesDir, "backend.gitignore");
+  if (fs.existsSync(backendGitignorePath)) {
+    fs.copyFileSync(backendGitignorePath, path.join(targetDir, ".gitignore"));
+  }
 
   // TS Setup
   if (context.isTs) {

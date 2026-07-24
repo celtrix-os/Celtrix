@@ -31,6 +31,16 @@ export async function generateAddons(context) {
     if (context.installDeps) {
       execSync(`npx -y husky-init`, { cwd: context.projectPath, stdio: "inherit" });
     }
+    
+    // Add .husky to root .gitignore if it exists
+    const gitignorePath = path.join(context.projectPath, ".gitignore");
+    if (fs.existsSync(gitignorePath)) {
+      let gitignoreContent = fs.readFileSync(gitignorePath, "utf-8");
+      if (!gitignoreContent.includes(".husky/")) {
+        gitignoreContent += "\n# Husky\n.husky/\n";
+        fs.writeFileSync(gitignorePath, gitignoreContent, "utf-8");
+      }
+    }
   }
 
   if (addons.includes("vercel-ai-sdk")) {
