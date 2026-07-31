@@ -171,7 +171,7 @@ async function populateExistingIssues() {
               Object.keys(fetchResult.vectors).forEach(vectorId => {
                 const match = vectorId.match(/issue-(\d+)/);
                 if (match) {
-                  const issueNum = parseInt(match[1]);
+                  const issueNum = parseInt(match[1], 10);
                   if (!existingIssueNumbers.has(issueNum)) {
                     existingIssueNumbers.add(issueNum);
                     console.log(`      ✓ Found existing issue #${issueNum} by ID`);
