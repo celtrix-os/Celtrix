@@ -115,7 +115,8 @@ async function run() {
           }),
         }
       );
-      const data = await response.json();
+      if (!response.ok) throw new Error("Request failed");
+const data = await response.json();
 
       if (data.error || !data.embedding || !data.embedding.values) {
         console.error("Embedding error:", data.error || "Invalid response");
