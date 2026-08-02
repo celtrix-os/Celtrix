@@ -39,7 +39,7 @@ async function deleteIssueVectors() {
         includeValues: false,
         includeMetadata: true,
         filter: {
-          issue_number: parseInt(ISSUE_TO_DELETE)
+          issue_number: parseInt(ISSUE_TO_DELETE, 10)
         }
       });
 
@@ -65,7 +65,7 @@ async function deleteIssueVectors() {
           
           if (listResponse.vectors) {
             for (const vector of listResponse.vectors) {
-              if (vector.metadata?.issue_number === parseInt(ISSUE_TO_DELETE)) {
+              if (vector.metadata?.issue_number === parseInt(ISSUE_TO_DELETE, 10)) {
                 vectorsToDelete.push(vector.id);
                 console.log(`   📌 Found vector via list: ${vector.id}`);
                 console.log(`      Metadata:`, JSON.stringify(vector.metadata, null, 2));
