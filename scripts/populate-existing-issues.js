@@ -162,7 +162,7 @@ async function populateExistingIssues() {
           const batch = allIssues.slice(i, i + 10);
           
           // Try to fetch vectors by their expected IDs
-          const vectorIds = batch.map(issue => `issue-${issue.number}`);
+          const vectorIds = (batch ?? []).map(issue => `issue-${issue.number}`);
           
           try {
             const fetchResult = await index.fetch(vectorIds);
