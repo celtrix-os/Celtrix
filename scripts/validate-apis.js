@@ -157,19 +157,4 @@ if (args.includes('--help') || args.includes('-h')) {
 switch (service) {
   case 'pinecone':
     validatePinecone().then(result => {
-      process.exit(result.success ? 0 : 1);
-    });
-    break;
-  case 'github':
-    validateGitHub().then(result => {
-      process.exit(result.success ? 0 : 1);
-    });
-    break;
-  case 'gemini':
-    validateGemini().then(result => {
-      process.exit(result.success ? 0 : 1);
-    });
-    break;
-  default:
-    validateAllConnections();
-}
+    .catch(err => console.error(err))
