@@ -162,7 +162,7 @@ async function populateExistingIssues() {
           const batch = allIssues.slice(i, i + 10);
           
           // Try to fetch vectors by their expected IDs
-          const vectorIds = batch.map(issue => `issue-${issue.number}`);
+          const vectorIds = (batch ?? []).map(issue => `issue-${issue.number}`);
           
           try {
             const fetchResult = await index.fetch(vectorIds);
@@ -171,7 +171,7 @@ async function populateExistingIssues() {
               Object.keys(fetchResult.vectors).forEach(vectorId => {
                 const match = vectorId.match(/issue-(\d+)/);
                 if (match) {
-                  const issueNum = parseInt(match[1]);
+                  const issueNum = parseInt(match[1], 10);
                   if (!existingIssueNumbers.has(issueNum)) {
                     existingIssueNumbers.add(issueNum);
                     console.log(`      ✓ Found existing issue #${issueNum} by ID`);
