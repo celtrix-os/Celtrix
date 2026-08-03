@@ -39,7 +39,7 @@ async function deleteIssueVectors() {
         includeValues: false,
         includeMetadata: true,
         filter: {
-          issue_number: parseInt(ISSUE_TO_DELETE)
+          issue_number: parseInt(ISSUE_TO_DELETE, 10)
         }
       });
 
