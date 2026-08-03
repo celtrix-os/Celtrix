@@ -208,3 +208,4 @@ async function main() {
 }
 
 main();
+.catch(err => console.error("Promise.all failed:", err));
