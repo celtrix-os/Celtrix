@@ -11,7 +11,7 @@ import { askORM } from "./web-parts/orm.js";
 import { askAPI } from "./web-parts/api.js";
 import { askAuth } from "./web-parts/auth.js";
 import { askAddons } from "./web-parts/addons.js";
-import { addBackChoice, BACK } from "./common/navigation.js";
+import { isBackNavigation } from "./common/navigation.js";
 import {
   getCompatibleORMs,
   getCompatibleAPIs,
@@ -255,21 +255,19 @@ export async function gatherCustomConfig() {
         showConfirmationSummary(config);
         const { action } = await inquirer.prompt([
           {
-            type: "list",
+            type: "celtrixList",
             name: "action",
             message: chalk.bold(`${step(10)} Proceed with this configuration?`),
-            choices: addBackChoice(
-              [
-                { name: "Continue", value: "continue" },
-                { name: "Start over", value: "restart" },
-              ],
-              canGoBack
-            ),
+            choices: [
+              { name: "Continue", value: "continue" },
+              { name: "Start over", value: "restart" },
+            ],
             default: "continue",
+            canGoBack,
           },
         ]);
 
-        if (action === BACK) {
+        if (isBackNavigation(action)) {
           currentStep = history.pop();
           continue;
         }
@@ -290,6 +288,7 @@ export async function gatherCustomConfig() {
       if (currentStep === "addons" && Array.isArray(answer.addons)) {
         config.addons = answer.addons;
       }
+      if (history.length === 0) continue;
       currentStep = history.pop();
       continue;
     }

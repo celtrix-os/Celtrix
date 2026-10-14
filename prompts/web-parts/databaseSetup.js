@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { addBackChoice, BACK } from "../common/navigation.js";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Maps each database type to its available provider/setup options.
@@ -43,19 +43,20 @@ export async function askDatabaseSetup(databaseType, { defaultValue, canGoBack =
 
   const { provider } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "provider",
       message: chalk.bold(`Select a ${chalk.cyanBright(databaseType)} provider:`),
-      choices: addBackChoice(options.map((opt) => ({
+      choices: options.map((opt) => ({
         name:
           opt.color.bold(`⚡ ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })), canGoBack),
+      })),
       default: options.some((opt) => opt.value === defaultValue) ? defaultValue : options[0].value,
+      canGoBack,
     },
   ]);
 
-  if (provider === BACK) return { back: true };
+  if (isBackNavigation(provider)) return { back: true };
   return { provider };
 }

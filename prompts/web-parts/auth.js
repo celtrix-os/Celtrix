@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { addBackChoice, BACK } from "../common/navigation.js";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Authentication provider options.
@@ -25,21 +25,22 @@ export async function askAuth(stepLabel = "", allowedAuths = ["clerk", "better-a
 
   const { auth } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "auth",
       message: chalk.bold(`${prefix}Select an auth provider:`),
-      choices: addBackChoice(filteredOptions.map((opt) => ({
+      choices: filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })), canGoBack),
+      })),
       default: filteredOptions.some((opt) => opt.value === defaultValue)
         ? defaultValue
         : allowedAuths.includes("better-auth") ? "better-auth" : filteredOptions[0]?.value,
+      canGoBack,
     },
   ]);
 
-  if (auth === BACK) return { back: true };
+  if (isBackNavigation(auth)) return { back: true };
   return { auth };
 }

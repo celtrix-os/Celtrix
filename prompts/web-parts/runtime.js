@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { addBackChoice, BACK } from "../common/navigation.js";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Runtime environment options.
@@ -21,19 +21,20 @@ export async function askRuntime(stepLabel = "", { defaultValue = "node", canGoB
 
   const { runtime } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "runtime",
       message: chalk.bold(`${prefix}Select a runtime environment:`),
-      choices: addBackChoice(RUNTIME_OPTIONS.map((opt) => ({
+      choices: RUNTIME_OPTIONS.map((opt) => ({
         name:
           opt.color.bold(`⚡ ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })), canGoBack),
+      })),
       default: RUNTIME_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "node",
+      canGoBack,
     },
   ]);
 
-  if (runtime === BACK) return { back: true };
+  if (isBackNavigation(runtime)) return { back: true };
   return { runtime };
 }

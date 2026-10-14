@@ -31,6 +31,7 @@
   "author": "Joe Celaster",
   "license": "ISC",
   "dependencies": {
+    "@inquirer/core": "^10.2.0",
     "@octokit/rest": "^22.0.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "boxen": "^8.0.1",

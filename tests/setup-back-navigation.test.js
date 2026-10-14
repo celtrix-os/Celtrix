@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { PassThrough, Writable } from "node:stream";
 import { test } from "node:test";
 import inquirer from "inquirer";
 import { gatherCustomConfig } from "../prompts/index.js";
-import { BACK } from "../prompts/common/navigation.js";
+import { isBackNavigation, registerNavigationPrompts } from "../prompts/common/navigation.js";
 
 async function runWizard(responses = {}) {
   const originalPrompt = inquirer.prompt;
@@ -17,16 +18,25 @@ async function runWizard(responses = {}) {
     queues.set(question.name, queue);
 
     let answer = planned;
-    if (answer === "back") {
-      answer = question.choices.find((choice) => choice.value === BACK)?.value;
-      assert.notEqual(answer, undefined, `${question.name} should offer Back`);
+    if (answer === "back" || (question.type === "celtrixCheckbox" && Array.isArray(answer) && answer.includes("back"))) {
+      const selectedAddons = Array.isArray(answer)
+        ? answer.filter((value) => value !== "back")
+        : question.choices.filter((choice) => choice.checked).map((choice) => choice.value);
+      answer = question.type === "celtrixCheckbox"
+        ? {
+          back: true,
+          addons: selectedAddons,
+        }
+        : { back: true };
     } else if (answer === undefined) {
-      answer = question.type === "checkbox"
+      answer = question.type === "celtrixCheckbox"
         ? question.choices.filter((choice) => choice.checked).map((choice) => choice.value)
         : question.default;
     }
 
-    if (question.type !== "checkbox") {
+    if (question.type === "celtrixCheckbox" && !isBackNavigation(answer)) {
+      assert.ok(Array.isArray(answer), `${question.name} should return checked choices`);
+    } else if (!isBackNavigation(answer)) {
       assert.ok(
         question.choices.some((choice) => choice.value === answer),
         `${question.name} should include its selected value`
@@ -45,28 +55,57 @@ async function runWizard(responses = {}) {
   }
 }
 
-function choicesFor(prompts, name, occurrence = 0) {
-  return prompts.filter((question) => question.name === name)[occurrence].choices;
+async function runPromptWithKeys(question, keys) {
+  const input = new PassThrough();
+  let markRendered;
+  const rendered = new Promise((resolve) => {
+    markRendered = resolve;
+  });
+  const output = new Writable({
+    write(_chunk, _encoding, callback) {
+      markRendered();
+      callback();
+    },
+  });
+  const prompt = inquirer.createPromptModule({ input, output });
+  registerNavigationPrompts(prompt);
+
+  const answersPromise = prompt([question]);
+  await rendered;
+  for (const key of keys) {
+    input.write(key);
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  const answers = await answersPromise;
+  input.end();
+  return answers[question.name];
 }
 
-test("Back returns to the previous question and retains its selection", async () => {
-  const { config, prompts } = await runWizard({
-    frontend: ["nextjs"],
-    runtime: ["bun"],
-    databaseType: ["back", "postgres"],
-  });
+test("no setup menu adds a Back choice", async () => {
+  const { prompts } = await runWizard();
 
-  assert.equal(prompts[0].name, "language");
-  assert.equal(prompts[0].choices.some((choice) => choice.value === BACK), false);
-  assert.ok(choicesFor(prompts, "frontend").some((choice) => choice.value === BACK));
-  assert.equal(prompts.filter((question) => question.name === "runtime")[1].default, "bun");
-  assert.equal(config.frontend, "nextjs");
-  assert.equal(config.runtime, "bun");
-  assert.equal(config.database.type, "postgres");
-  assert.equal(JSON.stringify(config).includes(BACK), false);
+  for (const question of prompts) {
+    assert.equal(
+      question.choices.some((choice) => String(choice.name).includes("Back") || String(choice.name).includes("←")),
+      false,
+      `${question.name} should not display a Back choice`
+    );
+  }
 });
 
-test("repeated Back navigation allows changing an earlier answer", async () => {
+test("Backspace returns a navigation result and does not become a choice value", async () => {
+  const result = await runPromptWithKeys({
+    type: "celtrixList",
+    name: "choice",
+    message: "Select an option:",
+    canGoBack: true,
+    choices: [{ name: "First", value: "first" }],
+  }, [String.fromCharCode(127)]);
+
+  assert.deepEqual(result, { back: true });
+});
+
+test("the user can change an earlier answer and continue", async () => {
   const { config, prompts } = await runWizard({
     backend: ["express", "hono"],
     runtime: ["bun", "back"],
@@ -77,10 +116,38 @@ test("repeated Back navigation allows changing an earlier answer", async () => {
   assert.equal(prompts.filter((question) => question.name === "runtime")[1].default, "bun");
   assert.equal(config.backend, "hono");
   assert.equal(config.runtime, "bun");
-  assert.equal(JSON.stringify(config).includes(BACK), false);
 });
 
-test("changing language re-evaluates dependent prompts and preserves valid values", async () => {
+test("repeated Backspace navigation uses the displayed question history", async () => {
+  const { config, prompts } = await runWizard({
+    backend: ["express", "hono"],
+    runtime: ["bun", "back"],
+    databaseType: ["back"],
+  });
+
+  assert.equal(prompts.filter((question) => question.name === "backend").length, 2);
+  assert.equal(prompts.filter((question) => question.name === "runtime").length, 3);
+  assert.equal(config.backend, "hono");
+  assert.equal(config.runtime, "bun");
+});
+
+test("Backspace on the first question stays on that question", async () => {
+  const answer = await runPromptWithKeys({
+    type: "celtrixList",
+    name: "language",
+    message: "Select a language:",
+    canGoBack: false,
+    default: "typescript",
+    choices: [
+      { name: "TypeScript", value: "typescript" },
+      { name: "JavaScript", value: "javascript" },
+    ],
+  }, [String.fromCharCode(127), "\r"]);
+
+  assert.equal(answer, "typescript");
+});
+
+test("conditional questions are recalculated when the language changes", async () => {
   const { config, prompts } = await runWizard({
     language: ["typescript", "javascript"],
     frontend: ["nextjs", "back"],
@@ -104,32 +171,82 @@ test("changing language re-evaluates dependent prompts and preserves valid value
   assert.ok(prompts.filter((question) => question.name === "auth").at(-1).choices.some(
     (choice) => choice.value === "clerk"
   ));
-  assert.equal(JSON.stringify(config).includes(BACK), false);
 });
 
-test("Back at confirmation returns to add-ons and continues with the saved selection", async () => {
+test("changing from no backend recalculates database, ORM, API, and auth steps", async () => {
   const { config, prompts } = await runWizard({
-    addons: [["biome"]],
-    action: ["back", "continue"],
+    backend: ["none", "express"],
+    runtime: ["back"],
+    auth: ["back"],
+    databaseType: ["postgres"],
   });
 
-  assert.equal(prompts.filter((question) => question.name === "action").length, 2);
-  assert.equal(prompts.filter((question) => question.name === "addons")[1].choices.find(
-    (choice) => choice.value === "biome"
-  ).checked, true);
-  assert.deepEqual(config.addons, ["biome"]);
+  assert.equal(config.backend, "express");
+  assert.equal(config.database.type, "postgres");
+  assert.ok(prompts.some((question) => question.name === "orm"));
+  assert.ok(prompts.some((question) => question.name === "api"));
+  assert.equal(prompts.filter((question) => question.name === "auth").length, 2);
+  assert.ok(prompts.at(-1).name === "action");
 });
 
-test("Back from add-ons preserves checked selections without storing the action", async () => {
+test("checkbox Backspace preserves in-progress and previously saved selections", async () => {
+  const choices = [
+    { name: "Biome", value: "biome", checked: true },
+    { name: "Husky", value: "husky", checked: false },
+  ];
+  const result = await runPromptWithKeys({
+    type: "celtrixCheckbox",
+    name: "addons",
+    message: "Select add-ons:",
+    canGoBack: true,
+    choices,
+  }, ["\x1b[B", " ", String.fromCharCode(127)]);
+
+  assert.deepEqual(result, { back: true, addons: ["biome", "husky"] });
+
+  const revisited = await runPromptWithKeys({
+    type: "celtrixCheckbox",
+    name: "addons",
+    message: "Select add-ons:",
+    canGoBack: true,
+    choices: choices.map((choice) => ({ ...choice, checked: result.addons.includes(choice.value) })),
+  }, ["\r"]);
+  assert.deepEqual(revisited, result.addons);
+});
+
+test("revisiting add-ons restores choices and Backspace is not stored in config", async () => {
   const { config, prompts } = await runWizard({
     auth: ["back", "none"],
     api: ["back"],
-    addons: [["biome", BACK]],
+    addons: [["biome", "back"]],
   });
 
   const addonQuestions = prompts.filter((question) => question.name === "addons");
   assert.equal(addonQuestions.length, 2);
   assert.equal(addonQuestions[1].choices.find((choice) => choice.value === "biome").checked, true);
   assert.deepEqual(config.addons, ["biome"]);
-  assert.equal(JSON.stringify(config).includes(BACK), false);
+  assert.equal(JSON.stringify(config).includes('"back"'), false);
+  assert.equal(JSON.stringify(config).includes("Backspace"), false);
+});
+
+test("normal forward navigation reaches confirmation with a clean config", async () => {
+  const { config, prompts } = await runWizard({
+    language: ["javascript"],
+    frontend: ["nextjs"],
+    backend: ["express"],
+    runtime: ["bun"],
+    databaseType: ["sqlite"],
+    provider: ["turso"],
+    addons: [["biome", "husky"]],
+    action: ["continue"],
+  });
+
+  assert.equal(prompts.at(-1).name, "action");
+  assert.equal(config.language, "javascript");
+  assert.equal(config.frontend, "nextjs");
+  assert.equal(config.backend, "express");
+  assert.equal(config.runtime, "bun");
+  assert.deepEqual(config.database, { type: "sqlite", provider: "turso" });
+  assert.deepEqual(config.addons, ["biome", "husky"]);
+  assert.equal(JSON.stringify(config).includes("__celtrix_back__"), false);
 });

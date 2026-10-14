@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { addBackChoice, BACK } from "../common/navigation.js";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Database engine options available for selection.
@@ -25,20 +25,21 @@ export async function askDatabaseType(stepLabel = "", { defaultValue = "postgres
 
   const { databaseType } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "databaseType",
       message: chalk.bold(`${prefix}Select a database:`),
-      choices: addBackChoice(DATABASE_OPTIONS.map((opt) => ({
+      choices: DATABASE_OPTIONS.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })), canGoBack),
+      })),
       pageSize: 10,
       default: DATABASE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "postgres",
+      canGoBack,
     },
   ]);
 
-  if (databaseType === BACK) return { back: true };
+  if (isBackNavigation(databaseType)) return { back: true };
   return { databaseType };
 }
