@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Add-on options grouped by category for the multi-select prompt.
@@ -26,12 +27,12 @@ const ADDON_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[10/10]".
  * @returns {Promise<{ addons: string[] }>}
  */
-export async function askAddons(stepLabel = "") {
+export async function askAddons(stepLabel = "", { defaultValue = [], canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { addons } = await inquirer.prompt([
     {
-      type: "checkbox",
+      type: "celtrixCheckbox",
       name: "addons",
       message: chalk.bold(`${prefix}Select add-ons ${chalk.dim("(space to toggle, enter to confirm)")}:`),
       choices: ADDON_OPTIONS.map((opt) => {
@@ -42,11 +43,14 @@ export async function askAddons(stepLabel = "") {
             opt.color(`  ${opt.label}`) +
             chalk.gray(` → ${opt.desc}`),
           value: opt.value,
+          checked: defaultValue.includes(opt.value),
         };
       }),
       pageSize: 12,
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(addons)) return addons;
   return { addons };
 }

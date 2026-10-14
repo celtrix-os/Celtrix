@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Frontend framework options available for selection.
@@ -21,12 +22,12 @@ const FRONTEND_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[2/10]".
  * @returns {Promise<{ frontend: string }>}
  */
-export async function askFrontend(stepLabel = "") {
+export async function askFrontend(stepLabel = "", { defaultValue = "react-router", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { frontend } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "frontend",
       message: chalk.bold(`${prefix}Select a frontend framework:`),
       choices: FRONTEND_OPTIONS.map((opt) => ({
@@ -36,9 +37,11 @@ export async function askFrontend(stepLabel = "") {
         value: opt.value,
       })),
       pageSize: 10,
-      default: "react-router",
+      default: FRONTEND_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "react-router",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(frontend)) return { back: true };
   return { frontend };
 }

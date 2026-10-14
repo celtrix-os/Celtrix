@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * ORM options available for selection.
@@ -18,14 +19,14 @@ const ORM_OPTIONS = [
  * @param {string[]} [allowedORMs] - List of compatible ORMs for this selection.
  * @returns {Promise<{ orm: string }>}
  */
-export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"]) {
+export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"], { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = ORM_OPTIONS.filter((opt) => allowedORMs.includes(opt.value));
 
   const { orm } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "orm",
       message: chalk.bold(`${prefix}Select an ORM:`),
       choices: filteredOptions.map((opt) => ({
@@ -34,9 +35,13 @@ export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma",
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: filteredOptions[0]?.value || "drizzle",
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : filteredOptions[0]?.value || "drizzle",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(orm)) return { back: true };
   return { orm };
 }

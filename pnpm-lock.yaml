@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@inquirer/core':
+        specifier: ^10.2.0
+        version: 10.2.2
       '@octokit/rest':
         specifier: ^22.0.0
         version: 22.0.0

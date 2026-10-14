@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Language options for the project.
@@ -15,12 +16,12 @@ const LANGUAGE_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[1/9]".
  * @returns {Promise<{ language: string }>}
  */
-export async function askLanguage(stepLabel = "") {
+export async function askLanguage(stepLabel = "", { defaultValue = "typescript", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { language } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "language",
       message: chalk.bold(`${prefix}Select a language:`),
       choices: LANGUAGE_OPTIONS.map((opt) => ({
@@ -29,9 +30,11 @@ export async function askLanguage(stepLabel = "") {
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: "typescript",
+      default: LANGUAGE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "typescript",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(language)) return { back: true };
   return { language };
 }

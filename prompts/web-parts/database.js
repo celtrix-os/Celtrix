@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { askDatabaseSetup } from "./databaseSetup.js";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Database engine options available for selection.
@@ -20,12 +20,12 @@ const DATABASE_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[5/10]".
  * @returns {Promise<{ database: { type: string, provider: string } }>}
  */
-export async function askDatabase(stepLabel = "") {
+export async function askDatabaseType(stepLabel = "", { defaultValue = "postgres", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { databaseType } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "databaseType",
       message: chalk.bold(`${prefix}Select a database:`),
       choices: DATABASE_OPTIONS.map((opt) => ({
@@ -35,17 +35,11 @@ export async function askDatabase(stepLabel = "") {
         value: opt.value,
       })),
       pageSize: 10,
-      default: "postgres",
+      default: DATABASE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "postgres",
+      canGoBack,
     },
   ]);
 
-  // If "none" is selected, skip the provider prompt
-  if (databaseType === "none") {
-    return { database: { type: "none", provider: "" } };
-  }
-
-  // Trigger the conditional setup prompt (Issue #214)
-  const { provider } = await askDatabaseSetup(databaseType);
-
-  return { database: { type: databaseType, provider } };
+  if (isBackNavigation(databaseType)) return { back: true };
+  return { databaseType };
 }

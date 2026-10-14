@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * API type options available for selection.
@@ -18,14 +19,14 @@ const API_OPTIONS = [
  * @param {string[]} [allowedAPIs] - List of compatible API options.
  * @returns {Promise<{ api: string }>}
  */
-export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "none"]) {
+export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "none"], { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = API_OPTIONS.filter((opt) => allowedAPIs.includes(opt.value));
 
   const { api } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "api",
       message: chalk.bold(`${prefix}Select an API type:`),
       choices: filteredOptions.map((opt) => ({
@@ -34,9 +35,13 @@ export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "non
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: filteredOptions[0]?.value || "trpc",
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : filteredOptions[0]?.value || "trpc",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(api)) return { back: true };
   return { api };
 }

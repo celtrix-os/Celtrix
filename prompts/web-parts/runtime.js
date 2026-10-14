@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { isBackNavigation } from "../common/navigation.js";
 
 /**
  * Runtime environment options.
@@ -15,12 +16,12 @@ const RUNTIME_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[4/10]".
  * @returns {Promise<{ runtime: string }>}
  */
-export async function askRuntime(stepLabel = "") {
+export async function askRuntime(stepLabel = "", { defaultValue = "node", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { runtime } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "runtime",
       message: chalk.bold(`${prefix}Select a runtime environment:`),
       choices: RUNTIME_OPTIONS.map((opt) => ({
@@ -29,9 +30,11 @@ export async function askRuntime(stepLabel = "") {
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: "node",
+      default: RUNTIME_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "node",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(runtime)) return { back: true };
   return { runtime };
 }
