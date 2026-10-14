@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * API type options available for selection.
@@ -18,7 +19,7 @@ const API_OPTIONS = [
  * @param {string[]} [allowedAPIs] - List of compatible API options.
  * @returns {Promise<{ api: string }>}
  */
-export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "none"]) {
+export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "none"], { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = API_OPTIONS.filter((opt) => allowedAPIs.includes(opt.value));
@@ -28,15 +29,18 @@ export async function askAPI(stepLabel = "", allowedAPIs = ["trpc", "orpc", "non
       type: "list",
       name: "api",
       message: chalk.bold(`${prefix}Select an API type:`),
-      choices: filteredOptions.map((opt) => ({
+      choices: addBackChoice(filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
-      default: filteredOptions[0]?.value || "trpc",
+      })), canGoBack),
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : filteredOptions[0]?.value || "trpc",
     },
   ]);
 
+  if (api === BACK) return { back: true };
   return { api };
 }

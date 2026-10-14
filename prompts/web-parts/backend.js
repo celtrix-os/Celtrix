@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Backend framework options available for selection.
@@ -19,7 +20,7 @@ const BACKEND_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[3/10]".
  * @returns {Promise<{ backend: string }>}
  */
-export async function askBackend(stepLabel = "") {
+export async function askBackend(stepLabel = "", { defaultValue = "hono", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { backend } = await inquirer.prompt([
@@ -27,16 +28,17 @@ export async function askBackend(stepLabel = "") {
       type: "list",
       name: "backend",
       message: chalk.bold(`${prefix}Select a backend framework:`),
-      choices: BACKEND_OPTIONS.map((opt) => ({
+      choices: addBackChoice(BACKEND_OPTIONS.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
+      })), canGoBack),
       pageSize: 10,
-      default: "hono",
+      default: BACKEND_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "hono",
     },
   ]);
 
+  if (backend === BACK) return { back: true };
   return { backend };
 }

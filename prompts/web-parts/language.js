@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Language options for the project.
@@ -15,7 +16,7 @@ const LANGUAGE_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[1/9]".
  * @returns {Promise<{ language: string }>}
  */
-export async function askLanguage(stepLabel = "") {
+export async function askLanguage(stepLabel = "", { defaultValue = "typescript", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { language } = await inquirer.prompt([
@@ -23,15 +24,16 @@ export async function askLanguage(stepLabel = "") {
       type: "list",
       name: "language",
       message: chalk.bold(`${prefix}Select a language:`),
-      choices: LANGUAGE_OPTIONS.map((opt) => ({
+      choices: addBackChoice(LANGUAGE_OPTIONS.map((opt) => ({
         name:
           opt.color.bold(`⚡ ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
-      default: "typescript",
+      })), canGoBack),
+      default: LANGUAGE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "typescript",
     },
   ]);
 
+  if (language === BACK) return { back: true };
   return { language };
 }

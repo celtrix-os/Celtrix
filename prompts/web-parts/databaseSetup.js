@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Maps each database type to its available provider/setup options.
@@ -32,7 +33,7 @@ const SETUP_OPTIONS = {
  * @param {string} databaseType - The chosen database type (sqlite, postgres, etc.).
  * @returns {Promise<{ provider: string }>}
  */
-export async function askDatabaseSetup(databaseType) {
+export async function askDatabaseSetup(databaseType, { defaultValue, canGoBack = false } = {}) {
   const options = SETUP_OPTIONS[databaseType];
 
   // If no setup options exist for this DB type, default to "local"
@@ -45,15 +46,16 @@ export async function askDatabaseSetup(databaseType) {
       type: "list",
       name: "provider",
       message: chalk.bold(`Select a ${chalk.cyanBright(databaseType)} provider:`),
-      choices: options.map((opt) => ({
+      choices: addBackChoice(options.map((opt) => ({
         name:
           opt.color.bold(`⚡ ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
-      default: options[0].value,
+      })), canGoBack),
+      default: options.some((opt) => opt.value === defaultValue) ? defaultValue : options[0].value,
     },
   ]);
 
+  if (provider === BACK) return { back: true };
   return { provider };
 }

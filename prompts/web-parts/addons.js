@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Add-on options grouped by category for the multi-select prompt.
@@ -26,7 +27,7 @@ const ADDON_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[10/10]".
  * @returns {Promise<{ addons: string[] }>}
  */
-export async function askAddons(stepLabel = "") {
+export async function askAddons(stepLabel = "", { defaultValue = [], canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { addons } = await inquirer.prompt([
@@ -34,7 +35,7 @@ export async function askAddons(stepLabel = "") {
       type: "checkbox",
       name: "addons",
       message: chalk.bold(`${prefix}Select add-ons ${chalk.dim("(space to toggle, enter to confirm)")}:`),
-      choices: ADDON_OPTIONS.map((opt) => {
+      choices: addBackChoice(ADDON_OPTIONS.map((opt) => {
         // Pass through separator instances as-is
         if (opt instanceof inquirer.Separator) return opt;
         return {
@@ -42,11 +43,15 @@ export async function askAddons(stepLabel = "") {
             opt.color(`  ${opt.label}`) +
             chalk.gray(` → ${opt.desc}`),
           value: opt.value,
+          checked: defaultValue.includes(opt.value),
         };
-      }),
+      }), canGoBack),
       pageSize: 12,
     },
   ]);
 
+  if (addons.includes(BACK)) {
+    return { back: true, addons: addons.filter((addon) => addon !== BACK) };
+  }
   return { addons };
 }

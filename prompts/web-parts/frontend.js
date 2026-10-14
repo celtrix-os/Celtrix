@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Frontend framework options available for selection.
@@ -21,7 +22,7 @@ const FRONTEND_OPTIONS = [
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[2/10]".
  * @returns {Promise<{ frontend: string }>}
  */
-export async function askFrontend(stepLabel = "") {
+export async function askFrontend(stepLabel = "", { defaultValue = "react-router", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { frontend } = await inquirer.prompt([
@@ -29,16 +30,17 @@ export async function askFrontend(stepLabel = "") {
       type: "list",
       name: "frontend",
       message: chalk.bold(`${prefix}Select a frontend framework:`),
-      choices: FRONTEND_OPTIONS.map((opt) => ({
+      choices: addBackChoice(FRONTEND_OPTIONS.map((opt) => ({
         name:
           opt.color.bold(`⚡ ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
+      })), canGoBack),
       pageSize: 10,
-      default: "react-router",
+      default: FRONTEND_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "react-router",
     },
   ]);
 
+  if (frontend === BACK) return { back: true };
   return { frontend };
 }

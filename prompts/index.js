@@ -5,11 +5,13 @@ import { askLanguage } from "./web-parts/language.js";
 import { askFrontend } from "./web-parts/frontend.js";
 import { askBackend } from "./web-parts/backend.js";
 import { askRuntime } from "./web-parts/runtime.js";
-import { askDatabase } from "./web-parts/database.js";
+import { askDatabaseType } from "./web-parts/database.js";
+import { askDatabaseSetup } from "./web-parts/databaseSetup.js";
 import { askORM } from "./web-parts/orm.js";
 import { askAPI } from "./web-parts/api.js";
 import { askAuth } from "./web-parts/auth.js";
 import { askAddons } from "./web-parts/addons.js";
+import { addBackChoice, BACK } from "./common/navigation.js";
 import {
   getCompatibleORMs,
   getCompatibleAPIs,
@@ -94,71 +96,21 @@ function showConfirmationSummary(config) {
  * }>}
  */
 export async function gatherCustomConfig() {
-  // This outer loop allows the user to re-do selections if they reject
-  // the confirmation prompt.
-  while (true) {
-    // 1. Language
-    const { language } = await askLanguage(step(1));
+  const createInitialConfig = () => ({
+    language: "typescript",
+    frontend: "react-router",
+    backend: "hono",
+    runtime: "node",
+    database: { type: "postgres", provider: "neon" },
+    orm: "drizzle",
+    api: "trpc",
+    auth: "better-auth",
+    addons: [],
+  });
 
-    // 2. Frontend
-    const { frontend } = await askFrontend(step(2));
-
-    // 3. Backend
-    const { backend } = await askBackend(step(3));
-    if (backend === "none") {
-      console.log(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
-    }
-
-    // 4. Runtime
-    const { runtime } = await askRuntime(step(4));
-
-    // 5. Database (includes conditional provider/setup prompt)
-    let database = { type: "none", provider: "" };
-    if (backend === "convex") {
-      console.log(
-        chalk.gray(
-          `   ${step(5)} Database selection skipped ${chalk.dim(
-            "(Convex includes a built-in document store)"
-          )}`
-        )
-      );
-    } else if (backend === "none") {
-      console.log(
-        chalk.gray(
-          `   ${step(5)} Database selection skipped ${chalk.dim(
-            "(Frontend-only projects do not require a backend database)"
-          )}`
-        )
-      );
-    } else {
-      const dbResult = await askDatabase(step(5));
-      database = dbResult.database;
-    }
-
-    // 6. ORM — skip when no database is selected
-    let orm = "none";
-    if (database.type !== "none") {
-      const allowedORMs = getCompatibleORMs(database.type, language);
-      if (allowedORMs.length === 1) {
-        orm = allowedORMs[0];
-        console.log(
-          chalk.green(
-            `   ⚡ Automatically selected ${
-              orm === "prisma" ? "Prisma" : "Drizzle"
-            } ${chalk.dim(`(only compatible ORM for ${database.type} in ${language})`)}`
-          )
-        );
-      } else {
-        const ormResult = await askORM(step(6), allowedORMs);
-        orm = ormResult.orm;
-      }
-    } else {
-      console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
-    }
-
-    // 7. API type — skip when no backend or Convex is selected
-    let api = "none";
-    if (backend === "convex") {
+  function nextAfterAPI(config) {
+    if (config.backend === "convex") {
+      config.api = "none";
       console.log(
         chalk.gray(
           `   ${step(7)} API type selection skipped ${chalk.dim(
@@ -166,51 +118,234 @@ export async function gatherCustomConfig() {
           )}`
         )
       );
-    } else if (backend === "none") {
+      return "auth";
+    }
+
+    if (config.backend === "none") {
+      config.api = "none";
       console.log(chalk.gray(`   ${step(7)} API type selection skipped ${chalk.dim("(no backend)")}`));
-    } else {
-      const allowedAPIs = getCompatibleAPIs(backend, language);
-      if (allowedAPIs.length === 1) {
-        api = allowedAPIs[0];
-        console.log(
-          chalk.green(
-            `   ⚡ Automatically selected None ${chalk.dim(
-              "(tRPC/oRPC require TypeScript, defaulting to REST/None)"
-            )}`
-          )
-        );
-      } else {
-        const apiResult = await askAPI(step(7), allowedAPIs);
-        api = apiResult.api;
+      return "auth";
+    }
+
+    const allowedAPIs = getCompatibleAPIs(config.backend, config.language);
+    if (allowedAPIs.length === 1) {
+      config.api = allowedAPIs[0];
+      console.log(
+        chalk.green(
+          `   ⚡ Automatically selected None ${chalk.dim(
+            "(tRPC/oRPC require TypeScript, defaulting to REST/None)"
+          )}`
+        )
+      );
+      return "auth";
+    }
+
+    return "api";
+  }
+
+  function nextAfterDatabase(config) {
+    if (config.database.type === "none") {
+      config.orm = "none";
+      console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
+      return nextAfterAPI(config);
+    }
+
+    const allowedORMs = getCompatibleORMs(config.database.type, config.language);
+    if (allowedORMs.length === 1) {
+      config.orm = allowedORMs[0];
+      console.log(
+        chalk.green(
+          `   ⚡ Automatically selected ${
+            config.orm === "prisma" ? "Prisma" : "Drizzle"
+          } ${chalk.dim(`(only compatible ORM for ${config.database.type} in ${config.language})`)}`
+        )
+      );
+      return nextAfterAPI(config);
+    }
+
+    return "orm";
+  }
+
+  let config = createInitialConfig();
+  const history = [];
+  let currentStep = "language";
+
+  while (true) {
+    const canGoBack = history.length > 0;
+    let answer;
+
+    switch (currentStep) {
+      case "language":
+        answer = await askLanguage(step(1), { defaultValue: config.language, canGoBack });
+        if (!answer.back) config.language = answer.language;
+        break;
+      case "frontend":
+        answer = await askFrontend(step(2), { defaultValue: config.frontend, canGoBack });
+        if (!answer.back) config.frontend = answer.frontend;
+        break;
+      case "backend":
+        answer = await askBackend(step(3), { defaultValue: config.backend, canGoBack });
+        if (!answer.back) {
+          config.backend = answer.backend;
+          if (answer.backend === "convex" || answer.backend === "none") {
+            config.database = { type: "none", provider: "" };
+            config.orm = "none";
+            config.api = "none";
+            if (answer.backend === "none") {
+              console.log(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
+            }
+          }
+        }
+        break;
+      case "runtime":
+        answer = await askRuntime(step(4), { defaultValue: config.runtime, canGoBack });
+        if (!answer.back) config.runtime = answer.runtime;
+        break;
+      case "database":
+        answer = await askDatabaseType(step(5), {
+          defaultValue: config.database.type,
+          canGoBack,
+        });
+        if (!answer.back) {
+          config.database = {
+            type: answer.databaseType,
+            provider: answer.databaseType === config.database.type ? config.database.provider : "",
+          };
+        }
+        break;
+      case "databaseSetup":
+        answer = await askDatabaseSetup(config.database.type, {
+          defaultValue: config.database.provider,
+          canGoBack,
+        });
+        if (!answer.back) config.database.provider = answer.provider;
+        break;
+      case "orm": {
+        const allowedORMs = getCompatibleORMs(config.database.type, config.language);
+        answer = await askORM(step(6), allowedORMs, {
+          defaultValue: config.orm,
+          canGoBack,
+        });
+        if (!answer.back) config.orm = answer.orm;
+        break;
       }
+      case "api": {
+        const allowedAPIs = getCompatibleAPIs(config.backend, config.language);
+        answer = await askAPI(step(7), allowedAPIs, {
+          defaultValue: config.api,
+          canGoBack,
+        });
+        if (!answer.back) config.api = answer.api;
+        break;
+      }
+      case "auth": {
+        const allowedAuths = getCompatibleAuths(config.backend, config.language, config.database.type);
+        answer = await askAuth(step(8), allowedAuths, {
+          defaultValue: config.auth,
+          canGoBack,
+        });
+        if (!answer.back) config.auth = answer.auth;
+        break;
+      }
+      case "addons":
+        answer = await askAddons(step(9), { defaultValue: config.addons, canGoBack });
+        if (!answer.back) config.addons = answer.addons;
+        break;
+      case "confirmation": {
+        showConfirmationSummary(config);
+        const { action } = await inquirer.prompt([
+          {
+            type: "list",
+            name: "action",
+            message: chalk.bold(`${step(10)} Proceed with this configuration?`),
+            choices: addBackChoice(
+              [
+                { name: "Continue", value: "continue" },
+                { name: "Start over", value: "restart" },
+              ],
+              canGoBack
+            ),
+            default: "continue",
+          },
+        ]);
+
+        if (action === BACK) {
+          currentStep = history.pop();
+          continue;
+        }
+        if (action === "restart") {
+          console.log(chalk.yellow("\n🔄 Let's try again!\n"));
+          config = createInitialConfig();
+          history.length = 0;
+          currentStep = "language";
+          continue;
+        }
+        return config;
+      }
+      default:
+        throw new Error(`Unknown wizard step: ${currentStep}`);
     }
 
-    // 8. Auth provider
-    const allowedAuths = getCompatibleAuths(backend, language, database.type);
-    const { auth } = await askAuth(step(8), allowedAuths);
-
-    // 9. Add-ons (multi-select)
-    const { addons } = await askAddons(step(9));
-
-    const config = { language, frontend, backend, runtime, database, orm, api, auth, addons };
-
-    // 10. Confirmation
-    showConfirmationSummary(config);
-
-    const { confirmed } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "confirmed",
-        message: chalk.bold(`${step(10)} Proceed with this configuration?`),
-        default: true,
-      },
-    ]);
-
-    if (confirmed) {
-      return config;
+    if (answer.back) {
+      if (currentStep === "addons" && Array.isArray(answer.addons)) {
+        config.addons = answer.addons;
+      }
+      currentStep = history.pop();
+      continue;
     }
 
-    // User rejected — loop back and re-do selections
-    console.log(chalk.yellow("\n🔄 Let's try again!\n"));
+    let nextStep;
+    switch (currentStep) {
+      case "language":
+        nextStep = "frontend";
+        break;
+      case "frontend":
+        nextStep = "backend";
+        break;
+      case "backend":
+        nextStep = "runtime";
+        break;
+      case "runtime":
+        if (config.backend === "convex" || config.backend === "none") {
+          config.database = { type: "none", provider: "" };
+          config.orm = "none";
+          config.api = "none";
+          const reason = config.backend === "convex"
+            ? "(Convex includes a built-in document store)"
+            : "(Frontend-only projects do not require a backend database)";
+          console.log(chalk.gray(`   ${step(5)} Database selection skipped ${chalk.dim(reason)}`));
+          console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
+          nextAfterAPI(config);
+          nextStep = "auth";
+        } else {
+          nextStep = "database";
+        }
+        break;
+      case "database":
+        if (config.database.type === "none") {
+          nextStep = nextAfterDatabase(config);
+        } else {
+          nextStep = "databaseSetup";
+        }
+        break;
+      case "databaseSetup":
+        nextStep = nextAfterDatabase(config);
+        break;
+      case "orm":
+        nextStep = nextAfterAPI(config);
+        break;
+      case "api":
+        nextStep = "auth";
+        break;
+      case "auth":
+        nextStep = "addons";
+        break;
+      case "addons":
+        nextStep = "confirmation";
+        break;
+    }
+
+    history.push(currentStep);
+    currentStep = nextStep;
   }
 }

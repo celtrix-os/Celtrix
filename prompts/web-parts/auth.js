@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * Authentication provider options.
@@ -17,7 +18,7 @@ const AUTH_OPTIONS = [
  * @param {string[]} [allowedAuths] - List of compatible auth options.
  * @returns {Promise<{ auth: string }>}
  */
-export async function askAuth(stepLabel = "", allowedAuths = ["clerk", "better-auth", "none"]) {
+export async function askAuth(stepLabel = "", allowedAuths = ["clerk", "better-auth", "none"], { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = AUTH_OPTIONS.filter((opt) => allowedAuths.includes(opt.value));
@@ -27,15 +28,18 @@ export async function askAuth(stepLabel = "", allowedAuths = ["clerk", "better-a
       type: "list",
       name: "auth",
       message: chalk.bold(`${prefix}Select an auth provider:`),
-      choices: filteredOptions.map((opt) => ({
+      choices: addBackChoice(filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
-      default: allowedAuths.includes("better-auth") ? "better-auth" : filteredOptions[0]?.value,
+      })), canGoBack),
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : allowedAuths.includes("better-auth") ? "better-auth" : filteredOptions[0]?.value,
     },
   ]);
 
+  if (auth === BACK) return { back: true };
   return { auth };
 }

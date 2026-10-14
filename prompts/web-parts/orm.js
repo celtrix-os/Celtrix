@@ -1,5 +1,6 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import { addBackChoice, BACK } from "../common/navigation.js";
 
 /**
  * ORM options available for selection.
@@ -18,7 +19,7 @@ const ORM_OPTIONS = [
  * @param {string[]} [allowedORMs] - List of compatible ORMs for this selection.
  * @returns {Promise<{ orm: string }>}
  */
-export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"]) {
+export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"], { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = ORM_OPTIONS.filter((opt) => allowedORMs.includes(opt.value));
@@ -28,15 +29,18 @@ export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma",
       type: "list",
       name: "orm",
       message: chalk.bold(`${prefix}Select an ORM:`),
-      choices: filteredOptions.map((opt) => ({
+      choices: addBackChoice(filteredOptions.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
-      })),
-      default: filteredOptions[0]?.value || "drizzle",
+      })), canGoBack),
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : filteredOptions[0]?.value || "drizzle",
     },
   ]);
 
+  if (orm === BACK) return { back: true };
   return { orm };
 }
