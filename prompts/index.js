@@ -11,7 +11,7 @@ import { askORM } from "./web-parts/orm.js";
 import { askAPI } from "./web-parts/api.js";
 import { askAuth } from "./web-parts/auth.js";
 import { askAddons } from "./web-parts/addons.js";
-import { isBackNavigation } from "./common/navigation.js";
+import { eraseOutputTo, isBackNavigation, logLine, outputMark } from "./common/navigation.js";
 import {
   getCompatibleORMs,
   getCompatibleAPIs,
@@ -65,7 +65,7 @@ function showConfirmationSummary(config) {
     lines.push(`🧩 ${chalk.bold("Add-ons:")}  ${chalk.yellow(config.addons.join(", "))}`);
   }
 
-  console.log(
+  logLine(
     boxen(lines.filter(Boolean).join("\n"), {
       padding: 1,
       margin: { top: 1, bottom: 0, left: 0, right: 0 },
@@ -111,7 +111,7 @@ export async function gatherCustomConfig() {
   function nextAfterAPI(config) {
     if (config.backend === "convex") {
       config.api = "none";
-      console.log(
+      logLine(
         chalk.gray(
           `   ${step(7)} API type selection skipped ${chalk.dim(
             "(Convex handles its own client-server communication)"
@@ -123,14 +123,14 @@ export async function gatherCustomConfig() {
 
     if (config.backend === "none") {
       config.api = "none";
-      console.log(chalk.gray(`   ${step(7)} API type selection skipped ${chalk.dim("(no backend)")}`));
+      logLine(chalk.gray(`   ${step(7)} API type selection skipped ${chalk.dim("(no backend)")}`));
       return "auth";
     }
 
     const allowedAPIs = getCompatibleAPIs(config.backend, config.language);
     if (allowedAPIs.length === 1) {
       config.api = allowedAPIs[0];
-      console.log(
+      logLine(
         chalk.green(
           `   ⚡ Automatically selected None ${chalk.dim(
             "(tRPC/oRPC require TypeScript, defaulting to REST/None)"
@@ -146,14 +146,14 @@ export async function gatherCustomConfig() {
   function nextAfterDatabase(config) {
     if (config.database.type === "none") {
       config.orm = "none";
-      console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
+      logLine(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
       return nextAfterAPI(config);
     }
 
     const allowedORMs = getCompatibleORMs(config.database.type, config.language);
     if (allowedORMs.length === 1) {
       config.orm = allowedORMs[0];
-      console.log(
+      logLine(
         chalk.green(
           `   ⚡ Automatically selected ${
             config.orm === "prisma" ? "Prisma" : "Drizzle"
@@ -167,11 +167,24 @@ export async function gatherCustomConfig() {
   }
 
   let config = createInitialConfig();
+  // Each entry remembers the output mark taken before its question was shown,
+  // so going back erases that answer and everything printed after it.
   const history = [];
   let currentStep = "language";
 
+  function goBack(stepMark) {
+    if (history.length === 0) {
+      eraseOutputTo(stepMark);
+      return;
+    }
+    const previous = history.pop();
+    eraseOutputTo(previous.mark);
+    currentStep = previous.step;
+  }
+
   while (true) {
     const canGoBack = history.length > 0;
+    const stepMark = outputMark();
     let answer;
 
     switch (currentStep) {
@@ -192,7 +205,7 @@ export async function gatherCustomConfig() {
             config.orm = "none";
             config.api = "none";
             if (answer.backend === "none") {
-              console.log(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
+              logLine(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
             }
           }
         }
@@ -268,11 +281,11 @@ export async function gatherCustomConfig() {
         ]);
 
         if (isBackNavigation(action)) {
-          currentStep = history.pop();
+          goBack(stepMark);
           continue;
         }
         if (action === "restart") {
-          console.log(chalk.yellow("\n🔄 Let's try again!\n"));
+          logLine(chalk.yellow("\n🔄 Let's try again!\n"));
           config = createInitialConfig();
           history.length = 0;
           currentStep = "language";
@@ -288,8 +301,7 @@ export async function gatherCustomConfig() {
       if (currentStep === "addons" && Array.isArray(answer.addons)) {
         config.addons = answer.addons;
       }
-      if (history.length === 0) continue;
-      currentStep = history.pop();
+      goBack(stepMark);
       continue;
     }
 
@@ -312,8 +324,8 @@ export async function gatherCustomConfig() {
           const reason = config.backend === "convex"
             ? "(Convex includes a built-in document store)"
             : "(Frontend-only projects do not require a backend database)";
-          console.log(chalk.gray(`   ${step(5)} Database selection skipped ${chalk.dim(reason)}`));
-          console.log(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
+          logLine(chalk.gray(`   ${step(5)} Database selection skipped ${chalk.dim(reason)}`));
+          logLine(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
           nextAfterAPI(config);
           nextStep = "auth";
         } else {
@@ -344,7 +356,7 @@ export async function gatherCustomConfig() {
         break;
     }
 
-    history.push(currentStep);
+    history.push({ step: currentStep, mark: stepMark });
     currentStep = nextStep;
   }
 }

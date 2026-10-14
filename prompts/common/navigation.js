@@ -1,5 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
+import readline from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 import {
   createPrompt,
   isBackspaceKey,
@@ -12,6 +14,45 @@ import {
   useKeypress,
   useState,
 } from "@inquirer/core";
+
+const BACK_HINT = chalk.dim("  ⌫ Press Backspace to go back to the previous question");
+
+// Rows written to the terminal by the wizard, so going back can erase
+// everything printed since the previous question was asked.
+let rowsWritten = 0;
+
+// An empty render still occupies two rows: inquirer pads a zero-length
+// prompt line with a newline, then adds another when the prompt is done.
+const CLEARED_PROMPT_ROWS = 2;
+
+function terminalWidth() {
+  return process.stdout.columns || 80;
+}
+
+function countRows(text) {
+  const width = terminalWidth();
+  return stripVTControlCharacters(text).split("\n")
+    .reduce((rows, line) => rows + Math.floor(line.length / width) + 1, 0);
+}
+
+export function logLine(text = "") {
+  console.log(text);
+  rowsWritten += countRows(text);
+}
+
+export function outputMark() {
+  return rowsWritten;
+}
+
+export function eraseOutputTo(mark) {
+  const rows = rowsWritten - mark;
+  if (rows > 0 && process.stdout.isTTY) {
+    readline.moveCursor(process.stdout, 0, -rows);
+    readline.cursorTo(process.stdout, 0);
+    readline.clearScreenDown(process.stdout);
+  }
+  rowsWritten = Math.min(rowsWritten, mark);
+}
 
 function isSelectable(choice) {
   return !Separator.isSeparator(choice) && !choice.disabled;
@@ -39,27 +80,33 @@ const listPrompt = createPrompt((config, done) => {
     : defaultIndex);
   const [status, setStatus] = useState("idle");
   const selectedChoice = choices[active];
+  const doneLine = () => `${chalk.green("✔")} ${config.message} ${chalk.cyan(selectedChoice.short ?? selectedChoice.name)}`;
 
-  useKeypress((key, readline) => {
+  useKeypress((key, rl) => {
     if (isBackspaceKey(key)) {
-      if (config.canGoBack) done({ back: true });
+      if (config.canGoBack) {
+        // Clear the prompt so the previous question replaces it.
+        setStatus("back");
+        rowsWritten += CLEARED_PROMPT_ROWS;
+        done({ back: true });
+      }
     } else if (isEnterKey(key)) {
       setStatus("done");
+      rowsWritten += countRows(doneLine());
       done(selectedChoice.value);
     } else if (isUpKey(key) || isDownKey(key)) {
-      readline.clearLine(0);
+      rl.clearLine(0);
       setActive(nextSelectable(choices, active, isUpKey(key) ? -1 : 1, config.loop !== false));
     } else if (isNumberKey(key)) {
       const numberedChoices = choices.filter(isSelectable);
       const next = Number(key.name) - 1;
       if (numberedChoices[next]) setActive(choices.indexOf(numberedChoices[next]));
-      readline.clearLine(0);
+      rl.clearLine(0);
     }
   });
 
-  if (status === "done") {
-    return `${chalk.green("✔")} ${config.message} ${chalk.cyan(selectedChoice.short ?? selectedChoice.name)}`;
-  }
+  if (status === "back") return "";
+  if (status === "done") return doneLine();
 
   const renderedChoices = choices.map((choice, index) => {
     if (Separator.isSeparator(choice)) return `  ${chalk.gray(choice.separator)}`;
@@ -69,7 +116,8 @@ const listPrompt = createPrompt((config, done) => {
     return `${cursor} ${label}${disabled}`;
   });
 
-  return `${chalk.cyan("?")} ${config.message}\n${renderedChoices.join("\n")}`;
+  const hint = config.canGoBack ? `\n${BACK_HINT}` : "";
+  return `${chalk.cyan("?")} ${config.message}\n${renderedChoices.join("\n")}${hint}`;
 });
 
 const checkboxPrompt = createPrompt((config, done) => {
@@ -91,9 +139,18 @@ const checkboxPrompt = createPrompt((config, done) => {
       .map((choice) => choice.value);
   }
 
+  function doneLine() {
+    const labels = choices.filter((choice) => selected.has(choice.value)).map((choice) => choice.short ?? choice.name);
+    return `${chalk.green("✔")} ${config.message} ${chalk.cyan(labels.join(", "))}`;
+  }
+
   useKeypress(async (key) => {
     if (isBackspaceKey(key)) {
-      if (config.canGoBack) done({ back: true, addons: selectedValues() });
+      if (config.canGoBack) {
+        setStatus("back");
+        rowsWritten += CLEARED_PROMPT_ROWS;
+        done({ back: true, addons: selectedValues() });
+      }
     } else if (isEnterKey(key)) {
       const values = selectedValues();
       const validation = config.validate ? await config.validate(values) : true;
@@ -101,6 +158,7 @@ const checkboxPrompt = createPrompt((config, done) => {
         setError("At least one choice must be selected");
       } else if (validation === true) {
         setStatus("done");
+        rowsWritten += countRows(doneLine());
         done(values);
       } else {
         setError(validation || "You must select a valid value");
@@ -123,10 +181,8 @@ const checkboxPrompt = createPrompt((config, done) => {
     }
   });
 
-  if (status === "done") {
-    const labels = choices.filter((choice) => selected.has(choice.value)).map((choice) => choice.short ?? choice.name);
-    return `${chalk.green("✔")} ${config.message} ${chalk.cyan(labels.join(", "))}`;
-  }
+  if (status === "back") return "";
+  if (status === "done") return doneLine();
 
   const renderedChoices = choices.map((choice, index) => {
     if (Separator.isSeparator(choice)) return `  ${chalk.gray(choice.separator)}`;
@@ -138,7 +194,7 @@ const checkboxPrompt = createPrompt((config, done) => {
   });
 
   return [
-    `${chalk.cyan("?")} ${config.message}\n${renderedChoices.join("\n")}`,
+    `${chalk.cyan("?")} ${config.message}\n${renderedChoices.join("\n")}${config.canGoBack ? `\n${BACK_HINT}` : ""}`,
     error ? chalk.red(`! ${error}`) : undefined,
   ];
 });
