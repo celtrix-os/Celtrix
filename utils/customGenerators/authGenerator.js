@@ -3,6 +3,7 @@ import path from "path";
 import { execSync } from "child_process";
 import { getInstallCommand } from "../shared.js";
 import { fileURLToPath } from "url";
+import { logger } from "../logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,12 @@ const __dirname = path.dirname(__filename);
 export async function generateAuth(context) {
   if (context.config.auth !== "clerk" &&	context.config.auth !== "better-auth") return;
 
+  if (context.config.frontend === "solid") {
+    logger.warn(
+      "SolidStart authentication integration is not supported yet. Skipping authentication scaffolding."
+    );
+    return;
+  }
   if (context.config.auth === "better-auth") {
     // Create auth package for better-auth
     const authDir = path.join(context.projectPath, "packages", "auth");

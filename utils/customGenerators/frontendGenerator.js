@@ -116,10 +116,13 @@ export async function generateFrontend(context) {
   }
 
   // Injects base stylesheets and components
-  fs.writeFileSync(
-    path.join(targetDir, "src", `App.${context.jsxExt}`),
-    getFrontendAppTemplate(context.config.frontend, context.isTs)
-  );
+  if (context.config.frontend === "react-router") {
+    fs.writeFileSync(
+      path.join(targetDir, "src", `App.${context.jsxExt}`),
+      getFrontendAppTemplate(context.config.frontend, context.isTs)
+    );
+  }
+
 }
 
 function getBaseTemplate(frontend) {
@@ -134,9 +137,7 @@ function getBaseTemplate(frontend) {
 }
 
 function getFrontendAppTemplate(frontend, isTs) {
-  return `import React from 'react';
-
-export default function App() {
+  return `export default function App() {
   return (
     <div style={{
       minHeight: '100vh',
