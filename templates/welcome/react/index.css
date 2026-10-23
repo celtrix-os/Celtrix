@@ -1,0 +1,30 @@
+:root {
+  --bg: #0a0a0a;
+  --panel: #0f0f0f;
+  --line: #1f2b23;
+  --text: #d4d4d4;
+  --muted: #737373;
+  --green: #4ade80;
+  --green-dim: #166534;
+  --red: #f87171;
+
+  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+}

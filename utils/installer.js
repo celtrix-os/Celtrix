@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import { logger } from "./logger.js";
-import { buildViteCommand, getInstallCommand, BADGE_CSS, BADGE_JSX } from "./shared.js";
+import { buildViteCommand, getInstallCommand, BADGE_CSS } from "./shared.js";
+import { writeReactWelcomePage } from "./welcomePage.js";
 import path from "path";
 import fs from "fs";
 
@@ -20,59 +21,6 @@ function createViteProject(projectPath, config, baseTemplate, outputDir = "clien
   const cmd = buildViteCommand(config, template, outputDir);
 
   execSync(cmd, { cwd: projectPath, stdio: "inherit", shell: true });
-}
-
-/**
- * Injects the "Powered by Celtrix" badge into a React (JSX/TSX) project.
- * Handles both JavaScript and TypeScript by detecting the file extension.
- *
- * @param {string} projectPath - Root project directory.
- * @param {object} config - Project config.
- */
-function injectReactBadge(projectPath, config) {
-  const ext = config.language === "typescript" ? "tsx" : "jsx";
-  const appPath = path.join(projectPath, "client", "src", `App.${ext}`);
-  const cssPath = path.join(projectPath, "client", "src", "index.css");
-
-  // --- Inject badge component ---
-  if (!fs.existsSync(appPath)) {
-    logger.warn(`⚠️ App.${ext} not found at ${appPath}, skipping badge injection`);
-    return;
-  }
-
-  let appContent;
-  try {
-    appContent = fs.readFileSync(appPath, "utf-8");
-  } catch (error) {
-    logger.error(`❌ Failed to read App.${ext}: ${error.message}`);
-    return;
-  }
-
-  const lines = appContent.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes("</>")) {
-      lines.splice(i, 0, BADGE_JSX);
-      break;
-    }
-  }
-
-  try {
-    fs.writeFileSync(appPath, lines.join("\n"), "utf-8");
-  } catch (error) {
-    logger.error(`❌ Failed to write App.${ext}: ${error.message}`);
-    return;
-  }
-
-  // --- Inject badge CSS ---
-  if (!fs.existsSync(cssPath)) {
-    logger.warn(`⚠️ index.css not found at ${cssPath}, skipping CSS injection`);
-  } else {
-    try {
-      fs.appendFileSync(cssPath, BADGE_CSS, "utf-8");
-    } catch (error) {
-      logger.error(`❌ Failed to append CSS: ${error.message}`);
-    }
-  }
 }
 
 /**
@@ -296,6 +244,11 @@ export function HonoReactSetup(projectPath, config, projectName, installDeps) {
 
   try {
     createViteProject(projectPath, config, "react");
+    writeReactWelcomePage(path.join(projectPath, "client"), {
+      projectName,
+      stack: "hono",
+      typescript: config.language === "typescript",
+    });
 
     execSync(`npm create hono@latest server -- --template cloudflare-workers --pm npm`, {
       cwd: projectPath,
@@ -316,7 +269,11 @@ export function mernSetup(projectPath, config, projectName, installDeps) {
 
   try {
     createViteProject(projectPath, config, "react");
-    injectReactBadge(projectPath, config);
+    writeReactWelcomePage(path.join(projectPath, "client"), {
+      projectName,
+      stack: config.stack,
+      typescript: config.language === "typescript",
+    });
 
     if (config.stack === "mern+tailwind+auth") {
       serverAuthSetup(projectPath, config, projectName, installDeps);

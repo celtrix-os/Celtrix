@@ -1,0 +1,266 @@
+.shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* navbar */
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.dim {
+  color: var(--muted);
+}
+
+.cursor {
+  margin-left: 2px;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.nav nav {
+  display: flex;
+  gap: 1.1rem;
+}
+
+.nav nav button,
+.nav nav a {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.nav nav button:hover,
+.nav nav a:hover {
+  color: var(--text);
+}
+
+.nav nav button.active {
+  color: var(--green);
+}
+
+.nav nav button.active::before {
+  content: '> ';
+}
+
+/* intro */
+.intro {
+  margin: 2.5rem 0 1.75rem;
+}
+
+.intro p {
+  margin: 0.15rem 0;
+}
+
+.ok {
+  color: var(--green);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+code {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 0 0.3rem;
+}
+
+/* panels */
+.panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 1.25rem;
+}
+
+.panel-title {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+input {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0.35rem 0;
+  width: 100%;
+  outline: none;
+}
+
+input:focus {
+  border-bottom-color: var(--green);
+}
+
+input::placeholder {
+  color: #4b4b4b;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 1px dashed var(--green);
+  outline-offset: 3px;
+}
+
+/* todo */
+.prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.prompt {
+  color: var(--green);
+}
+
+.todo-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.todo-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+}
+
+.todo-text {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.todo-list li.done .todo-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.check,
+.rm {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.check {
+  color: var(--green);
+}
+
+.rm {
+  color: var(--muted);
+}
+
+.rm:hover {
+  color: var(--red);
+}
+
+.status {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+}
+
+/* register */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.field label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field input[aria-invalid='true'] {
+  border-bottom-color: var(--red);
+}
+
+.error {
+  color: var(--red);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.submit {
+  font: inherit;
+  color: var(--green);
+  background: none;
+  border: 1px solid var(--green-dim);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+
+.submit:hover {
+  border-color: var(--green);
+}
+
+.output {
+  font: inherit;
+  margin: 1rem 0 0;
+  min-height: 1.6em;
+  color: var(--green);
+  white-space: pre-wrap;
+}
+
+.output.failed {
+  color: var(--red);
+}
+
+/* match the shared badge to the terminal look and keep it off the content */
+.shell {
+  padding-bottom: 6rem;
+}
+
+.shell .powered-badge {
+  font: inherit;
+  font-size: 0.8rem;
+  top: auto;
+  bottom: 1rem;
+  right: 1rem;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.shell .powered-badge .celtrix {
+  font-size: inherit;
+  color: var(--green);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+}
