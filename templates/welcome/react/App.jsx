@@ -4,6 +4,11 @@ import './App.css'
 const PROJECT = '__PROJECT_NAME__'
 const STACK = '__STACK__'
 const TODO_KEY = 'celtrix:todos'
+const LOGO = String.raw`             ____       _
+  ________  / / /______(_)  __
+ / ___/ _ \/ / __/ ___/ / |/_/
+/ /__/  __/ / /_/ /  / />  <
+\___/\___/_/\__/_/  /_/_/|_|`
 const EMPTY_FORM = { username: '', email: '', password: '' }
 
 function loadTodos() {
@@ -21,9 +26,14 @@ function Window({ id, title, meta, children }) {
         <h2 id={id} className="window-title">
           ~/{PROJECT}/{title}
         </h2>
-        {meta && <span className="window-meta">{meta}</span>}
+        <span className="window-meta">{STACK}</span>
       </div>
       <div className="window-body">{children}</div>
+      <div className="statusline" aria-hidden="true">
+        <span className="mode">{title.toUpperCase()}</span>
+        <span className="statusline-info">{meta}</span>
+        <span className="statusline-right">utf-8 · react</span>
+      </div>
     </section>
   )
 }
@@ -191,6 +201,7 @@ export default function App() {
 
       <main>
         <div className="intro">
+          <pre className="logo" aria-hidden="true">{LOGO}</pre>
           <h1>{PROJECT}</h1>
           <p>
             <span className="dim">$</span> npx celtrix {PROJECT}

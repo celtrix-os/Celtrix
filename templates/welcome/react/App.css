@@ -18,6 +18,7 @@
 .brand {
   color: var(--green);
   font-weight: 700;
+  text-shadow: var(--glow);
 }
 
 .dim {
@@ -69,15 +70,23 @@
 
 /* intro */
 .intro {
-  margin: 3.5rem 0 2.25rem;
+  margin: 3rem 0 2.25rem;
+}
+
+.logo {
+  margin: 0 0 1.5rem;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--green);
+  text-shadow: var(--glow);
+  overflow-x: auto;
 }
 
 .intro h1 {
-  margin: 0 0 1rem;
-  font-size: clamp(1.9rem, 6vw, 2.6rem);
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.3;
   color: var(--bright);
   overflow-wrap: anywhere;
 }
@@ -88,6 +97,7 @@
 
 .ok {
   color: var(--green);
+  text-shadow: var(--glow);
 }
 
 code {
@@ -129,7 +139,33 @@ code {
 }
 
 .window-meta {
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+/* vim style status line */
+.statusline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem 0 0;
+  border-top: 1px solid var(--line);
+  background: var(--bar);
+  font-size: 0.75rem;
   color: var(--muted);
+}
+
+.statusline .mode {
+  padding: 0.2rem 0.7rem;
+  background: var(--green);
+  color: var(--bg);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.statusline-right {
+  margin-left: auto;
+  color: var(--faint);
   white-space: nowrap;
 }
 

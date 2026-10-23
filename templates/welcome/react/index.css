@@ -11,6 +11,7 @@
   --green: #4ade80;
   --green-dim: #166534;
   --red: #f87171;
+  --glow: 0 0 10px rgba(74, 222, 128, 0.35);
 
   font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px;
