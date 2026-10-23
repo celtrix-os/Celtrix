@@ -14,6 +14,20 @@ function loadTodos() {
   }
 }
 
+function Window({ id, title, meta, children }) {
+  return (
+    <section className="window" aria-labelledby={id}>
+      <div className="window-bar">
+        <h2 id={id} className="window-title">
+          ~/{PROJECT}/{title}
+        </h2>
+        {meta && <span className="window-meta">{meta}</span>}
+      </div>
+      <div className="window-body">{children}</div>
+    </section>
+  )
+}
+
 function TodoPanel() {
   const [todos, setTodos] = useState(loadTodos)
   const [text, setText] = useState('')
@@ -29,7 +43,10 @@ function TodoPanel() {
   const add = (e) => {
     e.preventDefault()
     const value = text.trim()
-    if (!value) return
+    if (!value) {
+      setText('')
+      return
+    }
     setTodos([...todos, { id: Date.now(), text: value, done: false }])
     setText('')
   }
@@ -39,8 +56,7 @@ function TodoPanel() {
   const open = todos.filter((t) => !t.done).length
 
   return (
-    <section className="panel" aria-labelledby="todo-title">
-      <h2 id="todo-title" className="panel-title">~/todo</h2>
+    <Window id="todo-title" title="todo" meta={`${open} open · ${todos.length - open} done`}>
       <form onSubmit={add} className="prompt-row">
         <label htmlFor="todo-input" className="prompt">&gt;</label>
         <input
@@ -52,11 +68,12 @@ function TodoPanel() {
         />
       </form>
       {todos.length === 0 ? (
-        <p className="muted">no tasks yet</p>
+        <p className="empty">no tasks yet. type one above and press enter.</p>
       ) : (
-        <ul className="todo-list">
-          {todos.map((t) => (
+        <ol className="todo-list">
+          {todos.map((t, i) => (
             <li key={t.id} className={t.done ? 'done' : undefined}>
+              <span className="index" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
               <button
                 type="button"
                 className="check"
@@ -72,12 +89,9 @@ function TodoPanel() {
               </button>
             </li>
           ))}
-        </ul>
+        </ol>
       )}
-      <p className="muted status">
-        {open} open · {todos.length - open} done
-      </p>
-    </section>
+    </Window>
   )
 }
 
@@ -112,7 +126,7 @@ function RegisterPanel() {
     setForm(EMPTY_FORM)
   }
 
-  const field = (name, type, autoComplete) => (
+  const field = (name, type, autoComplete, placeholder) => (
     <div className="field">
       <label htmlFor={`reg-${name}`}>--{name}</label>
       <input
@@ -121,6 +135,7 @@ function RegisterPanel() {
         type={type}
         value={form[name]}
         onChange={update}
+        placeholder={placeholder}
         autoComplete={autoComplete}
         aria-invalid={Boolean(errors[name])}
         aria-describedby={errors[name] ? `reg-${name}-error` : undefined}
@@ -134,16 +149,15 @@ function RegisterPanel() {
   )
 
   return (
-    <section className="panel" aria-labelledby="register-title">
-      <h2 id="register-title" className="panel-title">~/register</h2>
+    <Window id="register-title" title="register" meta="demo form">
       <form onSubmit={submit} noValidate>
-        {field('username', 'text', 'username')}
-        {field('email', 'email', 'email')}
-        {field('password', 'password', 'new-password')}
+        {field('username', 'text', 'username', 'ada')}
+        {field('email', 'email', 'email', 'ada@example.com')}
+        {field('password', 'password', 'new-password', 'at least 8 characters')}
         <button type="submit" className="submit">[ register ]</button>
       </form>
       <pre className={failed ? 'output failed' : 'output'} aria-live="polite">{output.join('\n')}</pre>
-    </section>
+    </Window>
   )
 }
 
@@ -154,8 +168,7 @@ export default function App() {
     <div className="shell">
       <header className="nav">
         <span className="brand">
-          celtrix<span className="dim">:~/</span>
-          {PROJECT}
+          celtrix<span className="dim">:~$</span>
           <span className="cursor" aria-hidden="true">_</span>
         </span>
         <nav aria-label="Main">
@@ -178,11 +191,12 @@ export default function App() {
 
       <main>
         <div className="intro">
+          <h1>{PROJECT}</h1>
           <p>
             <span className="dim">$</span> npx celtrix {PROJECT}
           </p>
           <p className="ok">✔ {STACK} app ready</p>
-          <p className="muted">
+          <p className="dim">
             edit <code>src/App.jsx</code> and save to reload
           </p>
         </div>

@@ -1,14 +1,18 @@
 :root {
   --bg: #0a0a0a;
-  --panel: #0f0f0f;
+  --bar: #0d0d0d;
+  --panel: #101010;
   --line: #1f2b23;
+  --hover: rgba(74, 222, 128, 0.05);
+  --bright: #f4f4f5;
   --text: #d4d4d4;
-  --muted: #737373;
+  --muted: #7a7a7a;
+  --faint: #454545;
   --green: #4ade80;
   --green-dim: #166534;
   --red: #f87171;
 
-  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px;
   line-height: 1.6;
   color: var(--text);
@@ -21,6 +25,10 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(74, 222, 128, 0.25);
 }
 
 body {
