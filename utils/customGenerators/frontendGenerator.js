@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { buildViteCommand } from "../shared.js";
-import { writeReactWelcomePage } from "../welcomePage.js";
+import { writeWelcomePage } from "../welcomePage.js";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -74,6 +74,12 @@ export async function generateFrontend(context) {
       cwd: targetDir,
       stdio: "inherit"
     });
+    writeWelcomePage(targetDir, {
+      framework: "svelte",
+      projectName: context.projectName,
+      stack: stackLabel(context),
+      typescript: context.isTs,
+    });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -116,16 +122,19 @@ export async function generateFrontend(context) {
     fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
   }
 
-  // Replace the stock Vite page with the Celtrix welcome page for React apps
-  if (context.config.frontend === "react" || context.config.frontend === "react-router") {
-    writeReactWelcomePage(targetDir, {
-      projectName: context.projectName,
-      stack: context.hasBackend
-        ? `${context.config.frontend} + ${context.config.backend}`
-        : context.config.frontend,
-      typescript: context.isTs,
-    });
-  }
+  // Replace the stock Vite page with the Celtrix welcome page
+  writeWelcomePage(targetDir, {
+    framework: baseTemplate,
+    projectName: context.projectName,
+    stack: stackLabel(context),
+    typescript: context.isTs,
+  });
+}
+
+function stackLabel(context) {
+  return context.hasBackend
+    ? `${context.config.frontend} + ${context.config.backend}`
+    : context.config.frontend;
 }
 
 function getBaseTemplate(frontend) {

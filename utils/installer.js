@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import { logger } from "./logger.js";
-import { buildViteCommand, getInstallCommand, BADGE_CSS } from "./shared.js";
-import { writeReactWelcomePage } from "./welcomePage.js";
+import { buildViteCommand, getInstallCommand } from "./shared.js";
+import { writeWelcomePage } from "./welcomePage.js";
 import path from "path";
 import fs from "fs";
 
@@ -21,71 +21,6 @@ function createViteProject(projectPath, config, baseTemplate, outputDir = "clien
   const cmd = buildViteCommand(config, template, outputDir);
 
   execSync(cmd, { cwd: projectPath, stdio: "inherit", shell: true });
-}
-
-/**
- * Injects the "Powered by Celtrix" badge into a Vue project.
- *
- * @param {string} projectPath - Root project directory.
- */
-function injectVueBadge(projectPath) {
-  const vuePath = path.join(
-    projectPath, "client", "src", "components", "HelloWorld.vue"
-  );
-
-  if (!fs.existsSync(vuePath)) {
-    logger.warn(`⚠️ HelloWorld.vue not found, skipping badge injection`);
-    return;
-  }
-
-  let content;
-  try {
-    content = fs.readFileSync(vuePath, "utf-8");
-  } catch (error) {
-    logger.error(`❌ Failed to read HelloWorld.vue: ${error.message}`);
-    return;
-  }
-
-  // Inject openCeltrix function into <script setup>
-  content = content.replace(
-    /<script setup lang="ts">([\s\S]*?)<\/script>/,
-    (match, p1) => {
-      if (!p1.includes("openCeltrix")) {
-        return `<script setup lang="ts">
-    ${p1.trim()}
-
-    const openCeltrix = () => {
-      window.open('https://github.com/celtrix-os/Celtrix', '_blank');
-    }
-    </script>`;
-      }
-      return match;
-    }
-  );
-
-  // Inject badge button after "read-the-docs" paragraph
-  content = content.replace(
-    /<p class="read-the-docs">Click on the Vite and Vue logos to learn more<\/p>/,
-    `<p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
-    <button className="powered-badge" @click="openCeltrix">Powered by <span className="celtrix">Celtrix</span></button>`
-  );
-
-  // Inject or replace scoped styles
-  const badgeStyles = `<style scoped>
-${BADGE_CSS}
-</style>`;
-
-  if (/<style scoped>[\s\S]*?<\/style>/.test(content)) {
-    content = content.replace(/<style scoped>[\s\S]*?<\/style>/, badgeStyles);
-  } else {
-    content += `\n\n${badgeStyles}`;
-  }
-
-  try {
-    fs.writeFileSync(vuePath, content, "utf-8");
-  } catch (error) {
-    logger.error(`❌ Failed to write HelloWorld.vue: ${error.message}`);
-  }
 }
 
 /**
@@ -244,7 +179,8 @@ export function HonoReactSetup(projectPath, config, projectName, installDeps) {
 
   try {
     createViteProject(projectPath, config, "react");
-    writeReactWelcomePage(path.join(projectPath, "client"), {
+    writeWelcomePage(path.join(projectPath, "client"), {
+      framework: "react",
       projectName,
       stack: "hono",
       typescript: config.language === "typescript",
@@ -269,7 +205,8 @@ export function mernSetup(projectPath, config, projectName, installDeps) {
 
   try {
     createViteProject(projectPath, config, "react");
-    writeReactWelcomePage(path.join(projectPath, "client"), {
+    writeWelcomePage(path.join(projectPath, "client"), {
+      framework: "react",
       projectName,
       stack: config.stack,
       typescript: config.language === "typescript",
@@ -313,7 +250,12 @@ export function mevnSetup(projectPath, config, projectName, installDeps) {
   try {
     logger.info("⚡ Setting up MEVN...");
     createViteProject(projectPath, config, "vue");
-    injectVueBadge(projectPath);
+    writeWelcomePage(path.join(projectPath, "client"), {
+      framework: "vue",
+      projectName,
+      stack: config.stack,
+      typescript: config.language === "typescript",
+    });
 
     logger.info("✅ MEVN project created successfully!");
     serverSetup(projectPath, config, projectName, installDeps);
@@ -347,9 +289,6 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
 
     // Ensure Tailwind import in CSS
     ensureTailwindImport(clientPath);
-
-    // Inject Vue badge
-    injectVueBadge(projectPath);
 
     logger.info("✅ MEVN + Tailwind + Auth setup completed!");
     serverAuthSetup(projectPath, config, projectName, installDeps);
