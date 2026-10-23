@@ -4,6 +4,7 @@ import chalk from "chalk";
 import boxen from "boxen";
 import { logger } from "./logger.js";
 import { copyTemplates } from "./templateManager.js";
+import { writeWelcomePage } from "./welcomePage.js";
 import { HonoReactSetup, mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
@@ -207,6 +208,13 @@ export async function setupProject(projectName, config, installDeps) {
     else if (config.stack === 'mevn+tailwind+auth') {
       mevnTailwindAuthSetup(projectPath, config, projectName, installDeps);
       copyTemplates(projectPath, config);
+      // the copied client template replaces the starter page, so write it afterwards
+      writeWelcomePage(path.join(projectPath, "client"), {
+        framework: "vue",
+        projectName,
+        stack: config.stack,
+        typescript: config.language === "typescript",
+      });
       serverAuthSetup(projectPath, config, projectName, installDeps);
     }
 
