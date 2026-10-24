@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { getInstallCommand } from "../shared.js";
 import { fileURLToPath } from "url";
 
@@ -46,10 +46,10 @@ export * from '@prisma/client';
 
     if (context.installDeps) {
       const installCmd = getInstallCommand(context.packageManager);
-      execSync(`${context.packageManager} ${installCmd} @prisma/client@6`, { cwd: targetDir, stdio: "inherit" });
-      execSync(`${context.packageManager} ${installCmd} -D prisma@6`, { cwd: targetDir, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} @prisma/client@6`, { cwd: targetDir });
+      await run(`${context.packageManager} ${installCmd} -D prisma@6`, { cwd: targetDir });
       // Generate standard client SDK
-      execSync(`npx prisma generate`, { cwd: targetDir, stdio: "inherit" });
+      await run(`npx prisma generate`, { cwd: targetDir });
     }
   } else if (context.config.orm === "drizzle") {
     // Scaffold Drizzle configurations
@@ -70,8 +70,8 @@ export default defineConfig({
     if (context.installDeps) {
       const driver = context.config.database.type === "postgres" ? "postgres" : "better-sqlite3";
       const installCmd = getInstallCommand(context.packageManager);
-      execSync(`${context.packageManager} ${installCmd} drizzle-orm ${driver}`, { cwd: targetDir, stdio: "inherit" });
-      execSync(`${context.packageManager} ${installCmd} -D drizzle-kit`, { cwd: targetDir, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} drizzle-orm ${driver}`, { cwd: targetDir });
+      await run(`${context.packageManager} ${installCmd} -D drizzle-kit`, { cwd: targetDir });
     }
   }
 }

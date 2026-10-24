@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import { execSync } from "child_process";
 import { logger } from "./logger.js";
+import { run, runPhase } from "./progress.js";
 import { fileURLToPath } from "url";
 
 // Generator Imports
@@ -32,49 +33,51 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
     templatesDir: path.join(__dirname, "../templates/gitignore")
   };
 
-  logger.info("📦 Phase 1: Bootstrapping project workspace & Turborepo...");
-  if (context.packageManager === "bun") {
-    try {
-      logger.info("⚡ Proactively clearing Bun's local package manager cache to prevent integrity errors...");
-      execSync("bun pm cache rm", { stdio: "ignore" });
-    } catch (e) {
-      // ignore
+  const isMonorepo = context.hasFrontend && context.hasBackend;
+
+  await runPhase("Initializing Celtrix scaffolding pipeline", () => {
+    if (context.packageManager === "bun") {
+      try {
+        logger.info("⚡ Proactively clearing Bun's local package manager cache to prevent integrity errors...");
+        execSync("bun pm cache rm", { stdio: "ignore" });
+      } catch (e) {
+        // ignore
+      }
     }
-  }
-  bootstrapWorkspace(context);
+  });
+
+  await runPhase(
+    isMonorepo ? "Bootstrapping project workspace & Turborepo" : "Bootstrapping project workspace",
+    () => bootstrapWorkspace(context)
+  );
 
   if (context.hasFrontend) {
-    logger.info("🎨 Phase 2: Generating frontend application...");
-    await generateFrontend(context);
+    await runPhase("Generating frontend application", () => generateFrontend(context));
   }
 
   if (context.hasBackend) {
-    logger.info("⚙️ Phase 3: Generating backend server...");
-    await generateBackend(context);
+    await runPhase("Generating backend server", () => generateBackend(context));
   }
 
   if (config.database && config.database.type !== "none") {
-    logger.info("🗄️ Phase 4: Setting up database and ORM connection package...");
-    await generateDatabase(context);
+    await runPhase("Setting up database and ORM connection package", () => generateDatabase(context));
   }
 
   if (config.api && config.api !== "none") {
-    logger.info("🔌 Phase 5: Configuring type-safe API communication...");
-    await generateAPI(context);
+    await runPhase("Configuring type-safe API communication", () => generateAPI(context));
   }
 
   if (config.auth && config.auth !== "none") {
-    logger.info("🔐 Phase 6: Injecting Authentication flow...");
-    await generateAuth(context);
+    await runPhase("Injecting authentication flow", () => generateAuth(context));
   }
 
   if (config.addons && config.addons.length > 0) {
-    logger.info("🧩 Phase 7: Loading DevOps and AI add-ons...");
-    await generateAddons(context);
+    await runPhase("Loading DevOps and AI add-ons", () => generateAddons(context));
   }
 
-  logger.info("📦 Phase 8: Finalizing workspace configuration and lockfiles...");
-  finalizeWorkspace(context);
+  if (context.installDeps) {
+    await runPhase("Installing dependencies", () => finalizeWorkspace(context));
+  }
 }
 
 function bootstrapWorkspace(context) {
@@ -83,7 +86,7 @@ function bootstrapWorkspace(context) {
     // Detect package manager version dynamically for Turborepo compatibility
     let pmVersion = "1.0.0";
     try {
-      pmVersion = execSync(`${context.packageManager} --version`).toString().trim();
+      pmVersion = execSync(`${context.packageManager} --version`, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
     } catch (e) {
       if (context.packageManager === "npm") pmVersion = "10.0.0";
       else if (context.packageManager === "pnpm") pmVersion = "9.0.0";
@@ -180,15 +183,15 @@ function bootstrapWorkspace(context) {
   fs.writeJsonSync(path.join(context.projectPath, "celtrix.config.json"), context.config, { spaces: 2 });
 }
 
-function finalizeWorkspace(context) {
+async function finalizeWorkspace(context) {
   if (context.installDeps) {
     // Dynamically install turbo at root for monorepos to guarantee latest version
     if (context.hasFrontend && context.hasBackend) {
       logger.info("📦 Dynamically installing latest stable Turborepo package at root...");
       const installCmd = context.packageManager === "npm" ? "install" : "add";
-      execSync(`${context.packageManager} ${installCmd} -D turbo`, { cwd: context.projectPath, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} -D turbo`, { cwd: context.projectPath });
     }
     logger.info("📦 Running package manager installation across workspaces...");
-    execSync(`${context.packageManager} install`, { cwd: context.projectPath, stdio: "inherit" });
+    await run(`${context.packageManager} install`, { cwd: context.projectPath });
   }
 }

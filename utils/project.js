@@ -7,6 +7,7 @@ import { copyTemplates } from "./templateManager.js";
 import { HonoReactSetup, mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
+import { runPhase } from "./progress.js";
 
 /**
  * Generates starter files for a custom-stack project so the user doesn't
@@ -173,65 +174,66 @@ export async function setupProject(projectName, config, installDeps) {
   // --- Copy & Install ---
 
   try {
+    const copyPhase = () => runPhase("Applying Celtrix templates", () => copyTemplates(projectPath, config));
+    const installPhase = (...args) =>
+      installDeps && runPhase("Installing dependencies", () => installDependencies(projectPath, config, projectName, ...args));
+
     if (isCustom) {
-      logger.info("📋 Initializing Celtrix Custom Scaffolder pipeline...");
       await scaffoldCustomProject(projectPath, projectName, config, installDeps);
-      logger.success(`✅ Custom stack project successfully scaffolded!`);
     }
 
     else if (config.stack === "mern") {
-      mernSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false, []);
+      await runPhase("Generating MERN application", () => mernSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false, []);
     }
 
     else if (config.stack === 'mevn') {
-      mevnSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false, []);
+      await runPhase("Generating MEVN application", () => mevnSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false, []);
     }
 
     else if (config.stack === "mean") {
-      angularSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
+      await runPhase("Generating MEAN application", () => angularSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase();
     }
 
     else if (config.stack === "mern+tailwind+auth") {
-      mernSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      mernTailwindSetup(projectPath, config, projectName);
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Generating MERN application", () => mernSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await runPhase("Adding Tailwind CSS", () => mernTailwindSetup(projectPath, config, projectName));
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === 'mevn+tailwind+auth') {
-      mevnTailwindAuthSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Generating MEVN + Tailwind application", () => mevnTailwindAuthSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === "mean+tailwind+auth") {
-      angularTailwindSetup(projectPath, config, projectName);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Generating Angular + Tailwind application", () => angularTailwindSetup(projectPath, config, projectName));
+      await copyPhase();
+      await installPhase();
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === "react+tailwind+firebase") {
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
+      await copyPhase();
+      await installPhase();
     }
 
     else if (config.stack === "hono") {
-      HonoReactSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false);
+      await runPhase("Generating Hono + React application", () => HonoReactSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false);
     }
 
     else if (config.stack === 'nextjs') {
-      nextSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      logger.info("✅ Next.js project created successfully!");
+      await runPhase("Generating Next.js application", () => nextSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
     }
   } catch (error) {
     // Clean up the created directory on failure

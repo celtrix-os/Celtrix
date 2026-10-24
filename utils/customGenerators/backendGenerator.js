@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { getInstallCommand } from "../shared.js";
 import { fileURLToPath } from "url";
 
@@ -58,8 +58,8 @@ export async function generateBackend(context) {
     const deps = getBackendDeps(context.config.backend);
     const devDeps = ["typescript", "@types/node", "tsx", "nodemon"];
     const installCmd = getInstallCommand(context.packageManager);
-    execSync(`${context.packageManager} ${installCmd} ${deps.join(" ")}`, { cwd: targetDir, stdio: "inherit" });
-    execSync(`${context.packageManager} ${installCmd} -D ${devDeps.join(" ")}`, { cwd: targetDir, stdio: "inherit" });
+    await run(`${context.packageManager} ${installCmd} ${deps.join(" ")}`, { cwd: targetDir });
+    await run(`${context.packageManager} ${installCmd} -D ${devDeps.join(" ")}`, { cwd: targetDir });
   }
 }
 

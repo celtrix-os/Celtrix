@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { getInstallCommand } from "../shared.js";
 
 export async function generateAddons(context) {
@@ -23,13 +23,13 @@ export async function generateAddons(context) {
     
     if (context.installDeps) {
       const installCmd = getInstallCommand(context.packageManager);
-      execSync(`${context.packageManager} ${installCmd} -D @biomejs/biome`, { cwd: context.projectPath, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} -D @biomejs/biome`, { cwd: context.projectPath });
     }
   }
 
   if (addons.includes("husky")) {
     if (context.installDeps) {
-      execSync(`npx -y husky-init`, { cwd: context.projectPath, stdio: "inherit" });
+      await run(`npx -y husky-init`, { cwd: context.projectPath });
     }
     
     // Add .husky to root .gitignore if it exists
@@ -47,7 +47,7 @@ export async function generateAddons(context) {
     const apiDir = path.join(context.projectPath, "apps", "api");
     if (fs.existsSync(apiDir) && context.installDeps) {
       const installCmd = getInstallCommand(context.packageManager);
-      execSync(`${context.packageManager} ${installCmd} ai @ai-sdk/openai`, { cwd: apiDir, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} ai @ai-sdk/openai`, { cwd: apiDir });
     }
   }
 }

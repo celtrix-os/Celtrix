@@ -49,7 +49,7 @@ async function main() {
     { showSummaryBox },
     { detectPackageManager },
     { default: inquirer },
-    { default: ora },
+    { default: logSymbols },
     { default: path }
   ] = await Promise.all([
     import("./commands/scaffold.js"),
@@ -65,7 +65,7 @@ async function main() {
     import("./prompts/info/summary.js"),
     import("./prompts/stable/detectPackageManager.js"),
     import("inquirer"),
-    import("ora"),
+    import("log-symbols"),
     import("path")
   ]);
 
@@ -151,21 +151,17 @@ async function main() {
       },
     ]);
 
-    // --- Scaffold with spinner + timing ---
+    // --- Scaffold with per-phase progress + timing ---
     const startTime = Date.now();
-    const scaffoldSpinner = ora({
-      text: chalk.yellow("Scaffolding your project…"),
-      spinner: "dots12",
-    }).start();
 
     try {
       await createProject(projectName, config, installDeps);
       const elapsed = Date.now() - startTime;
-      scaffoldSpinner.succeed(
-        chalk.green(`Project scaffolded in ${formatElapsed(elapsed)}`)
+      console.log(
+        `\n${logSymbols.success} ${chalk.green(`Project scaffolded in ${formatElapsed(elapsed)}`)}`
       );
     } catch (err) {
-      scaffoldSpinner.fail(chalk.red("Scaffolding failed"));
+      console.log(`\n${logSymbols.error} ${chalk.red("Scaffolding failed")}`);
       throw err;
     }
 

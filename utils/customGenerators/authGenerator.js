@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { getInstallCommand } from "../shared.js";
 import { fileURLToPath } from "url";
 import { logger } from "../logger.js";
@@ -53,7 +53,7 @@ export type Session = typeof auth.$Infer.Session;
 
     if (context.installDeps) {
       const installCmd = getInstallCommand(context.packageManager);
-      execSync(`${context.packageManager} ${installCmd} better-auth`, { cwd: authDir, stdio: "inherit" });
+      await run(`${context.packageManager} ${installCmd} better-auth`, { cwd: authDir });
     }
   }
 
@@ -62,9 +62,9 @@ export type Session = typeof auth.$Infer.Session;
     if (context.installDeps) {
       const installCmd = getInstallCommand(context.packageManager);
       if (context.config.auth === "clerk") {
-        execSync(`${context.packageManager} ${installCmd} @clerk/clerk-react`, { cwd: webDir, stdio: "inherit" });
+        await run(`${context.packageManager} ${installCmd} @clerk/clerk-react`, { cwd: webDir });
       } else if (context.config.auth === "better-auth") {
-        execSync(`${context.packageManager} ${installCmd} @repo/auth`, { cwd: webDir, stdio: "inherit" });
+        await run(`${context.packageManager} ${installCmd} @repo/auth`, { cwd: webDir });
       }
     }
 

@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { getInstallCommand } from "../shared.js";
 import { fileURLToPath } from "url";
 
@@ -48,7 +48,7 @@ export type AppRouter = typeof appRouter;
 
   if (context.installDeps) {
     const installCmd = getInstallCommand(context.packageManager);
-    execSync(`${context.packageManager} ${installCmd} @trpc/server zod`, { cwd: targetDir, stdio: "inherit" });
+    await run(`${context.packageManager} ${installCmd} @trpc/server zod`, { cwd: targetDir });
   }
 
   // Inject frontend caller
