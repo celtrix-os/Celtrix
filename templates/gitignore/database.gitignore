@@ -16,7 +16,6 @@ dist/
 
 # ORM specific
 prisma/migrations/
-drizzle/
 
 # Logs
 *.log

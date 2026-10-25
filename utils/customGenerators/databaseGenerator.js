@@ -40,6 +40,12 @@ export async function generateDatabase(context) {
 
   fs.ensureDirSync(path.join(targetDir, "src"));
 
+  // Earlier installs left a lockfile that doesn't know this new workspace yet, so npm
+  // would skip it ("no workspace folder present"). A root install registers it first.
+  if (context.installDeps && isMonorepo) {
+    await run(`${context.packageManager} install`, { cwd: context.projectPath });
+  }
+
   if (orm === "prisma") {
     fs.ensureDirSync(path.join(targetDir, "prisma"));
     fs.writeFileSync(path.join(targetDir, "prisma", "schema.prisma"), getPrismaSchema(dbType, provider));
@@ -57,16 +63,14 @@ export async function generateDatabase(context) {
     // above the prisma CLI is not available yet, so the hook would fail.
     pkgJson.scripts = { postinstall: "prisma generate", ...pkgJson.scripts };
     fs.writeJsonSync(path.join(targetDir, "package.json"), { ...fs.readJsonSync(path.join(targetDir, "package.json")), scripts: pkgJson.scripts }, { spaces: 2 });
-  } else if (orm === "drizzle") {
-    fs.writeFileSync(path.join(targetDir, `drizzle.config.${context.ext}`), getDrizzleConfig(dbType, provider));
-    fs.writeFileSync(path.join(targetDir, "src", `schema.${context.ext}`), getDrizzleSchema(dbType));
-    fs.writeFileSync(path.join(targetDir, "src", `index.${context.ext}`), getDrizzleClient(dbType, provider));
+  } else if (orm === "mongoose") {
+    // MongoDB is schemaless: the model and its unique index are created at runtime,
+    // so there is no generate/push/migrate step
+    fs.writeFileSync(path.join(targetDir, "src", `index.${context.ext}`), getMongooseClient(context.isTs));
 
     if (context.installDeps) {
-      const driver = dbType === "postgres" ? "postgres" : "better-sqlite3";
       const installCmd = getInstallCommand(context.packageManager);
-      await run(`${context.packageManager} ${installCmd} drizzle-orm ${driver}`, { cwd: targetDir });
-      await run(`${context.packageManager} ${installCmd} -D drizzle-kit dotenv-cli`, { cwd: targetDir });
+      await run(`${context.packageManager} ${installCmd} mongoose`, { cwd: targetDir });
     }
   }
 }
@@ -82,25 +86,14 @@ function getDatabaseScripts(orm, envFile) {
       "db:studio": withEnv("prisma studio")
     };
   }
-  if (orm === "drizzle") {
-    return {
-      "db:generate": withEnv("drizzle-kit generate"),
-      "db:push": withEnv("drizzle-kit push"),
-      "db:migrate": withEnv("drizzle-kit migrate"),
-      "db:studio": withEnv("drizzle-kit studio")
-    };
-  }
   return {};
 }
 
 function getUniqueViolationHelper(isTs) {
   return `
-// Unique-constraint violations across Prisma (P2002), Postgres (23505) and SQLite drivers
-const UNIQUE_VIOLATION_CODES = ['P2002', '23505', 'SQLITE_CONSTRAINT_UNIQUE'];
-
+// Prisma reports unique-constraint violations as P2002
 export function isUniqueViolation(error${isTs ? ": unknown" : ""}) {
-  const { code, cause } = (error ?? {})${isTs ? " as { code?: string; cause?: { code?: string } }" : ""};
-  return UNIQUE_VIOLATION_CODES.includes(code ?? cause?.code ?? '');
+  return (error${isTs ? " as { code?: string } | null" : ""})?.code === 'P2002';
 }
 `;
 }
@@ -180,95 +173,65 @@ export type { User } from '@prisma/client';
 `;
 }
 
-function getDrizzleConfig(dbType, provider) {
-  const dialect = dbType === "postgres" ? "postgresql" : dbType;
-  // Supabase migrations must bypass the transaction pooler
-  const url = provider === "supabase"
-    ? "process.env.DIRECT_URL ?? process.env.DATABASE_URL!"
-    : "process.env.DATABASE_URL!";
+function getMongooseClient(isTs) {
+  const t = (type) => (isTs ? type : "");
 
-  return `import { defineConfig } from 'drizzle-kit';
+  return `import mongoose, { Schema } from 'mongoose';
 
-export default defineConfig({
-  schema: './src/schema.ts',
-  out: './drizzle',
-  dialect: '${dialect}',
-  dbCredentials: {
-    url: ${url},
+const userSchema = new Schema(
+  {
+    email: { type: String, required: true, unique: true },
+    name: { type: String, default: null },
   },
-});
-`;
-}
-
-function getDrizzleSchema(dbType) {
-  if (dbType === "postgres") {
-    return `import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').notNull().unique(),
-  name: text('name'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
-
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-`;
+  {
+    timestamps: { createdAt: true, updatedAt: false },
+    // Serialize as { id, email, name, createdAt }, the same shape the Prisma setup returns
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (_doc, ret${t(": Record<string, unknown>")}) => {
+        delete ret._id;
+        return ret;
+      },
+    },
   }
-  return `import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+);
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  email: text('email').notNull().unique(),
-  name: text('name'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
+export const User = mongoose.model('User', userSchema);
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-`;
+let connection${t(": Promise<typeof mongoose> | undefined")};
+
+// Connects on first use, so the API has loaded .env before DATABASE_URL is read.
+// A failed attempt is forgotten so the next request retries.
+export function connect() {
+  connection ??= mongoose
+    .connect(process.env.DATABASE_URL${t("!")}, { serverSelectionTimeoutMS: 5000 })
+    .catch((error) => {
+      connection = undefined;
+      throw error;
+    });
+  return connection;
 }
 
-function getDrizzleClient(dbType, provider) {
-  const repository = `
+export async function checkConnection() {
+  await connect();
+  await mongoose.connection.db${t("!")}.admin().ping();
+}
+
 export const users = {
-  list: () => db.select().from(schema.users).orderBy(desc(schema.users.createdAt)),
-  create: async (data: schema.NewUser) => {
-    const [user] = await db.insert(schema.users).values(data).returning();
-    return user;
+  list: async () => {
+    await connect();
+    return User.find().sort({ createdAt: -1 });
+  },
+  create: async (data${t(": { email: string; name?: string | null }")}) => {
+    await connect();
+    return User.create(data);
   },
 };
-${getUniqueViolationHelper(true)}
-export * from './schema.js';
+
+// MongoDB reports duplicate keys on a unique index as error code 11000
+export function isUniqueViolation(error${t(": unknown")}) {
+  return (error${t(" as { code?: number } | null")})?.code === 11000;
+}
 `;
-
-  if (dbType === "postgres") {
-    const clientOptions = provider === "supabase"
-      ? `\n// Supabase's transaction pooler (port 6543) does not support prepared statements.\nconst client = postgres(process.env.DATABASE_URL!, { prepare: false });`
-      : `\nconst client = postgres(process.env.DATABASE_URL!);`;
-
-    return `import { drizzle } from 'drizzle-orm/postgres-js';
-import { desc, sql } from 'drizzle-orm';
-import postgres from 'postgres';
-import * as schema from './schema.js';
-${clientOptions}
-export const db = drizzle(client, { schema });
-
-export async function checkConnection() {
-  await db.execute(sql\`select 1\`);
-}
-${repository}`;
-  }
-  return `import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { desc, sql } from 'drizzle-orm';
-import Database from 'better-sqlite3';
-import * as schema from './schema.js';
-
-const sqlite = new Database(process.env.DATABASE_URL?.replace(/^file:/, '') || 'sqlite.db');
-export const db = drizzle(sqlite, { schema });
-
-export async function checkConnection() {
-  db.get(sql\`select 1\`);
-}
-${repository}`;
 }

@@ -13,7 +13,7 @@ const LANGUAGE_OPTIONS = [
 /**
  * Prompts the user to select a programming language.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[1/9]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[1/7]".
  * @returns {Promise<{ language: string }>}
  */
 export async function askLanguage(stepLabel = "", { defaultValue = "typescript", canGoBack = false } = {}) {

@@ -12,7 +12,8 @@ import { getWorkspaceVersion } from "../shared.js";
 export async function generateWiring(context) {
   const apiDir = path.join(context.projectPath, "apps", "api");
   const webDir = path.join(context.projectPath, "apps", "web");
-  const hasDatabasePackage = fs.existsSync(path.join(context.projectPath, "packages", "database", "package.json"));
+  const databasePkgPath = path.join(context.projectPath, "packages", "database", "package.json");
+  const hasDatabasePackage = fs.existsSync(databasePkgPath);
   const hasSupabase = context.config.database?.provider === "supabase";
 
   if (hasDatabasePackage) {
@@ -21,7 +22,9 @@ export async function generateWiring(context) {
     apiPkg.dependencies = { ...apiPkg.dependencies, "@repo/database": getWorkspaceVersion(context.packageManager) };
     fs.writeJsonSync(apiPkgPath, apiPkg, { spaces: 2 });
 
-    addDatabaseTasks(context.projectPath);
+    // Only ORMs with a CLI (Prisma) define db:* scripts; Mongoose has none
+    const tasks = Object.keys(fs.readJsonSync(databasePkgPath).scripts ?? {}).filter((name) => name.startsWith("db:"));
+    if (tasks.length > 0) addDatabaseTasks(context.projectPath, tasks);
   }
 
   if (context.config.frontend !== "react-router" || !fs.existsSync(path.join(webDir, "src"))) return;
@@ -51,9 +54,7 @@ export async function generateWiring(context) {
   }
 }
 
-function addDatabaseTasks(projectPath) {
-  const tasks = ["db:generate", "db:push", "db:migrate", "db:studio"];
-
+function addDatabaseTasks(projectPath, tasks) {
   const turboPath = path.join(projectPath, "turbo.json");
   if (fs.existsSync(turboPath)) {
     const turbo = fs.readJsonSync(turboPath);

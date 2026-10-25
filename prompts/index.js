@@ -8,17 +8,10 @@ import { askRuntime } from "./web-parts/runtime.js";
 import { askDatabaseType } from "./web-parts/database.js";
 import { askDatabaseSetup } from "./web-parts/databaseSetup.js";
 import { askORM } from "./web-parts/orm.js";
-import { askAPI } from "./web-parts/api.js";
-import { askAuth } from "./web-parts/auth.js";
-import { askAddons } from "./web-parts/addons.js";
 import { eraseOutputTo, isBackNavigation, logLine, outputMark } from "./common/navigation.js";
-import {
-  getCompatibleORMs,
-  getCompatibleAPIs,
-  getCompatibleAuths
-} from "./web-parts/compatibility.js";
+import { getCompatibleORMs, getCompatibleProviders } from "./web-parts/compatibility.js";
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 7;
 
 /**
  * Builds a dim step label like "[3/10]" for prompt prefixes.
@@ -55,15 +48,7 @@ function showConfirmationSummary(config) {
     lines.push(`🗄️  ${chalk.bold("Database:")}  ${chalk.cyanBright(dbVal)}`);
   }
 
-  lines.push(
-    line("🔗", "ORM", config.orm, chalk.greenBright),
-    line("🔌", "API", config.api, chalk.blueBright),
-    line("🔐", "Auth", config.auth, chalk.magentaBright),
-  );
-
-  if (config.addons.length > 0) {
-    lines.push(`🧩 ${chalk.bold("Add-ons:")}  ${chalk.yellow(config.addons.join(", "))}`);
-  }
+  lines.push(line("🔗", "ORM", config.orm, chalk.greenBright));
 
   logLine(
     boxen(lines.filter(Boolean).join("\n"), {
@@ -79,7 +64,7 @@ function showConfirmationSummary(config) {
 
 /**
  * Orchestrates all custom-stack prompts in the correct order, applying
- * conditional logic (e.g. skip ORM when no DB, skip API type when no backend).
+ * conditional logic (e.g. skip the database steps when there is no backend).
  *
  * Features step numbering, a language prompt, and a confirmation gate.
  *
@@ -89,10 +74,7 @@ function showConfirmationSummary(config) {
  *   backend: string,
  *   runtime: string,
  *   database: { type: string, provider: string },
- *   orm: string,
- *   api: string,
- *   auth: string,
- *   addons: string[]
+ *   orm: string
  * }>}
  */
 export async function gatherCustomConfig() {
@@ -101,66 +83,15 @@ export async function gatherCustomConfig() {
     frontend: "react-router",
     backend: "hono",
     runtime: "node",
-    database: { type: "postgres", provider: "neon" },
-    orm: "drizzle",
-    api: "trpc",
-    auth: "better-auth",
-    addons: [],
+    database: { type: "postgres", provider: "supabase" },
+    orm: "prisma",
   });
-
-  function nextAfterAPI(config) {
-    if (config.backend === "convex") {
-      config.api = "none";
-      logLine(
-        chalk.gray(
-          `   ${step(7)} API type selection skipped ${chalk.dim(
-            "(Convex handles its own client-server communication)"
-          )}`
-        )
-      );
-      return "auth";
-    }
-
-    if (config.backend === "none") {
-      config.api = "none";
-      logLine(chalk.gray(`   ${step(7)} API type selection skipped ${chalk.dim("(no backend)")}`));
-      return "auth";
-    }
-
-    const allowedAPIs = getCompatibleAPIs(config.backend, config.language);
-    if (allowedAPIs.length === 1) {
-      config.api = allowedAPIs[0];
-      logLine(
-        chalk.green(
-          `   ⚡ Automatically selected None ${chalk.dim(
-            "(tRPC/oRPC require TypeScript, defaulting to REST/None)"
-          )}`
-        )
-      );
-      return "auth";
-    }
-
-    return "api";
-  }
 
   function nextAfterDatabase(config) {
     if (config.database.type === "none") {
       config.orm = "none";
       logLine(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
-      return nextAfterAPI(config);
-    }
-
-    const allowedORMs = getCompatibleORMs(config.database.type, config.language);
-    if (allowedORMs.length === 1) {
-      config.orm = allowedORMs[0];
-      logLine(
-        chalk.green(
-          `   ⚡ Automatically selected ${
-            config.orm === "prisma" ? "Prisma" : "Drizzle"
-          } ${chalk.dim(`(only compatible ORM for ${config.database.type} in ${config.language})`)}`
-        )
-      );
-      return nextAfterAPI(config);
+      return "confirmation";
     }
 
     return "orm";
@@ -200,13 +131,10 @@ export async function gatherCustomConfig() {
         answer = await askBackend(step(3), { defaultValue: config.backend, canGoBack });
         if (!answer.back) {
           config.backend = answer.backend;
-          if (answer.backend === "convex" || answer.backend === "none") {
+          if (answer.backend === "none") {
             config.database = { type: "none", provider: "" };
             config.orm = "none";
-            config.api = "none";
-            if (answer.backend === "none") {
-              logLine(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
-            }
+            logLine(chalk.yellow("   ⚠️  No backend selected — this will be a frontend-only project."));
           }
         }
         break;
@@ -234,7 +162,7 @@ export async function gatherCustomConfig() {
         if (!answer.back) config.database.provider = answer.provider;
         break;
       case "orm": {
-        const allowedORMs = getCompatibleORMs(config.database.type, config.language);
+        const allowedORMs = getCompatibleORMs(config.database.type);
         answer = await askORM(step(6), allowedORMs, {
           defaultValue: config.orm,
           canGoBack,
@@ -242,35 +170,13 @@ export async function gatherCustomConfig() {
         if (!answer.back) config.orm = answer.orm;
         break;
       }
-      case "api": {
-        const allowedAPIs = getCompatibleAPIs(config.backend, config.language);
-        answer = await askAPI(step(7), allowedAPIs, {
-          defaultValue: config.api,
-          canGoBack,
-        });
-        if (!answer.back) config.api = answer.api;
-        break;
-      }
-      case "auth": {
-        const allowedAuths = getCompatibleAuths(config.backend, config.language, config.database.type);
-        answer = await askAuth(step(8), allowedAuths, {
-          defaultValue: config.auth,
-          canGoBack,
-        });
-        if (!answer.back) config.auth = answer.auth;
-        break;
-      }
-      case "addons":
-        answer = await askAddons(step(9), { defaultValue: config.addons, canGoBack });
-        if (!answer.back) config.addons = answer.addons;
-        break;
       case "confirmation": {
         showConfirmationSummary(config);
         const { action } = await inquirer.prompt([
           {
             type: "celtrixList",
             name: "action",
-            message: chalk.bold(`${step(10)} Proceed with this configuration?`),
+            message: chalk.bold(`${step(7)} Proceed with this configuration?`),
             choices: [
               { name: "Continue", value: "continue" },
               { name: "Start over", value: "restart" },
@@ -298,9 +204,6 @@ export async function gatherCustomConfig() {
     }
 
     if (answer.back) {
-      if (currentStep === "addons" && Array.isArray(answer.addons)) {
-        config.addons = answer.addons;
-      }
       goBack(stepMark);
       continue;
     }
@@ -317,41 +220,34 @@ export async function gatherCustomConfig() {
         nextStep = "runtime";
         break;
       case "runtime":
-        if (config.backend === "convex" || config.backend === "none") {
+        if (config.backend === "none") {
           config.database = { type: "none", provider: "" };
           config.orm = "none";
-          config.api = "none";
-          const reason = config.backend === "convex"
-            ? "(Convex includes a built-in document store)"
-            : "(Frontend-only projects do not require a backend database)";
+          const reason = "(Frontend-only projects do not require a backend database)";
           logLine(chalk.gray(`   ${step(5)} Database selection skipped ${chalk.dim(reason)}`));
           logLine(chalk.gray(`   ${step(6)} ORM selection skipped ${chalk.dim("(no database)")}`));
-          nextAfterAPI(config);
-          nextStep = "auth";
+          nextStep = "confirmation";
         } else {
           nextStep = "database";
         }
         break;
-      case "database":
+      case "database": {
+        const providers = getCompatibleProviders(config.database.type);
         if (config.database.type === "none") {
+          nextStep = nextAfterDatabase(config);
+        } else if (providers.length === 1) {
+          // Nothing to choose, so don't show a single-option provider question
+          config.database.provider = providers[0];
           nextStep = nextAfterDatabase(config);
         } else {
           nextStep = "databaseSetup";
         }
         break;
+      }
       case "databaseSetup":
         nextStep = nextAfterDatabase(config);
         break;
       case "orm":
-        nextStep = nextAfterAPI(config);
-        break;
-      case "api":
-        nextStep = "auth";
-        break;
-      case "auth":
-        nextStep = "addons";
-        break;
-      case "addons":
         nextStep = "confirmation";
         break;
     }

@@ -18,25 +18,13 @@ async function runWizard(responses = {}) {
     queues.set(question.name, queue);
 
     let answer = planned;
-    if (answer === "back" || (question.type === "celtrixCheckbox" && Array.isArray(answer) && answer.includes("back"))) {
-      const selectedAddons = Array.isArray(answer)
-        ? answer.filter((value) => value !== "back")
-        : question.choices.filter((choice) => choice.checked).map((choice) => choice.value);
-      answer = question.type === "celtrixCheckbox"
-        ? {
-          back: true,
-          addons: selectedAddons,
-        }
-        : { back: true };
+    if (answer === "back") {
+      answer = { back: true };
     } else if (answer === undefined) {
-      answer = question.type === "celtrixCheckbox"
-        ? question.choices.filter((choice) => choice.checked).map((choice) => choice.value)
-        : question.default;
+      answer = question.default;
     }
 
-    if (question.type === "celtrixCheckbox" && !isBackNavigation(answer)) {
-      assert.ok(Array.isArray(answer), `${question.name} should return checked choices`);
-    } else if (!isBackNavigation(answer)) {
+    if (!isBackNavigation(answer)) {
       assert.ok(
         question.choices.some((choice) => choice.value === answer),
         `${question.name} should include its selected value`
@@ -161,72 +149,29 @@ test("conditional questions are recalculated when the language changes", async (
   assert.equal(config.frontend, "nextjs");
   assert.equal(config.runtime, "bun");
   assert.equal(config.orm, "prisma");
-  assert.equal(config.api, "none");
   assert.deepEqual(
     prompts.filter((question) => question.name === "provider").map((question) => question.default),
-    ["neon", "neon"]
+    ["supabase", "supabase"]
   );
-  assert.equal(prompts.filter((question) => question.name === "orm").length, 0);
-  assert.equal(prompts.filter((question) => question.name === "api").length, 0);
-  assert.ok(prompts.filter((question) => question.name === "auth").at(-1).choices.some(
-    (choice) => choice.value === "clerk"
-  ));
+  assert.deepEqual(
+    prompts.find((question) => question.name === "orm").choices.map((choice) => choice.value),
+    ["prisma"]
+  );
 });
 
-test("changing from no backend recalculates database, ORM, API, and auth steps", async () => {
+test("changing from no backend recalculates the database and ORM steps", async () => {
   const { config, prompts } = await runWizard({
     backend: ["none", "express"],
-    runtime: ["back"],
-    auth: ["back"],
+    runtime: [undefined, "back"],
+    action: ["back"],
     databaseType: ["postgres"],
   });
 
   assert.equal(config.backend, "express");
   assert.equal(config.database.type, "postgres");
-  assert.ok(prompts.some((question) => question.name === "orm"));
-  assert.ok(prompts.some((question) => question.name === "api"));
-  assert.equal(prompts.filter((question) => question.name === "auth").length, 2);
+  assert.equal(config.orm, "prisma");
+  assert.equal(prompts.filter((question) => question.name === "databaseType").length, 1);
   assert.ok(prompts.at(-1).name === "action");
-});
-
-test("checkbox Backspace preserves in-progress and previously saved selections", async () => {
-  const choices = [
-    { name: "Biome", value: "biome", checked: true },
-    { name: "Husky", value: "husky", checked: false },
-  ];
-  const result = await runPromptWithKeys({
-    type: "celtrixCheckbox",
-    name: "addons",
-    message: "Select add-ons:",
-    canGoBack: true,
-    choices,
-  }, ["\x1b[B", " ", String.fromCharCode(127)]);
-
-  assert.deepEqual(result, { back: true, addons: ["biome", "husky"] });
-
-  const revisited = await runPromptWithKeys({
-    type: "celtrixCheckbox",
-    name: "addons",
-    message: "Select add-ons:",
-    canGoBack: true,
-    choices: choices.map((choice) => ({ ...choice, checked: result.addons.includes(choice.value) })),
-  }, ["\r"]);
-  assert.deepEqual(revisited, result.addons);
-});
-
-test("revisiting add-ons restores choices and Backspace is not stored in config", async () => {
-  const { config, prompts } = await runWizard({
-    auth: ["back", "none"],
-    api: ["back"],
-    addons: [["biome", "back"]],
-  });
-
-  const addonQuestions = prompts.filter((question) => question.name === "addons");
-  assert.equal(addonQuestions.length, 2);
-  assert.equal(addonQuestions[1].choices.find((choice) => choice.value === "biome").checked, true);
-  assert.deepEqual(config.addons, ["biome"]);
-  assert.equal(JSON.stringify(config).includes('"back"'), false);
-  assert.equal(JSON.stringify(config).includes("Backspace"), false);
 });
 
 test("normal forward navigation reaches confirmation with a clean config", async () => {
@@ -236,8 +181,6 @@ test("normal forward navigation reaches confirmation with a clean config", async
     backend: ["express"],
     runtime: ["bun"],
     databaseType: ["sqlite"],
-    provider: ["turso"],
-    addons: [["biome", "husky"]],
     action: ["continue"],
   });
 
@@ -246,7 +189,40 @@ test("normal forward navigation reaches confirmation with a clean config", async
   assert.equal(config.frontend, "nextjs");
   assert.equal(config.backend, "express");
   assert.equal(config.runtime, "bun");
-  assert.deepEqual(config.database, { type: "sqlite", provider: "turso" });
-  assert.deepEqual(config.addons, ["biome", "husky"]);
+  // SQLite has a single provider, so the provider question is skipped
+  assert.equal(prompts.filter((question) => question.name === "provider").length, 0);
+  assert.deepEqual(config.database, { type: "sqlite", provider: "local" });
+  assert.equal(prompts.filter((question) => question.name === "orm").length, 1);
+  assert.equal(config.orm, "prisma");
   assert.equal(JSON.stringify(config).includes("__celtrix_back__"), false);
+});
+
+test("MongoDB asks to choose between Prisma and Mongoose", async () => {
+  const { config, prompts } = await runWizard({
+    databaseType: ["mongodb"],
+    provider: ["atlas"],
+    orm: ["mongoose"],
+    action: ["continue"],
+  });
+
+  assert.deepEqual(
+    prompts.find((question) => question.name === "orm").choices.map((choice) => choice.value),
+    ["prisma", "mongoose"]
+  );
+  assert.deepEqual(config.database, { type: "mongodb", provider: "atlas" });
+  assert.equal(config.orm, "mongoose");
+});
+
+test("Docker is offered as a provider for server databases", async () => {
+  const { config, prompts } = await runWizard({
+    databaseType: ["mysql"],
+    provider: ["docker"],
+    action: ["continue"],
+  });
+
+  assert.deepEqual(
+    prompts.find((question) => question.name === "provider").choices.map((choice) => choice.value),
+    ["docker", "local"]
+  );
+  assert.deepEqual(config.database, { type: "mysql", provider: "docker" });
 });

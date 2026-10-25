@@ -13,7 +13,7 @@ const RUNTIME_OPTIONS = [
 /**
  * Prompts the user to select a runtime environment.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[4/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[4/7]".
  * @returns {Promise<{ runtime: string }>}
  */
 export async function askRuntime(stepLabel = "", { defaultValue = "node", canGoBack = false } = {}) {

@@ -9,119 +9,6 @@ import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
 import { runPhase } from "./progress.js";
 
-/**
- * Generates starter files for a custom-stack project so the user doesn't
- * end up with just a JSON config file.
- *
- * @param {string} projectPath - Absolute path to the project directory.
- * @param {string} projectName - Project name.
- * @param {object} config - Full custom-stack config.
- */
-function bootstrapCustomProject(projectPath, projectName, config) {
-  // ── README.md ──
-  const readmeLines = [
-    `# ${projectName}`,
-    "",
-    `> Bootstrapped with [Celtrix](https://github.com/celtrix-os/Celtrix) — Custom Stack`,
-    "",
-    "## Tech Stack",
-    "",
-    `| Layer | Choice |`,
-    `|-------|--------|`,
-    `| Language | ${config.language} |`,
-    `| Frontend | ${config.frontend} |`,
-    `| Backend | ${config.backend} |`,
-    `| Runtime | ${config.runtime === "bun" ? "Bun" : "Node.js"} |`,
-  ];
-
-  if (config.database && config.database.type !== "none") {
-    readmeLines.push(`| Database | ${config.database.type}${config.database.provider ? ` (${config.database.provider})` : ""} |`);
-  }
-  if (config.orm && config.orm !== "none") readmeLines.push(`| ORM | ${config.orm} |`);
-  if (config.api && config.api !== "none") readmeLines.push(`| API | ${config.api} |`);
-  if (config.auth && config.auth !== "none") readmeLines.push(`| Auth | ${config.auth} |`);
-  if (config.addons && config.addons.length > 0) readmeLines.push(`| Add-ons | ${config.addons.join(", ")} |`);
-
-  readmeLines.push(
-    "",
-    "## Getting Started",
-    "",
-    "```bash",
-    `cd ${projectName}`,
-    `${config.packageManager} install`,
-    `${config.packageManager === "npm" ? "npm run dev" : `${config.packageManager} run dev`}`,
-    "```",
-    "",
-    "## Configuration",
-    "",
-    "Your full stack configuration is saved in `celtrix.config.json`.",
-    "",
-    "---",
-    "",
-    "*Made with ❤️ by [Celtrix](https://github.com/celtrix-os/Celtrix)*",
-  );
-
-  fs.writeFileSync(path.join(projectPath, "README.md"), readmeLines.join("\n"), "utf-8");
-
-  // ── .gitignore ──
-  const gitignoreContent = [
-    "node_modules/",
-    "dist/",
-    "build/",
-    ".env",
-    ".env.local",
-    ".env.*.local",
-    "*.log",
-    "npm-debug.log*",
-    ".DS_Store",
-    "Thumbs.db",
-    ".vscode/",
-    ".idea/",
-    "coverage/",
-    ".nyc_output/",
-  ].join("\n");
-
-  fs.writeFileSync(path.join(projectPath, ".gitignore"), gitignoreContent, "utf-8");
-
-  // ── package.json ──
-  const pkgJson = {
-    name: projectName,
-    version: "0.1.0",
-    private: true,
-    type: "module",
-    scripts: {
-      dev: "echo \"Configure your dev script\"",
-      build: "echo \"Configure your build script\"",
-    },
-  };
-
-  fs.writeJsonSync(path.join(projectPath, "package.json"), pkgJson, { spaces: 2 });
-
-  // ── .env.example (conditional) ──
-  const envLines = [];
-  if (config.database && config.database.type !== "none") {
-    envLines.push(`# ${config.database.type.toUpperCase()} connection`);
-    envLines.push(`DATABASE_URL=""`);
-  }
-  if (config.auth && config.auth !== "none") {
-    envLines.push("");
-    envLines.push(`# ${config.auth} auth`);
-    if (config.auth === "clerk") {
-      envLines.push(`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""`);
-      envLines.push(`CLERK_SECRET_KEY=""`);
-    } else if (config.auth === "better-auth") {
-      envLines.push(`AUTH_SECRET=""`);
-    }
-  }
-
-  if (envLines.length > 0) {
-    fs.writeFileSync(path.join(projectPath, ".env.example"), envLines.join("\n") + "\n", "utf-8");
-  }
-
-  // ── celtrix.config.json ──
-  fs.writeJsonSync(path.join(projectPath, "celtrix.config.json"), config, { spaces: 2 });
-}
-
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
 
@@ -148,9 +35,6 @@ export async function setupProject(projectName, config, installDeps) {
       configLines.push(`${chalk.bold("🗄️  Database:")}  ${chalk.cyanBright(config.database.type)}${config.database.provider ? chalk.gray(" via ") + chalk.white(config.database.provider) : ""}`);
     }
     if (config.orm && config.orm !== "none")         configLines.push(`${chalk.bold("🔗 ORM:")}  ${chalk.greenBright(config.orm)}`);
-    if (config.api && config.api !== "none")         configLines.push(`${chalk.bold("🔌 API:")}  ${chalk.blueBright(config.api)}`);
-    if (config.auth && config.auth !== "none")       configLines.push(`${chalk.bold("🔐 Auth:")}  ${chalk.magentaBright(config.auth)}`);
-    if (config.addons && config.addons.length > 0)   configLines.push(`${chalk.bold("🧩 Add-ons:")}  ${chalk.yellow(config.addons.join(", "))}`);
   } else {
     configLines.push(`${chalk.bold("📖 Language:")}  ${chalk.red(config.language)}`);
   }
@@ -272,11 +156,10 @@ export async function setupProject(projectName, config, installDeps) {
 
   if (isCustom) {
     console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
-    if (config.database && config.database.type !== "none") {
+    if (config.database?.provider === "docker") {
+      console.log(`   ${chalk.gray(`🐳 Start the database first: cp .env.example .env && ${config.packageManager} run db:up`)}`);
+    } else if (config.database && config.database.type !== "none") {
       console.log(`   ${chalk.gray("📝 Configure your database connection in .env (see .env.example)")}`);
-    }
-    if (config.auth && config.auth !== "none") {
-      console.log(`   ${chalk.gray(`📝 Configure your ${config.auth} credentials in .env`)}`);
     }
   } else if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);

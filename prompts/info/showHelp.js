@@ -39,14 +39,12 @@ export function showHelp() {
   console.log(`  ${chalk.greenBright('Nuxt')}             ${chalk.gray('Full-stack Vue framework')}`);
   console.log(`  ${chalk.hex('#FF6200')('TanStack')}         ${chalk.gray('Type-safe routing & data fetching')}`);
   console.log(`  ${chalk.magentaBright('Astro')}            ${chalk.gray('Content-focused, island architecture')}`);
-  console.log(`  ${chalk.redBright('SvelteKit')}        ${chalk.gray('Cybernetically enhanced web apps')}`);
   console.log(`  ${chalk.blueBright('SolidStart')}       ${chalk.gray('Fine-grained reactive UI framework')}`);
 
   console.log(chalk.bold('\nCustom Stack — Backends:'));
   console.log(`  ${chalk.hex('#FF6200')('Hono')}             ${chalk.gray('Ultrafast edge-ready web framework')}`);
   console.log(`  ${chalk.white('Fastify')}          ${chalk.gray('Fast & low-overhead Node.js framework')}`);
   console.log(`  ${chalk.yellowBright('Express')}          ${chalk.gray('Minimalist Node.js web framework')}`);
-  console.log(`  ${chalk.magentaBright('Convex')}           ${chalk.gray('Reactive backend-as-a-service')}`);
 
   console.log(chalk.bold('\nSupported Runtimes:'));
   console.log(`  ${chalk.greenBright('Node.js')}          ${chalk.gray('The standard JavaScript runtime')}`);

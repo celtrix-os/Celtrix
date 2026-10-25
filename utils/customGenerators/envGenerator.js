@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import { getDatabaseName, getDockerDatabasePort, getDockerDatabaseUrl } from "./dockerGenerator.js";
 
 /**
  * Writes the workspace-level .env.example (every variable the generated code
@@ -18,7 +19,7 @@ export async function generateEnv(context) {
 }
 
 function getEnvSections(context) {
-  const { database, orm, auth, frontend } = context.config;
+  const { database, frontend } = context.config;
   const hasDatabase = database && database.type !== "none";
   const isViteReact = frontend === "react-router";
   const sections = [];
@@ -35,7 +36,7 @@ function getEnvSections(context) {
   }
 
   if (hasDatabase) {
-    sections.push({ title: "Database", lines: getDatabaseLines(context, database, orm) });
+    sections.push({ title: "Database", lines: getDatabaseLines(context, database) });
   }
 
   if (database?.provider === "supabase") {
@@ -56,25 +57,20 @@ function getEnvSections(context) {
     sections.push({ title: "Supabase", lines });
   }
 
-  if (auth === "clerk") {
-    const publicKey = frontend === "nextjs" ? "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" : "VITE_CLERK_PUBLISHABLE_KEY";
-    sections.push({ title: "Clerk", lines: [`${publicKey}="pk_test_..."`, `CLERK_SECRET_KEY="sk_test_..."`] });
-  } else if (auth === "better-auth") {
-    sections.push({
-      title: "Better Auth",
-      lines: [
-        "# Generate with: openssl rand -base64 32",
-        `BETTER_AUTH_SECRET=""`,
-        `BETTER_AUTH_URL="http://localhost:3001"`,
-      ],
-    });
-  }
-
   return sections;
 }
 
-function getDatabaseLines(context, database, orm) {
-  const dbName = context.projectName.replace(/[^a-zA-Z0-9_]/g, "_");
+function getDatabaseLines(context, database) {
+  const dbName = getDatabaseName(context.projectName);
+
+  if (database.provider === "docker") {
+    return [
+      "# Matches docker-compose.yml; start the container with `db:up`",
+      `DATABASE_URL="${getDockerDatabaseUrl(database.type, dbName)}"`,
+      "# Host port for the container. If you change it, change the port in DATABASE_URL too.",
+      `# DB_PORT=${getDockerDatabasePort(database.type)}`,
+    ];
+  }
 
   switch (`${database.type}:${database.provider}`) {
     case "postgres:supabase":
@@ -82,20 +78,11 @@ function getDatabaseLines(context, database, orm) {
         "# Project → Connect → ORMs. Replace [PASSWORD] with your database password.",
         "# Transaction pooler (port 6543): used by the app at runtime",
         `DATABASE_URL="postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"`,
-        `# Session pooler (port 5432): used by ${orm === "drizzle" ? "drizzle-kit" : "Prisma"} for migrations`,
+        "# Session pooler (port 5432): used by Prisma for migrations",
         `DIRECT_URL="postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"`,
       ];
-    case "postgres:neon":
-      return [
-        "# Neon console → Connection Details",
-        `DATABASE_URL="postgresql://<user>:<password>@<endpoint>.neon.tech/neondb?sslmode=require"`,
-      ];
-    case "mysql:planetscale":
-      return [`DATABASE_URL="mysql://<user>:<password>@<host>/<database>?sslaccept=strict"`];
     case "mongodb:atlas":
       return [`DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/${dbName}"`];
-    case "sqlite:turso":
-      return [`DATABASE_URL="libsql://<database>-<org>.turso.io"`, `DATABASE_AUTH_TOKEN=""`];
     default:
       break;
   }
@@ -118,7 +105,10 @@ function getReadme(context, hasEnv) {
   const pm = context.packageManager;
   const runCmd = (script) => (pm === "npm" ? `npm run ${script}` : `${pm} ${script}`);
   const hasDatabase = config.database && config.database.type !== "none" && config.orm && config.orm !== "none";
+  // Mongoose creates its collections and indexes at runtime, so only Prisma has db:* scripts
+  const hasDbScripts = hasDatabase && config.orm === "prisma";
   const isSupabase = config.database?.provider === "supabase";
+  const isDocker = config.database?.provider === "docker";
 
   const rows = [
     ["Language", config.language],
@@ -126,9 +116,6 @@ function getReadme(context, hasEnv) {
     ["Backend", config.backend],
     ["Database", config.database?.type !== "none" ? `${config.database.type}${config.database.provider ? ` (${config.database.provider})` : ""}` : null],
     ["ORM", config.orm],
-    ["API", config.api],
-    ["Auth", config.auth],
-    ["Add-ons", config.addons?.length ? config.addons.join(", ") : null],
   ].filter(([, value]) => value && value !== "none");
 
   const lines = [
@@ -149,7 +136,9 @@ function getReadme(context, hasEnv) {
   let step = 1;
   if (hasEnv) {
     lines.push(
-      `${step++}. Copy the environment template and fill it in. A single \`.env\` at the repo root is shared by every app and package:`,
+      isDocker
+        ? `${step++}. Copy the environment template. Its \`DATABASE_URL\` already points at the Docker database. A single \`.env\` at the repo root is shared by every app and package:`
+        : `${step++}. Copy the environment template and fill it in. A single \`.env\` at the repo root is shared by every app and package:`,
       "",
       "   ```bash",
       "   cp .env.example .env",
@@ -167,7 +156,18 @@ function getReadme(context, hasEnv) {
     );
   }
 
-  if (hasDatabase) {
+  if (isDocker) {
+    lines.push(
+      `${step++}. Start the database in Docker (requires [Docker](https://docs.docker.com/get-docker/)). This waits until it is ready:`,
+      "",
+      "   ```bash",
+      `   ${runCmd("db:up")}`,
+      "   ```",
+      ""
+    );
+  }
+
+  if (hasDbScripts) {
     lines.push(
       `${step++}. Push the schema to your database:`,
       "",
@@ -194,16 +194,26 @@ function getReadme(context, hasEnv) {
     );
   }
 
-  if (hasDatabase) {
+  if (hasDbScripts || isDocker) {
     lines.push(
       "## Database scripts",
       "",
       "| Script | What it does |",
       "|--------|--------------|",
-      `| \`${runCmd("db:push")}\` | Sync the schema to the database without a migration |`,
-      `| \`${runCmd("db:migrate")}\` | Create and apply a migration |`,
-      `| \`${runCmd("db:generate")}\` | ${config.orm === "prisma" ? "Regenerate the Prisma client" : "Generate SQL migrations from the schema"} |`,
-      `| \`${runCmd("db:studio")}\` | Browse your data |`,
+      ...(isDocker
+        ? [
+          `| \`${runCmd("db:up")}\` | Start the database container and wait until it is healthy |`,
+          `| \`${runCmd("db:down")}\` | Stop the database container (data is kept in the \`db-data\` volume) |`,
+        ]
+        : []),
+      ...(hasDbScripts
+        ? [
+          `| \`${runCmd("db:push")}\` | Sync the schema to the database without a migration |`,
+          `| \`${runCmd("db:migrate")}\` | Create and apply a migration |`,
+          `| \`${runCmd("db:generate")}\` | Regenerate the Prisma client |`,
+          `| \`${runCmd("db:studio")}\` | Browse your data |`,
+        ]
+        : []),
       ""
     );
   }

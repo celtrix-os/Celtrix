@@ -61,7 +61,6 @@ coverage/
 *.sqlite
 *.sqlite3
 prisma/migrations/
-drizzle/
 
 # Package manager locks (optional - uncomment if you want to ignore them)
 # package-lock.json

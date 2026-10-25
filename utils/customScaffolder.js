@@ -9,10 +9,8 @@ import { fileURLToPath } from "url";
 import { generateFrontend } from "./customGenerators/frontendGenerator.js";
 import { generateBackend } from "./customGenerators/backendGenerator.js";
 import { generateDatabase } from "./customGenerators/databaseGenerator.js";
-import { generateAPI } from "./customGenerators/apiGenerator.js";
-import { generateAuth } from "./customGenerators/authGenerator.js";
-import { generateAddons } from "./customGenerators/addonsGenerator.js";
 import { generateSupabase } from "./customGenerators/supabaseGenerator.js";
+import { generateDocker } from "./customGenerators/dockerGenerator.js";
 import { generateWiring } from "./customGenerators/wiringGenerator.js";
 import { generateEnv } from "./customGenerators/envGenerator.js";
 
@@ -66,12 +64,8 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
     await runPhase("Setting up database and ORM connection package", () => generateDatabase(context));
   }
 
-  if (config.api && config.api !== "none") {
-    await runPhase("Configuring type-safe API communication", () => generateAPI(context));
-  }
-
-  if (config.auth && config.auth !== "none") {
-    await runPhase("Injecting authentication flow", () => generateAuth(context));
+  if (config.database && config.database.provider === "docker") {
+    await runPhase("Writing Docker Compose setup for the database", () => generateDocker(context));
   }
 
   if (config.database && config.database.provider === "supabase") {
@@ -83,10 +77,6 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
   }
 
   await runPhase("Writing .env.example and README", () => generateEnv(context));
-
-  if (config.addons && config.addons.length > 0) {
-    await runPhase("Loading DevOps and AI add-ons", () => generateAddons(context));
-  }
 
   if (context.installDeps) {
     await runPhase("Installing dependencies", () => finalizeWorkspace(context));

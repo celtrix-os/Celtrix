@@ -26,14 +26,11 @@ Mix and match your tech stack interactively:
 
 | Layer | Supported Technologies |
 | :--- | :--- |
-| **Frontend** | React Router, Next.js, Nuxt, TanStack, Astro, SvelteKit, SolidStart |
-| **Backend** | Hono, Fastify, Express, Convex, None (Frontend-only) |
+| **Frontend** | React Router, Next.js, Nuxt, TanStack, Astro, SolidStart |
+| **Backend** | Hono, Fastify, Express, None (Frontend-only) |
 | **Runtime** | Node.js, Bun |
-| **Database** | PostgreSQL, SQLite, MySQL, MongoDB, None |
-| **ORM** | Prisma, Drizzle, None |
-| **API Layer** | REST, tRPC, oRPC, None |
-| **Authentication** | Clerk, Better Auth, None |
-| **Add-ons** | Biome, Husky, Nx, Vercel AI SDK |
+| **Database** | PostgreSQL (Supabase, Docker or local), SQLite, MySQL (Docker or local), MongoDB (Atlas, Docker or local), None |
+| **ORM** | Prisma, Mongoose (MongoDB only) |
 
 ---
 

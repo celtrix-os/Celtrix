@@ -13,8 +13,8 @@
  *   6. frontend ↔ API     the same requests through the Vite dev-server proxy
  *
  * Usage:
- *   node scripts/e2e-custom-stack.js [--orm prisma|drizzle] [--backend express|hono]
- *                                    [--pm npm|pnpm|bun] [--dir <workdir>] [--keep]
+ *   node scripts/e2e-custom-stack.js [--backend express|hono] [--pm npm|pnpm|bun]
+ *                                    [--dir <workdir>] [--keep]
  *
  * Requires Docker. Everything it creates (project dir, container) is removed
  * afterwards unless --keep is passed.
@@ -35,7 +35,7 @@ const option = (name, fallback) => {
   return index !== -1 && args[index + 1] ? args[index + 1] : fallback;
 };
 const keep = args.includes("--keep");
-const orm = option("orm", "prisma");
+const orm = "prisma";
 const backend = option("backend", "express");
 const packageManager = option("pm", "npm");
 const workDir = path.resolve(option("dir", fs.mkdtempSync(path.join(os.tmpdir(), "celtrix-e2e-"))));
@@ -50,9 +50,6 @@ const config = {
   runtime: "node",
   database: { type: "postgres", provider: "supabase" },
   orm,
-  api: "none",
-  auth: "none",
-  addons: [],
   projectName,
   packageManager,
 };
@@ -174,12 +171,8 @@ async function main() {
 
   const rootPkg = fs.readJsonSync(path.join(projectPath, "package.json"));
   check("root exposes db:push", rootPkg.scripts["db:push"] === "turbo run db:push");
-  if (orm === "prisma") {
-    const schema = read("packages/database/prisma/schema.prisma");
-    check("prisma schema uses DIRECT_URL for migrations", schema.includes('directUrl = env("DIRECT_URL")'));
-  } else {
-    check("drizzle client disables prepared statements for the pooler", read("packages/database/src/index.ts").includes("prepare: false"));
-  }
+  const schema = read("packages/database/prisma/schema.prisma");
+  check("prisma schema uses DIRECT_URL for migrations", schema.includes('directUrl = env("DIRECT_URL")'));
 
   // ── 2. Database ────────────────────────────────────────────────────────────
   section("Start throwaway Postgres (stand-in for Supabase Postgres)");

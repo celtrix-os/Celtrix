@@ -10,7 +10,7 @@ Celtrix is a production-ready full-stack application scaffolder that lets you co
 
 Most scaffolding tools generate a single predefined stack.
 
-Celtrix lets you choose each layer of your application independently, including the frontend, backend, runtime, database, ORM, API layer, authentication provider, and developer tooling.
+Celtrix lets you choose each layer of your application independently, including the frontend, backend, runtime, database, and ORM.
 
 ---
 
@@ -18,13 +18,11 @@ Celtrix lets you choose each layer of your application independently, including 
 
 Celtrix currently supports:
 
-* **Frontend:** React Router, Next.js, Nuxt, TanStack Start, Astro, SvelteKit, SolidStart
-* **Backend:** Fastify, Hono, Express, Convex
+* **Frontend:** React Router, Next.js, Nuxt, TanStack Start, Astro, SolidStart
+* **Backend:** Fastify, Hono, Express
 * **Runtime:** Node.js, Bun
 * **Database:** PostgreSQL, MySQL, SQLite, MongoDB
-* **ORM:** Drizzle, Prisma
-* **API:** REST, tRPC, oRPC
-* **Authentication:** Better Auth, Clerk
+* **ORM:** Prisma, Mongoose (MongoDB only)
 
 Support for additional technologies is continuously being added.
 

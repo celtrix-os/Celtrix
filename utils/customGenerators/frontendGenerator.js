@@ -57,20 +57,6 @@ export async function generateFrontend(context) {
     return;
   }
 
-  if (context.config.frontend === "svelte") {
-    // Run SvelteKit CLI non-interactively using modern sv CLI
-    const types = context.isTs ? "ts" : "jsdoc";
-    await run(`npx sv create . --template minimal --types ${types} --no-add-ons --no-install --no-dir-check`, { cwd: targetDir });
-    
-    // Add .gitignore for frontend from template
-    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
-    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
-    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
-      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
-    }
-    return;
-  }
-
   if (context.config.frontend === "tanstack") {
     // Run TanStack Start CLI non-interactively using the new @tanstack/cli
     const installFlag = context.installDeps ? "" : "--no-install";
@@ -86,7 +72,7 @@ export async function generateFrontend(context) {
     return;
   }
 
-  // Vite Boilerplate for React, Vue, Svelte, Solid
+  // Vite Boilerplate for React, Vue, Solid
   const baseTemplate = getBaseTemplate(context.config.frontend);
   const templateName = context.isTs ? `${baseTemplate}-ts` : baseTemplate;
   const viteCmd = buildViteCommand(context.config, templateName, ".");
@@ -113,7 +99,6 @@ export async function generateFrontend(context) {
 function getBaseTemplate(frontend) {
   switch (frontend) {
     case "vue": return "vue";
-    case "svelte": return "svelte";
     case "solid": return "solid";
     case "react-router":
     default:
