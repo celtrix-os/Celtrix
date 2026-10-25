@@ -43,6 +43,7 @@
     "fs-extra": "^11.3.1",
     "gradient-string": "^3.0.0",
     "inquirer": "^12.9.4",
+    "loader": "^2.1.1",
     "log-symbols": "^7.0.1",
     "node-fetch": "^3.3.2",
     "open": "^10.2.0",
@@ -50,6 +51,7 @@
   },
   "scripts": {
     "test": "node --test tests/setup-back-navigation.test.js",
+    "test:e2e": "node scripts/e2e-custom-stack.js",
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",
     "release:major": "npm version major && npm publish --access public",

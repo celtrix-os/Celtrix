@@ -12,6 +12,9 @@ import { generateDatabase } from "./customGenerators/databaseGenerator.js";
 import { generateAPI } from "./customGenerators/apiGenerator.js";
 import { generateAuth } from "./customGenerators/authGenerator.js";
 import { generateAddons } from "./customGenerators/addonsGenerator.js";
+import { generateSupabase } from "./customGenerators/supabaseGenerator.js";
+import { generateWiring } from "./customGenerators/wiringGenerator.js";
+import { generateEnv } from "./customGenerators/envGenerator.js";
 
 // Get the directory where this file is located
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +73,16 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
   if (config.auth && config.auth !== "none") {
     await runPhase("Injecting authentication flow", () => generateAuth(context));
   }
+
+  if (config.database && config.database.provider === "supabase") {
+    await runPhase("Wiring Supabase clients", () => generateSupabase(context));
+  }
+
+  if (isMonorepo) {
+    await runPhase("Wiring frontend ↔ API ↔ database", () => generateWiring(context));
+  }
+
+  await runPhase("Writing .env.example and README", () => generateEnv(context));
 
   if (config.addons && config.addons.length > 0) {
     await runPhase("Loading DevOps and AI add-ons", () => generateAddons(context));
