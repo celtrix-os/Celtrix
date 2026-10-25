@@ -8,20 +8,20 @@ import { isBackNavigation } from "../common/navigation.js";
  */
 const SETUP_OPTIONS = {
   sqlite: [
-    { label: "Turso",  color: chalk.cyanBright,    desc: "Edge-hosted distributed SQLite",  value: "turso" },
     { label: "Local",  color: chalk.gray,           desc: "Local file-based SQLite",         value: "local" },
   ],
   postgres: [
-    { label: "Neon",      color: chalk.greenBright,    desc: "Serverless Postgres",             value: "neon"     },
     { label: "Supabase",  color: chalk.hex("#3FCF8E"),  desc: "Open-source Firebase alternative", value: "supabase" },
+    { label: "Docker",    color: chalk.blueBright,      desc: "PostgreSQL in a local Docker container", value: "docker" },
     { label: "Local",     color: chalk.gray,            desc: "Self-hosted PostgreSQL",          value: "local"    },
   ],
   mysql: [
-    { label: "PlanetScale", color: chalk.yellowBright,  desc: "Serverless MySQL platform",       value: "planetscale" },
+    { label: "Docker",      color: chalk.blueBright,     desc: "MySQL in a local Docker container", value: "docker"      },
     { label: "Local",       color: chalk.gray,           desc: "Self-hosted MySQL",               value: "local"       },
   ],
   mongodb: [
     { label: "MongoDB Atlas", color: chalk.greenBright,  desc: "Cloud-hosted MongoDB",            value: "atlas" },
+    { label: "Docker",        color: chalk.blueBright,   desc: "MongoDB in a local Docker container", value: "docker" },
     { label: "Local",         color: chalk.gray,          desc: "Self-hosted MongoDB",             value: "local" },
   ],
 };

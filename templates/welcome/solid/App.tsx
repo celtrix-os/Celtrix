@@ -10,12 +10,10 @@ const LOGO = String.raw`             ____       _
 / /__/  __/ / /_/ /  / />  <
 \___/\___/_/\__/_/  /_/_/|_|`
 type TodoItem = { id: number; text: string; done: boolean }
-type RegisterForm = { username: string; email: string; password: string }
-type FormErrors = Partial<Record<keyof RegisterForm, string>>
-type View = 'todo' | 'register'
 
-const EMPTY_FORM: RegisterForm = { username: '', email: '', password: '' }
-const VIEWS: View[] = ['todo', 'register']
+// Screens in the navbar; the first one is shown on load
+const VIEWS = ['todo'] as const
+type View = (typeof VIEWS)[number]
 
 function loadTodos(): TodoItem[] {
   try {
@@ -111,74 +109,8 @@ function TodoPanel() {
   )
 }
 
-function validate(form: RegisterForm): FormErrors {
-  const errors: FormErrors = {}
-  if (form.username.trim().length < 3) errors.username = 'needs at least 3 characters'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'enter a valid email'
-  if (form.password.length < 8) errors.password = 'needs at least 8 characters'
-  return errors
-}
-
-function RegisterPanel() {
-  const [form, setForm] = createSignal<RegisterForm>({ ...EMPTY_FORM })
-  const [errors, setErrors] = createSignal<FormErrors>({})
-  const [output, setOutput] = createSignal<string[]>([])
-  const [failed, setFailed] = createSignal(false)
-
-  const update: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => setForm({ ...form(), [e.currentTarget.name]: e.currentTarget.value })
-
-  const submit = (e: SubmitEvent) => {
-    e.preventDefault()
-    const found = validate(form())
-    setErrors(found)
-    const hasErrors = Object.keys(found).length > 0
-    setFailed(hasErrors)
-    if (hasErrors) {
-      setOutput(['✗ fix the fields above and try again'])
-      return
-    }
-    // Demo only: send this to your own API instead, e.g. POST /api/auth/register
-    setOutput([`✔ ${form().username.trim()} registered (demo, nothing was sent)`, '  hook this form up in src/App.tsx'])
-    setForm({ ...EMPTY_FORM })
-  }
-
-  const field = (name: keyof RegisterForm, type: string, autocomplete: string, placeholder: string) => (
-    <div class="field">
-      <label for={`reg-${name}`}>--{name}</label>
-      <input
-        id={`reg-${name}`}
-        name={name}
-        type={type}
-        value={form()[name]}
-        onInput={update}
-        placeholder={placeholder}
-        autocomplete={autocomplete}
-        aria-invalid={errors()[name] ? 'true' : 'false'}
-        aria-describedby={errors()[name] ? `reg-${name}-error` : undefined}
-      />
-      <Show when={errors()[name]}>
-        <span id={`reg-${name}-error`} class="error">
-          {errors()[name]}
-        </span>
-      </Show>
-    </div>
-  )
-
-  return (
-    <Window id="register-title" title="register" meta="demo form">
-      <form onSubmit={submit} novalidate>
-        {field('username', 'text', 'username', 'ada')}
-        {field('email', 'email', 'email', 'ada@example.com')}
-        {field('password', 'password', 'new-password', 'at least 8 characters')}
-        <button type="submit" class="submit">[ register ]</button>
-      </form>
-      <pre class={failed() ? 'output failed' : 'output'} aria-live="polite">{output().join('\n')}</pre>
-    </Window>
-  )
-}
-
 export default function App() {
-  const [view, setView] = createSignal<View>('todo')
+  const [view, setView] = createSignal<View>(VIEWS[0])
 
   return (
     <div class="shell">
@@ -218,7 +150,7 @@ export default function App() {
             edit <code>src/App.tsx</code> and save to reload
           </p>
         </div>
-        <Show when={view() === 'todo'} fallback={<RegisterPanel />}>
+        <Show when={view() === 'todo'}>
           <TodoPanel />
         </Show>
       </main>

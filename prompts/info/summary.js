@@ -33,15 +33,6 @@ export function showSummaryBox({ projectName, config, installedDeps, elapsed }) 
     if (config.orm && config.orm !== "none") {
       lines.push(`${chalk.bold("🔗 ORM:")}           ${chalk.greenBright(config.orm)}`);
     }
-    if (config.api && config.api !== "none") {
-      lines.push(`${chalk.bold("🔌 API:")}           ${chalk.blueBright(config.api)}`);
-    }
-    if (config.auth && config.auth !== "none") {
-      lines.push(`${chalk.bold("🔐 Auth:")}          ${chalk.magentaBright(config.auth)}`);
-    }
-    if (config.addons && config.addons.length > 0) {
-      lines.push(`${chalk.bold("🧩 Add-ons:")}       ${chalk.yellow(config.addons.join(", "))}`);
-    }
   }
 
   lines.push(

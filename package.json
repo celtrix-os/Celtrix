@@ -1,6 +1,6 @@
 {
   "name": "celtrix",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "CLI to create MERN apps quickly",
   "repository": {
     "type": "git",
@@ -50,6 +50,7 @@
   },
   "scripts": {
     "test": "node --test tests/setup-back-navigation.test.js tests/welcome-page.test.js",
+    "test:e2e": "node scripts/e2e-custom-stack.js",
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",
     "release:major": "npm version major && npm publish --access public",

@@ -1,13 +1,33 @@
 import chalk from "chalk";
+import { isVerbose, getActiveSpinner, setPhaseDetail, printAboveSpinner, appendLog } from "./progress.js";
 
-const isVerbose =
-  process.argv.includes("--verbose") || process.env.DEBUG === "celtrix";
+/**
+ * While a progress phase is running, informational messages become the
+ * phase's sub-status instead of new lines, and warnings/errors are printed
+ * above the spinner so the progress display stays intact.
+ *
+ * @param {Function} color - chalk color function.
+ * @returns {(msg: string) => void}
+ */
+const status = (color) => (msg) => {
+  appendLog(msg);
+  if (getActiveSpinner() && !isVerbose) {
+    setPhaseDetail(msg);
+  } else {
+    console.log(color(msg));
+  }
+};
+
+const notice = (color) => (msg) => {
+  appendLog(msg);
+  printAboveSpinner(() => console.log(color(msg)));
+};
 
 export const logger = {
-  info: (msg) => console.log(chalk.blue(msg)),
-  success: (msg) => console.log(chalk.green(msg)),
-  warn: (msg) => console.log(chalk.yellow(msg)),
-  error: (msg) => console.log(chalk.red(msg)),
+  info: status(chalk.blue),
+  success: status(chalk.green),
+  warn: notice(chalk.yellow),
+  error: notice(chalk.red),
 
   /**
    * Prints a debug message — only visible with --verbose flag or DEBUG=celtrix.
@@ -16,7 +36,7 @@ export const logger = {
    */
   debug: (msg) => {
     if (isVerbose) {
-      console.log(chalk.gray(`[debug] ${msg}`));
+      printAboveSpinner(() => console.log(chalk.gray(`[debug] ${msg}`)));
     }
   },
 

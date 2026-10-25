@@ -8,119 +8,8 @@ import { writeWelcomePage } from "./welcomePage.js";
 import { HonoReactSetup, mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
-
-/**
- * Generates starter files for a custom-stack project so the user doesn't
- * end up with just a JSON config file.
- *
- * @param {string} projectPath - Absolute path to the project directory.
- * @param {string} projectName - Project name.
- * @param {object} config - Full custom-stack config.
- */
-function bootstrapCustomProject(projectPath, projectName, config) {
-  // ── README.md ──
-  const readmeLines = [
-    `# ${projectName}`,
-    "",
-    `> Bootstrapped with [Celtrix](https://github.com/celtrix-os/Celtrix) — Custom Stack`,
-    "",
-    "## Tech Stack",
-    "",
-    `| Layer | Choice |`,
-    `|-------|--------|`,
-    `| Language | ${config.language} |`,
-    `| Frontend | ${config.frontend} |`,
-    `| Backend | ${config.backend} |`,
-    `| Runtime | ${config.runtime === "bun" ? "Bun" : "Node.js"} |`,
-  ];
-
-  if (config.database && config.database.type !== "none") {
-    readmeLines.push(`| Database | ${config.database.type}${config.database.provider ? ` (${config.database.provider})` : ""} |`);
-  }
-  if (config.orm && config.orm !== "none") readmeLines.push(`| ORM | ${config.orm} |`);
-  if (config.api && config.api !== "none") readmeLines.push(`| API | ${config.api} |`);
-  if (config.auth && config.auth !== "none") readmeLines.push(`| Auth | ${config.auth} |`);
-  if (config.addons && config.addons.length > 0) readmeLines.push(`| Add-ons | ${config.addons.join(", ")} |`);
-
-  readmeLines.push(
-    "",
-    "## Getting Started",
-    "",
-    "```bash",
-    `cd ${projectName}`,
-    `${config.packageManager} install`,
-    `${config.packageManager === "npm" ? "npm run dev" : `${config.packageManager} run dev`}`,
-    "```",
-    "",
-    "## Configuration",
-    "",
-    "Your full stack configuration is saved in `celtrix.config.json`.",
-    "",
-    "---",
-    "",
-    "*Made with ❤️ by [Celtrix](https://github.com/celtrix-os/Celtrix)*",
-  );
-
-  fs.writeFileSync(path.join(projectPath, "README.md"), readmeLines.join("\n"), "utf-8");
-
-  // ── .gitignore ──
-  const gitignoreContent = [
-    "node_modules/",
-    "dist/",
-    "build/",
-    ".env",
-    ".env.local",
-    ".env.*.local",
-    "*.log",
-    "npm-debug.log*",
-    ".DS_Store",
-    "Thumbs.db",
-    ".vscode/",
-    ".idea/",
-    "coverage/",
-    ".nyc_output/",
-  ].join("\n");
-
-  fs.writeFileSync(path.join(projectPath, ".gitignore"), gitignoreContent, "utf-8");
-
-  // ── package.json ──
-  const pkgJson = {
-    name: projectName,
-    version: "0.1.0",
-    private: true,
-    type: "module",
-    scripts: {
-      dev: "echo \"Configure your dev script\"",
-      build: "echo \"Configure your build script\"",
-    },
-  };
-
-  fs.writeJsonSync(path.join(projectPath, "package.json"), pkgJson, { spaces: 2 });
-
-  // ── .env.example (conditional) ──
-  const envLines = [];
-  if (config.database && config.database.type !== "none") {
-    envLines.push(`# ${config.database.type.toUpperCase()} connection`);
-    envLines.push(`DATABASE_URL=""`);
-  }
-  if (config.auth && config.auth !== "none") {
-    envLines.push("");
-    envLines.push(`# ${config.auth} auth`);
-    if (config.auth === "clerk") {
-      envLines.push(`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""`);
-      envLines.push(`CLERK_SECRET_KEY=""`);
-    } else if (config.auth === "better-auth") {
-      envLines.push(`AUTH_SECRET=""`);
-    }
-  }
-
-  if (envLines.length > 0) {
-    fs.writeFileSync(path.join(projectPath, ".env.example"), envLines.join("\n") + "\n", "utf-8");
-  }
-
-  // ── celtrix.config.json ──
-  fs.writeJsonSync(path.join(projectPath, "celtrix.config.json"), config, { spaces: 2 });
-}
+import { SETUP_GUIDE } from "./customGenerators/envGenerator.js";
+import { runPhase } from "./progress.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
@@ -148,9 +37,6 @@ export async function setupProject(projectName, config, installDeps) {
       configLines.push(`${chalk.bold("🗄️  Database:")}  ${chalk.cyanBright(config.database.type)}${config.database.provider ? chalk.gray(" via ") + chalk.white(config.database.provider) : ""}`);
     }
     if (config.orm && config.orm !== "none")         configLines.push(`${chalk.bold("🔗 ORM:")}  ${chalk.greenBright(config.orm)}`);
-    if (config.api && config.api !== "none")         configLines.push(`${chalk.bold("🔌 API:")}  ${chalk.blueBright(config.api)}`);
-    if (config.auth && config.auth !== "none")       configLines.push(`${chalk.bold("🔐 Auth:")}  ${chalk.magentaBright(config.auth)}`);
-    if (config.addons && config.addons.length > 0)   configLines.push(`${chalk.bold("🧩 Add-ons:")}  ${chalk.yellow(config.addons.join(", "))}`);
   } else {
     configLines.push(`${chalk.bold("📖 Language:")}  ${chalk.red(config.language)}`);
   }
@@ -174,40 +60,42 @@ export async function setupProject(projectName, config, installDeps) {
   // --- Copy & Install ---
 
   try {
+    const copyPhase = () => runPhase("Applying Celtrix templates", () => copyTemplates(projectPath, config));
+    const installPhase = (...args) =>
+      installDeps && runPhase("Installing dependencies", () => installDependencies(projectPath, config, projectName, ...args));
+
     if (isCustom) {
-      logger.info("📋 Initializing Celtrix Custom Scaffolder pipeline...");
       await scaffoldCustomProject(projectPath, projectName, config, installDeps);
-      logger.success(`✅ Custom stack project successfully scaffolded!`);
     }
 
     else if (config.stack === "mern") {
-      mernSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false, []);
+      await runPhase("Generating MERN application", () => mernSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false, []);
     }
 
     else if (config.stack === 'mevn') {
-      mevnSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false, []);
+      await runPhase("Generating MEVN application", () => mevnSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false, []);
     }
 
     else if (config.stack === "mean") {
-      angularSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
+      await runPhase("Generating MEAN application", () => angularSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase();
     }
 
     else if (config.stack === "mern+tailwind+auth") {
-      mernSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      mernTailwindSetup(projectPath, config, projectName);
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Generating MERN application", () => mernSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await runPhase("Adding Tailwind CSS", () => mernTailwindSetup(projectPath, config, projectName));
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === 'mevn+tailwind+auth') {
-      mevnTailwindAuthSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
+      await runPhase("Generating MEVN + Tailwind application", () => mevnTailwindAuthSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
       // the copied client template replaces the starter page, so write it afterwards
       writeWelcomePage(path.join(projectPath, "client"), {
         framework: "vue",
@@ -215,31 +103,30 @@ export async function setupProject(projectName, config, installDeps) {
         stack: config.stack,
         typescript: config.language === "typescript",
       });
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === "mean+tailwind+auth") {
-      angularTailwindSetup(projectPath, config, projectName);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
-      serverAuthSetup(projectPath, config, projectName, installDeps);
+      await runPhase("Generating Angular + Tailwind application", () => angularTailwindSetup(projectPath, config, projectName));
+      await copyPhase();
+      await installPhase();
+      await runPhase("Configuring authentication server", () => serverAuthSetup(projectPath, config, projectName, installDeps));
     }
 
     else if (config.stack === "react+tailwind+firebase") {
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName);
+      await copyPhase();
+      await installPhase();
     }
 
     else if (config.stack === "hono") {
-      HonoReactSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      if (installDeps) installDependencies(projectPath, config, projectName, false);
+      await runPhase("Generating Hono + React application", () => HonoReactSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
+      await installPhase(false);
     }
 
     else if (config.stack === 'nextjs') {
-      nextSetup(projectPath, config, projectName, installDeps);
-      copyTemplates(projectPath, config);
-      logger.info("✅ Next.js project created successfully!");
+      await runPhase("Generating Next.js application", () => nextSetup(projectPath, config, projectName, installDeps));
+      await copyPhase();
     }
   } catch (error) {
     // Clean up the created directory on failure
@@ -254,10 +141,18 @@ export async function setupProject(projectName, config, installDeps) {
     throw error;
   }
 
-  // --- Success + Next Steps ---
   console.log(chalk.gray("-------------------------------------------"));
   console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);
   console.log(chalk.gray("-------------------------------------------"));
+}
+
+/**
+ * Prints the commands to run the new project. The CLI calls this last, after
+ * the summary box, so the next steps are the final thing on screen.
+ */
+export function showNextSteps(projectName, config) {
+  const isCustom = config.stack === "custom";
+
   console.log(chalk.cyan("👉 Next Steps:\n"));
 
   // Provide package-manager commands for dev/start
@@ -277,13 +172,20 @@ export async function setupProject(projectName, config, installDeps) {
   };
 
   if (isCustom) {
-    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
-    if (config.database && config.database.type !== "none") {
-      console.log(`   ${chalk.gray("📝 Configure your database connection in .env (see .env.example)")}`);
-    }
-    if (config.auth && config.auth !== "none") {
-      console.log(`   ${chalk.gray(`📝 Configure your ${config.auth} credentials in .env`)}`);
-    }
+    // The same steps as CELTRIX_SETUP.md, which explains each one
+    const pm = config.packageManager;
+    const runCmd = (script) => (pm === "npm" ? `npm run ${script}` : `${pm} ${script}`);
+    const hasDatabase = config.database && config.database.type !== "none";
+    // .env.example is only written when there is an API or database to configure
+    const hasEnv = hasDatabase || (config.backend && config.backend !== "none");
+    const steps = [
+      `${chalk.yellow("cd")} ${projectName}`,
+      ...(hasEnv ? [`${chalk.green("cp .env.example .env")}${config.database?.provider === "docker" ? "" : chalk.gray("   # then fill in your values")}`] : []),
+      ...(config.database?.provider === "docker" ? [`${chalk.green(runCmd("db:up"))}${chalk.gray("   # start the database in Docker")}`] : []),
+      ...(hasDatabase && config.orm === "prisma" ? [`${chalk.green(runCmd("db:push"))}${chalk.gray("   # create the database tables")}`] : []),
+      chalk.green(cmd("dev")),
+    ];
+    steps.forEach((step, i) => console.log(`   ${chalk.gray(`${i + 1}.`)} ${step}`));
   } else if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
@@ -300,6 +202,9 @@ export async function setupProject(projectName, config, installDeps) {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
   }
 
-  console.log(chalk.gray("-------------------------------------------"));
-  console.log(chalk.gray("\n✨ Made with ❤️  by Celtrix ✨\n"));
+  // Last thing the user sees: where the full setup and run instructions live
+  if (isCustom) {
+    console.log(`\n   📖 ${chalk.bold.cyan(`Read ${path.join(projectName, SETUP_GUIDE)} for the full guide to set up and run your app.`)}`);
+  }
+  console.log("");
 }

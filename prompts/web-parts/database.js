@@ -17,7 +17,7 @@ const DATABASE_OPTIONS = [
  * Prompts the user to select a database, and if one is selected,
  * follows up with the provider/setup prompt.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[5/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[5/7]".
  * @returns {Promise<{ database: { type: string, provider: string } }>}
  */
 export async function askDatabaseType(stepLabel = "", { defaultValue = "postgres", canGoBack = false } = {}) {

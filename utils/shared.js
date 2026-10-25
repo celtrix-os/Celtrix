@@ -55,6 +55,18 @@ export function getInstallCommand(packageManager) {
 }
 
 /**
+ * Returns the version specifier that links a local workspace package.
+ * pnpm and bun need the explicit workspace protocol; npm and yarn resolve "*"
+ * to the local workspace.
+ *
+ * @param {string} packageManager - npm | yarn | pnpm | bun.
+ * @returns {string}
+ */
+export function getWorkspaceVersion(packageManager) {
+  return packageManager === "pnpm" || packageManager === "bun" ? "workspace:*" : "*";
+}
+
+/**
  * Celtrix "Powered by" badge CSS.
  * Defined once and shared across all badge injectors.
  */

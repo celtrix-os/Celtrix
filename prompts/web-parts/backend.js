@@ -9,7 +9,6 @@ const BACKEND_OPTIONS = [
   { label: "Hono",     color: chalk.hex("#FF6200"),   desc: "Ultrafast edge-ready web framework",     value: "hono"    },
   { label: "Fastify",  color: chalk.white,            desc: "Fast & low-overhead Node.js framework",  value: "fastify" },
   { label: "Express",  color: chalk.yellowBright,     desc: "Minimalist Node.js web framework",       value: "express" },
-  { label: "Convex",   color: chalk.magentaBright,    desc: "Reactive backend-as-a-service",          value: "convex"  },
   { label: "None",     color: chalk.gray,             desc: "Frontend only, no backend",              value: "none"    },
 ];
 
@@ -17,7 +16,7 @@ const BACKEND_OPTIONS = [
  * Prompts the user to select a backend framework.
  * The "none" option is handled gracefully — it returns { backend: "none" }.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[3/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[3/7]".
  * @returns {Promise<{ backend: string }>}
  */
 export async function askBackend(stepLabel = "", { defaultValue = "hono", canGoBack = false } = {}) {
