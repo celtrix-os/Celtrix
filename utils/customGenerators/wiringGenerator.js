@@ -178,44 +178,52 @@ function getStackStatusComponent(isTs, hasDatabase) {
   const userSection = hasDatabase
     ? `
 
-      <form
-        style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setError(null);
-          try {
-            await api.createUser({ email });
-            setEmail('');
-            refresh();
-          } catch (err) {
-            setError((err${t(" as Error")}).message);
-          }
-        }}
-      >
-        <input
-          type="email"
-          required
-          placeholder="new-user@example.com"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          style={{ flex: 1, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '0.375rem' }}
-        />
-        <button type="submit" style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
-          Add user
-        </button>
-      </form>
-      {error && <p style={{ color: '#dc2626' }}>{error}</p>}
-      <ul style={{ paddingLeft: '1.25rem', color: '#333' }}>
-        {users.map((user) => (
-          <li key={user.id}>{user.email}</li>
-        ))}
-      </ul>`
+        <form
+          className="prompt-row"
+          style={{ marginTop: '1.1rem' }}
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setError(null);
+            try {
+              await api.createUser({ email });
+              setEmail('');
+              refresh();
+            } catch (err) {
+              setError((err${t(" as Error")}).message);
+            }
+          }}
+        >
+          <label htmlFor="user-email" className="prompt">&gt;</label>
+          <input
+            id="user-email"
+            type="email"
+            required
+            placeholder="add a user's email and press enter"
+            autoComplete="off"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </form>
+        {error && <pre className="output failed">✗ {error}</pre>}
+        {users.length === 0 ? (
+          <p className="empty">no users yet. they are saved to the database.</p>
+        ) : (
+          <ol className="todo-list">
+            {users.map((user, i) => (
+              <li key={user.id} style={{ gridTemplateColumns: '2rem 1fr' }}>
+                <span className="index" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                <span className="todo-text">{user.email}</span>
+              </li>
+            ))}
+          </ol>
+        )}`
     : "";
 
   return `import { useEffect, useState } from 'react';
 import { api${typeImport} } from '../lib/api';
 
-// Live round-trip through the whole stack: web → API → database
+// Live round-trip through the whole stack: web → API → database.
+// Styled with the welcome page's terminal classes from App.css.
 export default function StackStatus() {
   const [health, setHealth] = useState${t("<Health | null>")}(null);${userState}
 
@@ -227,22 +235,33 @@ export default function StackStatus() {
 
   const rows = health
     ? [
-        ['API', \`\${health.engine} · \${health.status}\`],
-        ['Database', health.database ?? 'not-configured'],
-        ...(health.supabase ? [['Supabase', health.supabase]] : []),
+        ['api', \`\${health.engine} · \${health.status}\`],
+        ['database', health.database ?? 'not-configured'],
+        ...(health.supabase ? [['supabase', health.supabase]] : []),
       ]
     : [];
+  const healthy = (value${t(": string")}) => /(^|· )(ok|up|configured)$/.test(value);
 
   return (
-    <section style={{ marginTop: '2rem', width: '100%', maxWidth: '28rem', padding: '1rem 1.5rem', border: '1px solid #e9ecef', borderRadius: '0.75rem' }}>
-      <h2 style={{ fontSize: '1.125rem', color: '#333', margin: '0 0 0.75rem' }}>Stack status</h2>
-      {!health && <p style={{ color: '#666' }}>Checking…</p>}
-      {rows.map(([label, value]) => (
-        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#333' }}>
-          <span>{label}</span>
-          <code>{value}</code>
-        </div>
-      ))}${userSection}
+    <section className="window" aria-labelledby="stack-title" style={{ marginTop: '1.5rem' }}>
+      <div className="window-bar">
+        <h2 id="stack-title" className="window-title">~/stack/status</h2>
+        <span className="window-meta">web → api → database</span>
+      </div>
+      <div className="window-body">
+        {!health && <p className="empty" style={{ marginTop: 0 }}>checking…</p>}
+        {rows.map(([label, value]) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+            <span className="dim">{label}</span>
+            <span className={healthy(value) ? 'ok' : 'error'}>{value}</span>
+          </div>
+        ))}${userSection}
+      </div>
+      <div className="statusline" aria-hidden="true">
+        <span className="mode">STATUS</span>
+        <span className="statusline-info">{health ? health.status : 'pending'}</span>
+        <span className="statusline-right">live · /api</span>
+      </div>
     </section>
   );
 }
