@@ -49,7 +49,7 @@
     "ora": "^8.2.0"
   },
   "scripts": {
-    "test": "node --test tests/setup-back-navigation.test.js",
+    "test": "node --test tests/setup-back-navigation.test.js tests/welcome-page.test.js",
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",
     "release:major": "npm version major && npm publish --access public",

@@ -87,13 +87,3 @@ export const BADGE_CSS = `
   text-decoration: underline;
 }
 `;
-
-/**
- * Badge HTML for React (JSX/TSX) projects.
- */
-export const BADGE_JSX = `  <button className="powered-badge" onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>Powered by <span className="celtrix">Celtrix</span></button>`;
-
-/**
- * Badge HTML for Vue projects (uses @click instead of onClick).
- */
-export const BADGE_VUE = `  <button class="powered-badge" @click="openCeltrix">Powered by <span class="celtrix">Celtrix</span></button>`;
