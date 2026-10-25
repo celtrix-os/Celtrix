@@ -9,7 +9,8 @@ const LOGO = String.raw`             ____       _
  / ___/ _ \/ / __/ ___/ / |/_/
 / /__/  __/ / /_/ /  / />  <
 \___/\___/_/\__/_/  /_/_/|_|`
-const EMPTY_FORM = { username: '', email: '', password: '' }
+// Screens in the navbar; the first one is shown on load
+const VIEWS = ['todo']
 
 function loadTodos() {
   try {
@@ -105,74 +106,8 @@ function TodoPanel() {
   )
 }
 
-function validate(form) {
-  const errors = {}
-  if (form.username.trim().length < 3) errors.username = 'needs at least 3 characters'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'enter a valid email'
-  if (form.password.length < 8) errors.password = 'needs at least 8 characters'
-  return errors
-}
-
-function RegisterPanel() {
-  const [form, setForm] = createSignal({ ...EMPTY_FORM })
-  const [errors, setErrors] = createSignal({})
-  const [output, setOutput] = createSignal([])
-  const [failed, setFailed] = createSignal(false)
-
-  const update = (e) => setForm({ ...form(), [e.currentTarget.name]: e.currentTarget.value })
-
-  const submit = (e) => {
-    e.preventDefault()
-    const found = validate(form())
-    setErrors(found)
-    const hasErrors = Object.keys(found).length > 0
-    setFailed(hasErrors)
-    if (hasErrors) {
-      setOutput(['✗ fix the fields above and try again'])
-      return
-    }
-    // Demo only: send this to your own API instead, e.g. POST /api/auth/register
-    setOutput([`✔ ${form().username.trim()} registered (demo, nothing was sent)`, '  hook this form up in src/App.jsx'])
-    setForm({ ...EMPTY_FORM })
-  }
-
-  const field = (name, type, autocomplete, placeholder) => (
-    <div class="field">
-      <label for={`reg-${name}`}>--{name}</label>
-      <input
-        id={`reg-${name}`}
-        name={name}
-        type={type}
-        value={form()[name]}
-        onInput={update}
-        placeholder={placeholder}
-        autocomplete={autocomplete}
-        aria-invalid={errors()[name] ? 'true' : 'false'}
-        aria-describedby={errors()[name] ? `reg-${name}-error` : undefined}
-      />
-      <Show when={errors()[name]}>
-        <span id={`reg-${name}-error`} class="error">
-          {errors()[name]}
-        </span>
-      </Show>
-    </div>
-  )
-
-  return (
-    <Window id="register-title" title="register" meta="demo form">
-      <form onSubmit={submit} novalidate>
-        {field('username', 'text', 'username', 'ada')}
-        {field('email', 'email', 'email', 'ada@example.com')}
-        {field('password', 'password', 'new-password', 'at least 8 characters')}
-        <button type="submit" class="submit">[ register ]</button>
-      </form>
-      <pre class={failed() ? 'output failed' : 'output'} aria-live="polite">{output().join('\n')}</pre>
-    </Window>
-  )
-}
-
 export default function App() {
-  const [view, setView] = createSignal('todo')
+  const [view, setView] = createSignal(VIEWS[0])
 
   return (
     <div class="shell">
@@ -182,7 +117,7 @@ export default function App() {
           <span class="cursor" aria-hidden="true">_</span>
         </span>
         <nav aria-label="Main">
-          <For each={['todo', 'register']}>
+          <For each={VIEWS}>
             {(name) => (
               <button
                 type="button"
@@ -212,7 +147,7 @@ export default function App() {
             edit <code>src/App.jsx</code> and save to reload
           </p>
         </div>
-        <Show when={view() === 'todo'} fallback={<RegisterPanel />}>
+        <Show when={view() === 'todo'}>
           <TodoPanel />
         </Show>
       </main>

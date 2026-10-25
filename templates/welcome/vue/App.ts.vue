@@ -11,18 +11,10 @@ const LOGO = String.raw`             ____       _
 / /__/  __/ / /_/ /  / />  <
 \___/\___/_/\__/_/  /_/_/|_|`
 type TodoItem = { id: number; text: string; done: boolean }
-type RegisterForm = { username: string; email: string; password: string }
-type FormErrors = Partial<Record<keyof RegisterForm, string>>
-type View = 'todo' | 'register'
-type Field = { name: keyof RegisterForm; type: string; autocomplete: string; placeholder: string }
 
-const EMPTY_FORM: RegisterForm = { username: '', email: '', password: '' }
-const VIEWS: View[] = ['todo', 'register']
-const FIELDS: Field[] = [
-  { name: 'username', type: 'text', autocomplete: 'username', placeholder: 'ada' },
-  { name: 'email', type: 'email', autocomplete: 'email', placeholder: 'ada@example.com' },
-  { name: 'password', type: 'password', autocomplete: 'new-password', placeholder: 'at least 8 characters' },
-]
+// Screens in the navbar; the first one is shown on load
+const VIEWS = ['todo'] as const
+type View = (typeof VIEWS)[number]
 
 function loadTodos(): TodoItem[] {
   try {
@@ -32,7 +24,7 @@ function loadTodos(): TodoItem[] {
   }
 }
 
-const view = ref<View>('todo')
+const view = ref<View>(VIEWS[0])
 
 // todo
 const todos = ref<TodoItem[]>(loadTodos())
@@ -61,33 +53,6 @@ function add() {
 const toggle = (id: number) => (todos.value = todos.value.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
 const remove = (id: number) => (todos.value = todos.value.filter((t) => t.id !== id))
 const checkLabel = (t: TodoItem) => `mark "${t.text}" as ${t.done ? 'not done' : 'done'}`
-
-// register
-const form = ref<RegisterForm>({ ...EMPTY_FORM })
-const errors = ref<FormErrors>({})
-const output = ref<string[]>([])
-const failed = ref(false)
-
-function validate(values: RegisterForm): FormErrors {
-  const found: FormErrors = {}
-  if (values.username.trim().length < 3) found.username = 'needs at least 3 characters'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) found.email = 'enter a valid email'
-  if (values.password.length < 8) found.password = 'needs at least 8 characters'
-  return found
-}
-
-function submit() {
-  const found = validate(form.value)
-  errors.value = found
-  failed.value = Object.keys(found).length > 0
-  if (failed.value) {
-    output.value = ['✗ fix the fields above and try again']
-    return
-  }
-  // Demo only: send this to your own API instead, e.g. POST /api/auth/register
-  output.value = [`✔ ${form.value.username.trim()} registered (demo, nothing was sent)`, '  hook this form up in src/App.vue']
-  form.value = { ...EMPTY_FORM }
-}
 
 const openCeltrix = () => window.open('https://github.com/celtrix-os/Celtrix', '_blank')
 </script>
@@ -151,38 +116,6 @@ const openCeltrix = () => window.open('https://github.com/celtrix-os/Celtrix', '
         <div class="statusline" aria-hidden="true">
           <span class="mode">TODO</span>
           <span class="statusline-info">{{ open }} open · {{ todos.length - open }} done</span>
-          <span class="statusline-right">utf-8 · vue</span>
-        </div>
-      </section>
-
-      <section v-else class="window" aria-labelledby="register-title">
-        <div class="window-bar">
-          <h2 id="register-title" class="window-title">~/{{ PROJECT }}/register</h2>
-          <span class="window-meta">{{ STACK }}</span>
-        </div>
-        <div class="window-body">
-          <form novalidate @submit.prevent="submit">
-            <div v-for="f in FIELDS" :key="f.name" class="field">
-              <label :for="`reg-${f.name}`">--{{ f.name }}</label>
-              <input
-                :id="`reg-${f.name}`"
-                v-model="form[f.name]"
-                :name="f.name"
-                :type="f.type"
-                :placeholder="f.placeholder"
-                :autocomplete="f.autocomplete"
-                :aria-invalid="errors[f.name] ? 'true' : 'false'"
-                :aria-describedby="errors[f.name] ? `reg-${f.name}-error` : undefined"
-              />
-              <span v-if="errors[f.name]" :id="`reg-${f.name}-error`" class="error">{{ errors[f.name] }}</span>
-            </div>
-            <button type="submit" class="submit">[ register ]</button>
-          </form>
-          <pre :class="failed ? 'output failed' : 'output'" aria-live="polite">{{ output.join('\n') }}</pre>
-        </div>
-        <div class="statusline" aria-hidden="true">
-          <span class="mode">REGISTER</span>
-          <span class="statusline-info">demo form</span>
           <span class="statusline-right">utf-8 · vue</span>
         </div>
       </section>

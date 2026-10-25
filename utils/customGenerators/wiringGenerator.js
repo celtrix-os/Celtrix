@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import { logger } from "../logger.js";
 import { getWorkspaceVersion } from "../shared.js";
 
 /**
@@ -45,13 +46,38 @@ export async function generateWiring(context) {
 
   const appPath = path.join(webDir, "src", `App.${context.jsxExt}`);
   if (fs.existsSync(appPath)) {
-    let content = fs.readFileSync(appPath, "utf-8");
-    if (content.includes("</main>") && !content.includes("StackStatus")) {
-      content = `import StackStatus from './components/StackStatus';\n\n` + content;
-      content = content.replace("</main>", "  <StackStatus />\n      </main>");
-      fs.writeFileSync(appPath, content);
+    const content = fs.readFileSync(appPath, "utf-8");
+    if (!content.includes("StackStatus")) {
+      fs.writeFileSync(appPath, addStatusView(content));
     }
   }
+}
+
+/**
+ * Makes the live stack status (API, database, users) the welcome page's first
+ * screen. The todo demo stays reachable from the navbar and a button below it.
+ */
+export function addStatusView(content) {
+  const views = "const VIEWS = ['todo']";
+  const todoPanel = "        {view === 'todo' && <TodoPanel />}";
+  const cssImport = "import './App.css'\n";
+  if (![views, todoPanel, cssImport].every((marker) => content.includes(marker))) {
+    logger.warn("⚠️ Unexpected App layout, skipping the stack status screen");
+    return content;
+  }
+
+  return content
+    .replace(cssImport, `${cssImport}import StackStatus from './components/StackStatus'\n`)
+    .replace(views, "const VIEWS = ['status', 'todo']")
+    .replace(todoPanel, `        {view === 'status' && (
+          <>
+            <StackStatus />
+            <button type="button" className="text-button" onClick={() => setView('todo')}>
+              try todo →
+            </button>
+          </>
+        )}
+${todoPanel}`);
 }
 
 function addDatabaseTasks(projectPath, tasks) {
@@ -243,7 +269,7 @@ export default function StackStatus() {
   const healthy = (value${t(": string")}) => /(^|· )(ok|up|configured)$/.test(value);
 
   return (
-    <section className="window" aria-labelledby="stack-title" style={{ marginTop: '1.5rem' }}>
+    <section className="window" aria-labelledby="stack-title">
       <div className="window-bar">
         <h2 id="stack-title" className="window-title">~/stack/status</h2>
         <span className="window-meta">web → api → database</span>

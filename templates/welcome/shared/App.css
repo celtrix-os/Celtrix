@@ -278,35 +278,17 @@ a:focus-visible {
   color: var(--red);
 }
 
-/* register */
-.field {
-  display: grid;
-  grid-template-columns: 11ch 1fr;
-  align-items: baseline;
-  column-gap: 1rem;
-  margin-bottom: 0.9rem;
-}
-
-.field label {
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.field input[aria-invalid='true'] {
-  border-bottom-color: var(--red);
-}
-
+/* status values and errors */
 .error {
-  grid-column: 2;
-  margin-top: 0.3rem;
   color: var(--red);
-  font-size: 0.8rem;
 }
 
-.submit {
+/* small link-style action under a panel, e.g. "try todo →" */
+.text-button {
   font: inherit;
-  margin: 0.5rem 0 0 calc(11ch + 1rem);
-  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  margin-top: 0.9rem;
+  padding: 0.3rem 0.8rem;
   color: var(--green);
   background: none;
   border: 1px solid var(--green-dim);
@@ -315,7 +297,7 @@ a:focus-visible {
   transition: border-color 0.15s, background 0.15s;
 }
 
-.submit:hover {
+.text-button:hover {
   border-color: var(--green);
   background: var(--hover);
 }

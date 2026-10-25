@@ -76,7 +76,7 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
     await runPhase("Wiring frontend ↔ API ↔ database", () => generateWiring(context));
   }
 
-  await runPhase("Writing .env.example and README", () => generateEnv(context));
+  await runPhase("Writing .env.example and setup guide", () => generateEnv(context));
 
   if (context.installDeps) {
     await runPhase("Installing dependencies", () => finalizeWorkspace(context));

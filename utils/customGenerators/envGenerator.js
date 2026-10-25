@@ -2,9 +2,13 @@ import fs from "fs-extra";
 import path from "path";
 import { getDatabaseName, getDockerDatabasePort, getDockerDatabaseUrl } from "./dockerGenerator.js";
 
+export const SETUP_GUIDE = "CELTRIX_SETUP.md";
+
 /**
  * Writes the workspace-level .env.example (every variable the generated code
- * reads, grouped by service) and a README explaining how to fill it in.
+ * reads, grouped by service) and CELTRIX_SETUP.md, a guide to setting up and
+ * running the app. An existing README (e.g. from a framework CLI) is left alone;
+ * without one, a short README pointing to the guide is added.
  */
 export async function generateEnv(context) {
   const sections = getEnvSections(context);
@@ -15,7 +19,23 @@ export async function generateEnv(context) {
     fs.writeFileSync(path.join(context.projectPath, ".env.example"), content + "\n");
   }
 
-  fs.writeFileSync(path.join(context.projectPath, "README.md"), getReadme(context, sections.length > 0));
+  fs.writeFileSync(path.join(context.projectPath, SETUP_GUIDE), getSetupGuide(context, sections.length > 0));
+
+  const readmePath = path.join(context.projectPath, "README.md");
+  if (!fs.existsSync(readmePath)) {
+    fs.writeFileSync(readmePath, getReadme(context));
+  }
+}
+
+function getReadme(context) {
+  return [
+    `# ${context.projectName}`,
+    "",
+    "> Bootstrapped with [Celtrix](https://github.com/celtrix-os/Celtrix) — Custom Stack",
+    "",
+    `See [${SETUP_GUIDE}](${SETUP_GUIDE}) to set up and run the app.`,
+    "",
+  ].join("\n");
 }
 
 function getEnvSections(context) {
@@ -100,7 +120,7 @@ function getDatabaseLines(context, database) {
   }
 }
 
-function getReadme(context, hasEnv) {
+function getSetupGuide(context, hasEnv) {
   const { config, projectName } = context;
   const pm = context.packageManager;
   const runCmd = (script) => (pm === "npm" ? `npm run ${script}` : `${pm} ${script}`);
@@ -119,7 +139,7 @@ function getReadme(context, hasEnv) {
   ].filter(([, value]) => value && value !== "none");
 
   const lines = [
-    `# ${projectName}`,
+    `# ${projectName} — Setup guide`,
     "",
     "> Bootstrapped with [Celtrix](https://github.com/celtrix-os/Celtrix) — Custom Stack",
     "",

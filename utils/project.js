@@ -8,6 +8,7 @@ import { writeWelcomePage } from "./welcomePage.js";
 import { HonoReactSetup, mernTailwindSetup, installDependencies, mernSetup, serverAuthSetup, serverSetup, mevnSetup, mevnTailwindAuthSetup, nextSetup } from "./installer.js";
 import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
+import { SETUP_GUIDE } from "./customGenerators/envGenerator.js";
 import { runPhase } from "./progress.js";
 
 export async function setupProject(projectName, config, installDeps) {
@@ -140,10 +141,18 @@ export async function setupProject(projectName, config, installDeps) {
     throw error;
   }
 
-  // --- Success + Next Steps ---
   console.log(chalk.gray("-------------------------------------------"));
   console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);
   console.log(chalk.gray("-------------------------------------------"));
+}
+
+/**
+ * Prints the commands to run the new project. The CLI calls this last, after
+ * the summary box, so the next steps are the final thing on screen.
+ */
+export function showNextSteps(projectName, config) {
+  const isCustom = config.stack === "custom";
+
   console.log(chalk.cyan("👉 Next Steps:\n"));
 
   // Provide package-manager commands for dev/start
@@ -163,12 +172,20 @@ export async function setupProject(projectName, config, installDeps) {
   };
 
   if (isCustom) {
-    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
-    if (config.database?.provider === "docker") {
-      console.log(`   ${chalk.gray(`🐳 Start the database first: cp .env.example .env && ${config.packageManager} run db:up`)}`);
-    } else if (config.database && config.database.type !== "none") {
-      console.log(`   ${chalk.gray("📝 Configure your database connection in .env (see .env.example)")}`);
-    }
+    // The same steps as CELTRIX_SETUP.md, which explains each one
+    const pm = config.packageManager;
+    const runCmd = (script) => (pm === "npm" ? `npm run ${script}` : `${pm} ${script}`);
+    const hasDatabase = config.database && config.database.type !== "none";
+    // .env.example is only written when there is an API or database to configure
+    const hasEnv = hasDatabase || (config.backend && config.backend !== "none");
+    const steps = [
+      `${chalk.yellow("cd")} ${projectName}`,
+      ...(hasEnv ? [`${chalk.green("cp .env.example .env")}${config.database?.provider === "docker" ? "" : chalk.gray("   # then fill in your values")}`] : []),
+      ...(config.database?.provider === "docker" ? [`${chalk.green(runCmd("db:up"))}${chalk.gray("   # start the database in Docker")}`] : []),
+      ...(hasDatabase && config.orm === "prisma" ? [`${chalk.green(runCmd("db:push"))}${chalk.gray("   # create the database tables")}`] : []),
+      chalk.green(cmd("dev")),
+    ];
+    steps.forEach((step, i) => console.log(`   ${chalk.gray(`${i + 1}.`)} ${step}`));
   } else if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
@@ -185,6 +202,9 @@ export async function setupProject(projectName, config, installDeps) {
     console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
   }
 
-  console.log(chalk.gray("-------------------------------------------"));
-  console.log(chalk.gray("\n✨ Made with ❤️  by Celtrix ✨\n"));
+  // Last thing the user sees: where the full setup and run instructions live
+  if (isCustom) {
+    console.log(`\n   📖 ${chalk.bold.cyan(`Read ${path.join(projectName, SETUP_GUIDE)} for the full guide to set up and run your app.`)}`);
+  }
+  console.log("");
 }

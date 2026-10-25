@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { writeWelcomePage } from "../utils/welcomePage.js";
+import { addStatusView } from "../utils/customGenerators/wiringGenerator.js";
 
 // Files each starter leaves behind, matching what create-vite / sv create generate.
 const STARTERS = {
@@ -36,7 +37,7 @@ test("replaces the stock Vite page in a React project", () => {
   assert.ok(!app.includes("Vite + React"));
   assert.ok(app.includes('const PROJECT = "shop"'));
   assert.ok(app.includes('const STACK = "mern"'));
-  assert.ok(app.includes("function TodoPanel") && app.includes("function RegisterPanel"));
+  assert.ok(app.includes("function TodoPanel"));
   assert.ok(app.includes('className="powered-badge"'));
   assert.ok(!app.includes("__PROJECT_NAME__") && !app.includes("__STACK__"));
   assert.ok(read(client, "src/App.css").includes(".statusline"));
@@ -139,4 +140,31 @@ test("leaves unsupported frameworks untouched", () => {
   const client = makeStarter("react");
   assert.equal(write(client, { framework: "angular" }), false);
   assert.equal(read(client, "src/App.jsx"), "<h1>Vite + React</h1>");
+});
+
+test("no framework ships the register demo", () => {
+  for (const [framework, file] of [["react", "src/App.jsx"], ["solid", "src/App.jsx"], ["vue", "src/App.vue"], ["svelte", "src/routes/+page.svelte"]]) {
+    for (const typescript of [false, true]) {
+      const client = makeStarter(framework);
+      write(client, { framework, typescript });
+      const page = read(client, typescript && file.endsWith(".jsx") ? file.replace(".jsx", ".tsx") : file);
+      assert.ok(!/register/i.test(page), `${framework} ${typescript ? "ts" : "js"}`);
+      assert.ok(page.includes("VIEWS") && page.includes("todo"), `${framework} ${typescript ? "ts" : "js"}`);
+    }
+  }
+});
+
+test("custom fullstack apps open on the stack status, with todo one click away", () => {
+  for (const typescript of [false, true]) {
+    const client = makeStarter("react");
+    write(client, { framework: "react", typescript });
+    const file = typescript ? "src/App.tsx" : "src/App.jsx";
+    const app = addStatusView(read(client, file));
+
+    assert.ok(app.includes("import StackStatus from './components/StackStatus'"));
+    assert.ok(app.includes("const VIEWS = ['status', 'todo']"), "status is the first (default) screen");
+    assert.ok(app.includes("{view === 'status' && ("));
+    assert.ok(app.includes("onClick={() => setView('todo')}") && app.includes("try todo →"));
+    assert.ok(app.includes("{view === 'todo' && <TodoPanel />}"));
+  }
 });

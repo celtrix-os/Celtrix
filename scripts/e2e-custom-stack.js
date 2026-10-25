@@ -153,6 +153,8 @@ async function main() {
     check(`.env.example declares ${key}`, new RegExp(`^${key}=`, "m").test(envExample));
   }
   check(".env is git-ignored", /^\.env$/m.test(read(".gitignore")));
+  check("CELTRIX_SETUP.md explains setup", read("CELTRIX_SETUP.md").includes("cp .env.example .env"));
+  check("README points to the setup guide", read("README.md").includes("CELTRIX_SETUP.md"));
 
   const apiPkg = fs.readJsonSync(path.join(projectPath, "apps/api/package.json"));
   check("api depends on @repo/database", apiPkg.dependencies?.["@repo/database"]);

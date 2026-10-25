@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import './App.css'
 
 const PROJECT = '__PROJECT_NAME__'
@@ -11,10 +11,10 @@ const LOGO = String.raw`             ____       _
 \___/\___/_/\__/_/  /_/_/|_|`
 
 type TodoItem = { id: number; text: string; done: boolean }
-type RegisterForm = { username: string; email: string; password: string }
-type FormErrors = Partial<Record<keyof RegisterForm, string>>
 
-const EMPTY_FORM: RegisterForm = { username: '', email: '', password: '' }
+// Screens in the navbar; the first one is shown on load
+const VIEWS = ['todo'] as const
+type View = (typeof VIEWS)[number]
 
 function loadTodos(): TodoItem[] {
   try {
@@ -110,77 +110,8 @@ function TodoPanel() {
   )
 }
 
-function validate(form: RegisterForm): FormErrors {
-  const errors: FormErrors = {}
-  if (form.username.trim().length < 3) errors.username = 'needs at least 3 characters'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'enter a valid email'
-  if (form.password.length < 8) errors.password = 'needs at least 8 characters'
-  return errors
-}
-
-function RegisterPanel() {
-  const [form, setForm] = useState<RegisterForm>(EMPTY_FORM)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [output, setOutput] = useState<string[]>([])
-  const [failed, setFailed] = useState(false)
-
-  const update = (e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, [e.target.name]: e.target.value })
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const found = validate(form)
-    setErrors(found)
-    const hasErrors = Object.keys(found).length > 0
-    setFailed(hasErrors)
-    if (hasErrors) {
-      setOutput(['✗ fix the fields above and try again'])
-      return
-    }
-    // Demo only: send this to your own API instead, e.g. POST /api/auth/register
-    setOutput([`✔ ${form.username.trim()} registered (demo, nothing was sent)`, '  hook this form up in src/App.tsx'])
-    setForm(EMPTY_FORM)
-  }
-
-  const field = (name: keyof RegisterForm, type: string, autoComplete: string, placeholder: string) => (
-    <div className="field">
-      <label htmlFor={`reg-${name}`}>--{name}</label>
-      <input
-        id={`reg-${name}`}
-        name={name}
-        type={type}
-        value={form[name]}
-        onChange={update}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        aria-invalid={Boolean(errors[name])}
-        aria-describedby={errors[name] ? `reg-${name}-error` : undefined}
-      />
-      {errors[name] && (
-        <span id={`reg-${name}-error`} className="error">
-          {errors[name]}
-        </span>
-      )}
-    </div>
-  )
-
-  return (
-    <Window id="register-title" title="register" meta="demo form">
-      <form onSubmit={submit} noValidate>
-        {field('username', 'text', 'username', 'ada')}
-        {field('email', 'email', 'email', 'ada@example.com')}
-        {field('password', 'password', 'new-password', 'at least 8 characters')}
-        <button type="submit" className="submit">[ register ]</button>
-      </form>
-      <pre className={failed ? 'output failed' : 'output'} aria-live="polite">{output.join('\n')}</pre>
-    </Window>
-  )
-}
-
-type View = 'todo' | 'register'
-const VIEWS: View[] = ['todo', 'register']
-
 export default function App() {
-  const [view, setView] = useState<View>('todo')
+  const [view, setView] = useState<View>(VIEWS[0])
 
   return (
     <div className="shell">
@@ -219,7 +150,7 @@ export default function App() {
             edit <code>src/App.tsx</code> and save to reload
           </p>
         </div>
-        {view === 'todo' ? <TodoPanel /> : <RegisterPanel />}
+        {view === 'todo' && <TodoPanel />}
       </main>
 
       <button className="powered-badge" onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>

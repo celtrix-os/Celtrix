@@ -47,6 +47,7 @@ async function main() {
     { askPackageManager },
     { formatElapsed },
     { showSummaryBox },
+    { showNextSteps },
     { detectPackageManager },
     { default: inquirer },
     { default: logSymbols },
@@ -63,6 +64,7 @@ async function main() {
     import("./prompts/common/askPackageManager.js"),
     import("./prompts/info/formatElapsed.js"),
     import("./prompts/info/summary.js"),
+    import("./utils/project.js"),
     import("./prompts/stable/detectPackageManager.js"),
     import("inquirer"),
     import("log-symbols"),
@@ -187,6 +189,7 @@ async function main() {
       installedDeps: installDeps,
       elapsed: totalElapsed,
     });
+    showNextSteps(projectName, config);
 
   } catch (err) {
     // Graceful cancellation (Ctrl+C during any prompt)
