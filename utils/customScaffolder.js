@@ -78,6 +78,9 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
 
   await runPhase("Writing .env.example and setup guide", () => generateEnv(context));
 
+  // Written last, so framework CLIs that need an empty folder have already run
+  fs.writeJsonSync(path.join(context.projectPath, "celtrix.config.json"), context.config, { spaces: 2 });
+
   if (context.installDeps) {
     await runPhase("Installing dependencies", () => finalizeWorkspace(context));
   }
@@ -168,22 +171,9 @@ function bootstrapWorkspace(context) {
     // Create folders structure
     fs.ensureDirSync(path.join(context.projectPath, "apps"));
     fs.ensureDirSync(path.join(context.projectPath, "packages"));
-  } else {
-    // Single project setup
-    const rootPkg = {
-      name: context.projectName,
-      version: "1.0.0",
-      private: true,
-      scripts: {
-        dev: "echo \"No dev script configured\"",
-        build: "echo \"No build script configured\""
-      }
-    };
-    fs.writeJsonSync(path.join(context.projectPath, "package.json"), rootPkg, { spaces: 2 });
   }
-
-  // Write base Celtrix configuration
-  fs.writeJsonSync(path.join(context.projectPath, "celtrix.config.json"), context.config, { spaces: 2 });
+  // Single project (frontend only): nothing to write yet. The framework CLI creates
+  // package.json itself and refuses to scaffold into a folder that isn't empty.
 }
 
 async function finalizeWorkspace(context) {

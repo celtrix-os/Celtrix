@@ -16,16 +16,18 @@ export async function generateBackend(context) {
 
   const features = getBackendFeatures(context);
   const entry = `src/index.${context.ext}`;
+  // Bun runs TypeScript natively; on Node.js, tsx does
+  const isBun = context.config.runtime === "bun";
 
   const pkgJson = {
     name: "api",
     version: "1.0.0",
     type: "module",
     scripts: {
-      dev: `tsx watch ${entry}`,
-      // The API imports workspace packages as TypeScript source, so tsx runs it directly
+      dev: isBun ? `bun --watch ${entry}` : `tsx watch ${entry}`,
+      // The API imports workspace packages as TypeScript source, so it runs them directly
       build: context.isTs ? "tsc --noEmit" : `node --check ${entry}`,
-      start: `tsx ${entry}`
+      start: isBun ? `bun ${entry}` : `tsx ${entry}`
     }
   };
   fs.writeJsonSync(path.join(targetDir, "package.json"), pkgJson, { spaces: 2 });
@@ -70,14 +72,17 @@ export async function generateBackend(context) {
   // Download production packages dynamically
   if (context.installDeps) {
     const deps = getBackendDeps(context.config.backend);
-    const devDeps = ["tsx"];
+    const devDeps = isBun ? [] : ["tsx"];
     if (context.isTs) {
       devDeps.push("typescript", "@types/node");
-      if (context.config.backend !== "hono") devDeps.push("@types/express", "@types/cors");
+      // Hono and Fastify ship their own types
+      if (context.config.backend === "express") devDeps.push("@types/express", "@types/cors");
     }
     const installCmd = getInstallCommand(context.packageManager);
     await run(`${context.packageManager} ${installCmd} ${deps.join(" ")}`, { cwd: targetDir });
-    await run(`${context.packageManager} ${installCmd} -D ${devDeps.join(" ")}`, { cwd: targetDir });
+    if (devDeps.length > 0) {
+      await run(`${context.packageManager} ${installCmd} -D ${devDeps.join(" ")}`, { cwd: targetDir });
+    }
   }
 }
 
@@ -99,7 +104,7 @@ function getBackendFeatures(context) {
 function getBackendDeps(backend) {
   switch (backend) {
     case "hono": return ["hono", "@hono/node-server", "dotenv"];
-    case "fastify": return ["fastify", "@fastify/cors"];
+    case "fastify": return ["fastify", "@fastify/cors", "dotenv"];
     case "express":
     default:
       return ["express", "cors", "helmet", "dotenv"];
@@ -158,7 +163,8 @@ function getBackendSourceTemplate(backend, context, features) {
     ? `import { getUserFromToken, supabaseAdmin } from './lib/supabase.js';`
     : null;
 
-  const engine = `engine: '${backend === "hono" ? "Hono" : "Express"}'`;
+  const engineName = { hono: "Hono", fastify: "Fastify" }[backend] ?? "Express";
+  const engine = `engine: '${engineName}'`;
   const healthFields = features.database
     ? [`status: database === 'up' ? 'ok' : 'degraded'`, engine, `database`]
     : [`status: 'ok'`, engine];
@@ -225,6 +231,72 @@ app.onError((error, c) => {
 serve({ fetch: app.fetch, port: env.PORT }, () => {
   console.log(\`🚀 API Server running on http://localhost:\${env.PORT}\`);
 });
+`;
+  }
+
+  if (backend === "fastify") {
+    imports.push(
+      `import Fastify${context.isTs ? ", { type FastifyError }" : ""} from 'fastify';`,
+      `import cors from '@fastify/cors';`
+    );
+    if (dbImport) imports.push(dbImport);
+    if (supabaseImport) imports.push(supabaseImport);
+
+    const routes = [];
+    if (features.database) {
+      routes.push(`
+app.get('/api/users', async () => users.list());
+
+app.post('/api/users', async (request, reply) => {
+  const { email, name } = (request.body ?? {})${t(" as { email?: unknown; name?: unknown }")};
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return reply.code(400).send({ error: 'A valid email is required' });
+  }
+  try {
+    return reply.code(201).send(await users.create({ email, name: typeof name === 'string' ? name : null }));
+  } catch (error) {
+    if (isUniqueViolation(error)) return reply.code(409).send({ error: 'Email already exists' });
+    throw error;
+  }
+});`);
+    }
+    if (features.supabase) {
+      routes.push(`
+// Requires "Authorization: Bearer <supabase access token>"
+app.get('/api/me', async (request, reply) => {
+  const user = await getUserFromToken(request.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+  return { id: user.id, email: user.email };
+});`);
+    }
+
+    return `${imports.join("\n")}
+
+const app = Fastify();
+
+app.register(cors, { origin: env.CORS_ORIGIN });
+
+app.get('/api/health', async (_request, reply) => {
+  ${healthCheck}return reply.code(${healthStatus}).send({ ${healthFields.join(", ")} });
+});
+${routes.join("\n")}
+
+app.setErrorHandler${t("<FastifyError>")}((error, _request, reply) => {
+  // Client errors such as malformed JSON keep their 4xx status
+  if (error.statusCode && error.statusCode < 500) {
+    return reply.code(error.statusCode).send({ error: error.message });
+  }
+  console.error(error);
+  return reply.code(500).send({ error: 'Internal server error' });
+});
+
+try {
+  await app.listen({ port: env.PORT });
+  console.log(\`🚀 API Server running on http://localhost:\${env.PORT}\`);
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}
 `;
   }
 

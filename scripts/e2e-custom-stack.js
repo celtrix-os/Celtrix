@@ -13,7 +13,8 @@
  *   6. frontend ↔ API     the same requests through the Vite dev-server proxy
  *
  * Usage:
- *   node scripts/e2e-custom-stack.js [--backend express|hono] [--pm npm|pnpm|bun]
+ *   node scripts/e2e-custom-stack.js [--backend express|hono|fastify] [--runtime node|bun]
+ *                                    [--pm npm|pnpm|bun]
  *                                    [--dir <workdir>] [--keep]
  *
  * Requires Docker. Everything it creates (project dir, container) is removed
@@ -37,6 +38,7 @@ const option = (name, fallback) => {
 const keep = args.includes("--keep");
 const orm = "prisma";
 const backend = option("backend", "express");
+const runtime = option("runtime", "node");
 const packageManager = option("pm", "npm");
 const workDir = path.resolve(option("dir", fs.mkdtempSync(path.join(os.tmpdir(), "celtrix-e2e-"))));
 const projectName = `e2e-${backend}-${orm}`;
@@ -47,7 +49,7 @@ const config = {
   language: "typescript",
   frontend: "react-router",
   backend,
-  runtime: "node",
+  runtime,
   database: { type: "postgres", provider: "supabase" },
   orm,
   projectName,
@@ -134,7 +136,7 @@ async function waitFor(fn, { timeout = 30_000, interval = 500 } = {}) {
 }
 
 async function main() {
-  console.log(`Celtrix custom-stack E2E — ${config.frontend} + ${backend} + postgres/supabase + ${orm} (${packageManager})`);
+  console.log(`Celtrix custom-stack E2E — ${config.frontend} + ${backend} on ${runtime} + postgres/supabase + ${orm} (${packageManager})`);
   console.log(`Work dir: ${workDir}`);
 
   // ── 1. Scaffold ────────────────────────────────────────────────────────────

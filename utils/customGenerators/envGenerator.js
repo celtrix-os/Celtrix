@@ -153,6 +153,10 @@ function getSetupGuide(context, hasEnv) {
     "",
   ];
 
+  if (context.hasBackend && config.runtime === "bun") {
+    lines.push("> The API runs on [Bun](https://bun.sh). Install Bun before starting the app.", "");
+  }
+
   let step = 1;
   if (hasEnv) {
     lines.push(

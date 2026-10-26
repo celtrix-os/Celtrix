@@ -1,10 +1,14 @@
 {
   "name": "celtrix",
   "version": "3.1.0",
-  "description": "CLI to create MERN apps quickly",
+  "description": "CLI to setup web apps quickly",
   "repository": {
     "type": "git",
     "url": "https://github.com/celtrix-os/Celtrix.git"
+  },
+  "homepage": "https://github.com/celtrix-os/Celtrix#readme",
+  "bugs": {
+    "url": "https://github.com/celtrix-os/Celtrix/issues"
   },
   "type": "module",
   "main": "./bin/celtrix.js",
@@ -13,13 +17,15 @@
   },
   "files": [
     "bin/",
-    "createGithubRepo.js",
     "index.js",
     "commands/",
     "prompts/",
     "utils/",
     "templates/"
   ],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "keywords": [
     "mern",
     "cli",
@@ -49,8 +55,10 @@
     "ora": "^8.2.0"
   },
   "scripts": {
-    "test": "node --test tests/setup-back-navigation.test.js tests/welcome-page.test.js",
+    "test": "node --test tests/setup-back-navigation.test.js tests/welcome-page.test.js tests/backend-generator.test.js tests/template-manager.test.js tests/package-contents.test.js",
     "test:e2e": "node scripts/e2e-custom-stack.js",
+    "test:package": "node scripts/smoke-package.js",
+    "preversion": "npm test",
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",
     "release:major": "npm version major && npm publish --access public",
