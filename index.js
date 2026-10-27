@@ -3,15 +3,24 @@ import chalk from "chalk";
 import { showVersion } from "./prompts/info/showVersion.js";
 import { showHelp } from "./prompts/info/showHelp.js";
 import { parseArgs } from "./prompts/stable/parseArgs.js";
+import {
+  CliError,
+  DEFAULT_PROJECT_NAME,
+  QUICK_TEMPLATES,
+  applyDefaults,
+  getMissingFlags,
+  hasStackFlags,
+  parseCliArgs,
+} from "./utils/cliFlags.js";
 
 const orange = chalk.hex("#FF6200");
 
-const quickTemplates = {
-  "mern-js": { stack: "mern", language: "javascript" },
-  "mern-ts": { stack: "mern", language: "typescript" }
-};
-
 const isVerbose = process.argv.includes("--verbose");
+
+function exitWithUsageError(messages) {
+  for (const message of messages) console.error(chalk.red(`✖ ${message}`));
+  process.exit(1);
+}
 
 async function main() {
   const args = parseArgs();
@@ -28,7 +37,15 @@ async function main() {
     process.exit(0);
   }
 
-  if (args.includes('login')) {
+  let cli;
+  try {
+    cli = parseCliArgs(args);
+  } catch (err) {
+    if (err instanceof CliError) exitWithUsageError(err.messages);
+    throw err;
+  }
+
+  if (cli.command === 'login') {
     const { loginCommand } = await import("./commands/login.js");
     await loginCommand();
     process.exit(0);
@@ -71,57 +88,80 @@ async function main() {
     import("path")
   ]);
 
-  showBanner();
-
-  let projectName = args.find(arg => !arg.startsWith('--') && !arg.startsWith('-'));
-  let packageManager = detectPackageManager();
-  let config;
-  const quickKey = args[0];
-  let isQuick = false;
-  let quickConfig = null;
-
-  if (quickTemplates[quickKey]) {
-    isQuick = true;
-    quickConfig = quickTemplates[quickKey];
+  // Without a TTY there is no one to answer a prompt, so fail fast instead of hanging
+  const isInteractive = Boolean(process.stdin.isTTY);
+  if (!isInteractive && !cli.yes) {
+    const missing = getMissingFlags(cli);
+    if (missing.length > 0) {
+      exitWithUsageError([
+        `No terminal to prompt on, and these values are missing: ${missing.join(", ")}`,
+        "Pass them as flags, or add --yes to use the defaults. Run celtrix --help to see every flag.",
+      ]);
+    }
   }
 
+  showBanner();
+
+  const { values } = cli;
+  let projectName = cli.projectName;
+  let packageManager = detectPackageManager();
+  let config;
+  const quickKey = cli.command;
+  const quickConfig = QUICK_TEMPLATES[quickKey];
+  const isQuick = Boolean(quickConfig);
+  // Any stack flag (or --yes) means the custom stack, so the preset menu is skipped
+  const useCustomFlags = cli.yes || hasStackFlags(values);
+  const askPM = async () => values.packageManager
+    ?? (cli.yes ? packageManager : (await askPackageManager()).packageManager);
+
   try {
+
+    if (!projectName) {
+      projectName = cli.yes ? DEFAULT_PROJECT_NAME : await askProjectName();
+    }
 
     if (isQuick) {
       // QUICK MODE (mern-js / mern-ts)
       console.log(chalk.green(`⚡ Using quick template: ${quickKey}`));
 
-      projectName = args[1] || (await askProjectName());
-
-      packageManager = (await askPackageManager()).packageManager;
-      const runtimeAnswers = await askRuntimeEnvironment();
+      packageManager = await askPM();
+      const runtime = values.runtime
+        ?? (cli.yes ? "node" : (await askRuntimeEnvironment()).runtime);
 
       config = {
         stack: quickConfig.stack,       // always mern
         language: quickConfig.language, // js or ts
         projectName,
         packageManager,
-        runtime: runtimeAnswers.runtime
+        runtime
       };
+
+    } else if (useCustomFlags) {
+      // ── Custom Stack from flags: prompt only for what is missing ──
+      if (cli.yes) {
+        config = { stack: "custom", ...applyDefaults(values, { packageManager }), projectName };
+      } else {
+        const stillMissing = getMissingFlags({ projectName, values }).filter((flag) => flag !== "--pm");
+        if (stillMissing.length > 0) console.log(chalk.gray("\n── Customise your tech stack ──\n"));
+        const customConfig = await gatherCustomConfig(values);
+        packageManager = await askPM();
+        config = { stack: "custom", ...customConfig, projectName, packageManager };
+      }
 
     } else {
       // NORMAL MODE
-      if (!projectName) {
-        projectName = await askProjectName();
-      }
-
       const stackAnswers = await askStackQuestions();
 
       if (stackAnswers.stack === "custom") {
         // ── Custom Stack Flow ──
         console.log(chalk.gray("\n── Customise your tech stack ──\n"));
         const customConfig = await gatherCustomConfig();
-        packageManager = (await askPackageManager()).packageManager;
+        packageManager = await askPM();
         config = { stack: "custom", ...customConfig, projectName, packageManager };
       } else {
         // ── Preset Stack Flow ──
         const runtimeAnswers = await askRuntimeEnvironment();
-        packageManager = (await askPackageManager()).packageManager;
+        packageManager = await askPM();
         config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
       }
     }
@@ -133,25 +173,19 @@ async function main() {
       }
     }
 
+    // Yes/no questions take their default with --yes or without a TTY, and are skipped by --no-install / --no-git
+    const confirm = async (enabled, name, message) => {
+      if (!enabled) return false;
+      if (cli.yes || !isInteractive) return true;
+      const answers = await inquirer.prompt([{ type: "confirm", name, message, default: true }]);
+      return answers[name];
+    };
+
     // Ask whether to install dependencies (handled in main script)
-    const { installDeps } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "installDeps",
-        message: "Do you want to install dependencies?",
-        default: true,
-      },
-    ]);
+    const installDeps = await confirm(cli.install, "installDeps", "Do you want to install dependencies?");
 
     // Ask whether to initialize a git repo
-    const { initGit } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "initGit",
-        message: "Initialize a git repository?",
-        default: true,
-      },
-    ]);
+    const initGit = await confirm(cli.git, "initGit", "Initialize a git repository?");
 
     // --- Scaffold with per-phase progress + timing ---
     const startTime = Date.now();

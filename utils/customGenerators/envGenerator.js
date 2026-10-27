@@ -49,8 +49,15 @@ function getEnvSections(context) {
       title: "API server",
       lines: [
         "PORT=3001",
-        `# Origin allowed to call the API directly (the Vite dev server proxies /api, so this is only needed outside it)`,
-        `CORS_ORIGIN="http://localhost:5173"`,
+        ...(frontend === "nextjs"
+          ? [
+              `# Origin allowed to call the API directly (Next.js rewrites /api to it, so this is only needed outside that)`,
+              `CORS_ORIGIN="http://localhost:3000"`,
+            ]
+          : [
+              `# Origin allowed to call the API directly (the Vite dev server proxies /api, so this is only needed outside it)`,
+              `CORS_ORIGIN="http://localhost:5173"`,
+            ]),
       ],
     });
   }
@@ -213,7 +220,9 @@ function getSetupGuide(context, hasEnv) {
 
   if (context.hasFrontend && context.hasBackend) {
     lines.push(
-      "The web app runs on http://localhost:5173 and proxies `/api/*` to the API on http://localhost:3001.",
+      config.frontend === "nextjs"
+        ? "The web app runs on http://localhost:3000 and rewrites `/api/*` to the API on http://localhost:3001."
+        : "The web app runs on http://localhost:5173 and proxies `/api/*` to the API on http://localhost:3001.",
       ""
     );
   }

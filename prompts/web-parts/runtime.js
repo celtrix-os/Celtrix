@@ -1,14 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Runtime environment options.
- */
-const RUNTIME_OPTIONS = [
-  { label: "Node.js", color: chalk.greenBright, desc: "The standard JavaScript runtime",        value: "node" },
-  { label: "Bun",     color: chalk.white,       desc: "Fast all-in-one JS runtime & toolkit",   value: "bun"  },
-];
+import { RUNTIME_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a runtime environment.

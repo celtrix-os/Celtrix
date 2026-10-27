@@ -9,7 +9,7 @@ import { askDatabaseType } from "./web-parts/database.js";
 import { askDatabaseSetup } from "./web-parts/databaseSetup.js";
 import { askORM } from "./web-parts/orm.js";
 import { eraseOutputTo, isBackNavigation, logLine, outputMark } from "./common/navigation.js";
-import { getCompatibleORMs, getCompatibleProviders } from "./web-parts/compatibility.js";
+import { STACK_DEFAULTS, getCompatibleORMs, getCompatibleProviders } from "../utils/stackOptions.js";
 
 const TOTAL_STEPS = 7;
 
@@ -67,7 +67,13 @@ function showConfirmationSummary(config) {
  * conditional logic (e.g. skip the database steps when there is no backend).
  *
  * Features step numbering, a language prompt, and a confirmation gate.
+ * Steps whose value is already in `fixed` (from command-line flags) are not
+ * asked; the confirmation gate is shown only if at least one question was.
  *
+ * @param {{
+ *   language?: string, frontend?: string, backend?: string, runtime?: string,
+ *   databaseType?: string, databaseProvider?: string, orm?: string
+ * }} [fixed] - Values chosen up front, already validated.
  * @returns {Promise<{
  *   language: string,
  *   frontend: string,
@@ -77,15 +83,28 @@ function showConfirmationSummary(config) {
  *   orm: string
  * }>}
  */
-export async function gatherCustomConfig() {
+export async function gatherCustomConfig(fixed = {}) {
   const createInitialConfig = () => ({
-    language: "typescript",
-    frontend: "react-router",
-    backend: "hono",
-    runtime: "node",
-    database: { type: "postgres", provider: "supabase" },
-    orm: "prisma",
+    language: fixed.language ?? STACK_DEFAULTS.language,
+    frontend: fixed.frontend ?? STACK_DEFAULTS.frontend,
+    backend: fixed.backend ?? STACK_DEFAULTS.backend,
+    runtime: fixed.runtime ?? STACK_DEFAULTS.runtime,
+    database: fixed.databaseType
+      ? { type: fixed.databaseType, provider: fixed.databaseProvider ?? "" }
+      : { ...STACK_DEFAULTS.database },
+    orm: fixed.orm ?? STACK_DEFAULTS.orm,
   });
+
+  // A step is skipped when its value was given up front
+  const fixedAnswers = {
+    language: fixed.language && { language: fixed.language },
+    frontend: fixed.frontend && { frontend: fixed.frontend },
+    backend: fixed.backend && { backend: fixed.backend },
+    runtime: fixed.runtime && { runtime: fixed.runtime },
+    database: fixed.databaseType && { databaseType: fixed.databaseType },
+    databaseSetup: fixed.databaseProvider && { provider: fixed.databaseProvider },
+    orm: fixed.orm && { orm: fixed.orm },
+  };
 
   function nextAfterDatabase(config) {
     if (config.database.type === "none") {
@@ -116,19 +135,25 @@ export async function gatherCustomConfig() {
   while (true) {
     const canGoBack = history.length > 0;
     const stepMark = outputMark();
+    const preset = fixedAnswers[currentStep];
     let answer;
 
     switch (currentStep) {
       case "language":
-        answer = await askLanguage(step(1), { defaultValue: config.language, canGoBack });
+        answer = preset || await askLanguage(step(1), { defaultValue: config.language, canGoBack });
         if (!answer.back) config.language = answer.language;
         break;
       case "frontend":
-        answer = await askFrontend(step(2), { defaultValue: config.frontend, canGoBack });
+        answer = preset || await askFrontend(step(2), { defaultValue: config.frontend, canGoBack });
         if (!answer.back) config.frontend = answer.frontend;
         break;
       case "backend":
-        answer = await askBackend(step(3), { defaultValue: config.backend, canGoBack });
+        answer = preset || await askBackend(step(3), {
+          defaultValue: config.backend,
+          canGoBack,
+          // A database chosen up front needs a backend to connect to
+          allowNone: !fixed.databaseType || fixed.databaseType === "none",
+        });
         if (!answer.back) {
           config.backend = answer.backend;
           if (answer.backend === "none") {
@@ -139,11 +164,11 @@ export async function gatherCustomConfig() {
         }
         break;
       case "runtime":
-        answer = await askRuntime(step(4), { defaultValue: config.runtime, canGoBack });
+        answer = preset || await askRuntime(step(4), { defaultValue: config.runtime, canGoBack });
         if (!answer.back) config.runtime = answer.runtime;
         break;
       case "database":
-        answer = await askDatabaseType(step(5), {
+        answer = preset || await askDatabaseType(step(5), {
           defaultValue: config.database.type,
           canGoBack,
         });
@@ -155,7 +180,7 @@ export async function gatherCustomConfig() {
         }
         break;
       case "databaseSetup":
-        answer = await askDatabaseSetup(config.database.type, {
+        answer = preset || await askDatabaseSetup(config.database.type, {
           defaultValue: config.database.provider,
           canGoBack,
         });
@@ -163,7 +188,7 @@ export async function gatherCustomConfig() {
         break;
       case "orm": {
         const allowedORMs = getCompatibleORMs(config.database.type);
-        answer = await askORM(step(6), allowedORMs, {
+        answer = preset || await askORM(step(6), allowedORMs, {
           defaultValue: config.orm,
           canGoBack,
         });
@@ -171,6 +196,8 @@ export async function gatherCustomConfig() {
         break;
       }
       case "confirmation": {
+        // Every value came from flags, so there is nothing to confirm
+        if (history.length === 0) return config;
         showConfirmationSummary(config);
         const { action } = await inquirer.prompt([
           {
@@ -252,7 +279,8 @@ export async function gatherCustomConfig() {
         break;
     }
 
-    history.push({ step: currentStep, mark: stepMark });
+    // Skipped steps stay out of the history, so Backspace returns to the last question asked
+    if (!preset) history.push({ step: currentStep, mark: stepMark });
     currentStep = nextStep;
   }
 }

@@ -1,19 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Frontend framework options available for selection.
- * Each entry defines its display label, chalk color, description, and config value.
- */
-const FRONTEND_OPTIONS = [
-  { label: "React Router",  color: chalk.cyanBright,      desc: "React with file-based routing",        value: "react-router" },
-  { label: "Next.js",       color: chalk.white,            desc: "Full-stack React framework",            value: "nextjs"       },
-  { label: "Nuxt",          color: chalk.greenBright,      desc: "Full-stack Vue framework",              value: "nuxt"         },
-  { label: "TanStack",      color: chalk.hex("#FF6200"),   desc: "Type-safe routing & data fetching",     value: "tanstack"     },
-  { label: "Astro",         color: chalk.magentaBright,    desc: "Content-focused, island architecture",  value: "astro"        },
-  { label: "SolidStart",    color: chalk.blueBright,       desc: "Fine-grained reactive UI framework",    value: "solid"        },
-];
+import { FRONTEND_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a frontend framework.

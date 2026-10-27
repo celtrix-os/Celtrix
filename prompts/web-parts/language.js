@@ -1,14 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Language options for the project.
- */
-const LANGUAGE_OPTIONS = [
-  { label: "TypeScript", color: chalk.blueBright, desc: "Type-safe JavaScript superset", value: "typescript" },
-  { label: "JavaScript", color: chalk.yellowBright, desc: "Classic dynamic scripting",     value: "javascript" },
-];
+import { LANGUAGE_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a programming language.

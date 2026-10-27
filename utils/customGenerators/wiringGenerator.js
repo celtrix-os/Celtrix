@@ -8,6 +8,7 @@ import { getWorkspaceVersion } from "../shared.js";
  *   - links apps/api to the @repo/database workspace package
  *   - exposes the database CLI tasks (db:push, db:migrate, …) through turbo
  *   - points the React/Vite app at the shared .env and proxies /api to the server
+ *     (Next.js rewrites /api to it instead)
  *   - gives the web app a typed API client and a live stack-status panel
  */
 export async function generateWiring(context) {
@@ -28,15 +29,30 @@ export async function generateWiring(context) {
     if (tasks.length > 0) addDatabaseTasks(context.projectPath, tasks);
   }
 
-  if (context.config.frontend !== "react-router" || !fs.existsSync(path.join(webDir, "src"))) return;
+  const isNext = context.config.frontend === "nextjs";
+  if ((context.config.frontend !== "react-router" && !isNext) || !fs.existsSync(path.join(webDir, "src"))) return;
 
-  const viteConfigPath = path.join(webDir, `vite.config.${context.ext}`);
-  if (fs.existsSync(viteConfigPath)) {
-    fs.writeFileSync(viteConfigPath, getViteConfig());
+  if (isNext) {
+    // create-next-app writes next.config.ts, or next.config.mjs for JavaScript
+    const nextConfigPath = ["ts", "mjs", "js"]
+      .map((ext) => path.join(webDir, `next.config.${ext}`))
+      .find((file) => fs.existsSync(file));
+    if (nextConfigPath) {
+      fs.writeFileSync(nextConfigPath, addApiRewrite(fs.readFileSync(nextConfigPath, "utf-8")));
+    }
+  } else {
+    const viteConfigPath = path.join(webDir, `vite.config.${context.ext}`);
+    if (fs.existsSync(viteConfigPath)) {
+      fs.writeFileSync(viteConfigPath, getViteConfig());
+    }
   }
 
   fs.ensureDirSync(path.join(webDir, "src", "lib"));
-  fs.writeFileSync(path.join(webDir, "src", "lib", `api.${context.ext}`), getApiClient(context.isTs, hasDatabasePackage, hasSupabase));
+  // The browser Supabase client is only generated for React/Vite
+  fs.writeFileSync(
+    path.join(webDir, "src", "lib", `api.${context.ext}`),
+    getApiClient(context.isTs, hasDatabasePackage, hasSupabase && !isNext)
+  );
 
   fs.ensureDirSync(path.join(webDir, "src", "components"));
   fs.writeFileSync(
@@ -44,11 +60,14 @@ export async function generateWiring(context) {
     getStackStatusComponent(context.isTs, hasDatabasePackage)
   );
 
-  const appPath = path.join(webDir, "src", `App.${context.jsxExt}`);
+  // create-next-app names the JavaScript page page.js
+  const appPath = isNext
+    ? path.join(webDir, "src", "app", `page.${context.isTs ? "tsx" : "js"}`)
+    : path.join(webDir, "src", `App.${context.jsxExt}`);
   if (fs.existsSync(appPath)) {
     const content = fs.readFileSync(appPath, "utf-8");
     if (!content.includes("StackStatus")) {
-      fs.writeFileSync(appPath, addStatusView(content));
+      fs.writeFileSync(appPath, addStatusView(content, isNext ? "@/components/StackStatus" : "./components/StackStatus"));
     }
   }
 }
@@ -57,19 +76,21 @@ export async function generateWiring(context) {
  * Makes the live stack status (API, database, users) the welcome page's first
  * screen. The todo demo stays reachable from the navbar and a button below it.
  */
-export function addStatusView(content) {
+export function addStatusView(content, importPath = "./components/StackStatus") {
   const views = "const VIEWS = ['todo']";
-  const todoPanel = "        {view === 'todo' && <TodoPanel />}";
-  const cssImport = "import './App.css'\n";
-  if (![views, todoPanel, cssImport].every((marker) => content.includes(marker))) {
+  // The Next.js page renders the todo list only once it has hydrated
+  const todoPanel = content.match(/^ {8}\{view === 'todo' && (hydrated && )?<TodoPanel \/>\}$/m)?.[0];
+  const reactImport = content.match(/^import .* from 'react'\n/m)?.[0];
+  if (!content.includes(views) || !todoPanel || !reactImport) {
     logger.warn("⚠️ Unexpected App layout, skipping the stack status screen");
     return content;
   }
 
+  // Replacer functions so the matched text is inserted literally
   return content
-    .replace(cssImport, `${cssImport}import StackStatus from './components/StackStatus'\n`)
+    .replace(reactImport, () => `${reactImport}import StackStatus from '${importPath}'\n`)
     .replace(views, "const VIEWS = ['status', 'todo']")
-    .replace(todoPanel, `        {view === 'status' && (
+    .replace(todoPanel, () => `        {view === 'status' && (
           <>
             <StackStatus />
             <button type="button" className="text-button" onClick={() => setView('todo')}>
@@ -78,6 +99,38 @@ export function addStatusView(content) {
           </>
         )}
 ${todoPanel}`);
+}
+
+/**
+ * Adds a rewrite that forwards /api/* to the API server, reading its PORT from
+ * the shared root .env, while keeping the options create-next-app set.
+ */
+export function addApiRewrite(content) {
+  const marker = "  /* config options here */\n";
+  if (!content.includes(marker)) {
+    logger.warn("⚠️ Unexpected next.config layout, skipping the /api rewrite");
+    return content;
+  }
+
+  const header = `import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { parseEnv } from "node:util";
+
+// The workspace root holds the single .env shared by the web app, API and database tooling.
+// Only PORT is read from it, so nothing else leaks into the Next.js environment.
+const rootEnvPath = path.resolve(process.cwd(), "../../.env");
+const rootEnv = existsSync(rootEnvPath) ? parseEnv(readFileSync(rootEnvPath, "utf-8")) : {};
+const apiUrl = \`http://localhost:\${rootEnv.PORT || 3001}\`;
+
+`;
+  const rewrites = `  async rewrites() {
+    return [
+      // Forward API calls to the backend so the browser stays same-origin
+      { source: "/api/:path*", destination: \`\${apiUrl}/api/:path*\` },
+    ];
+  },
+`;
+  return header + content.replace(marker, () => marker + rewrites);
 }
 
 function addDatabaseTasks(projectPath, tasks) {

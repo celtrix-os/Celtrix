@@ -71,6 +71,11 @@ export async function generateBackend(context) {
 
   // Download production packages dynamically
   if (context.installDeps) {
+    // The frontend's install left a lockfile that doesn't know this new workspace yet, so npm
+    // would skip it ("no workspace folder present"). A root install registers it first.
+    if (context.hasFrontend) {
+      await run(`${context.packageManager} install`, { cwd: context.projectPath });
+    }
     const deps = getBackendDeps(context.config.backend);
     const devDeps = isBun ? [] : ["tsx"];
     if (context.isTs) {
