@@ -1,17 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Database engine options available for selection.
- */
-const DATABASE_OPTIONS = [
-  { label: "SQLite",    color: chalk.cyanBright,      desc: "Lightweight embedded database",    value: "sqlite"  },
-  { label: "MySQL",     color: chalk.hex("#F29111"),   desc: "Popular relational database",      value: "mysql"   },
-  { label: "PostgreSQL", color: chalk.blueBright,      desc: "Advanced open-source RDBMS",       value: "postgres" },
-  { label: "MongoDB",   color: chalk.greenBright,      desc: "Document-oriented NoSQL database", value: "mongodb" },
-  { label: "None",      color: chalk.gray,             desc: "No database",                      value: "none"    },
-];
+import { DATABASE_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a database, and if one is selected,

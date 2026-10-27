@@ -7,6 +7,7 @@ import boxen from "boxen";
 import fs from "fs";
 import path from "path";
 import { detectPackageManager } from "../stable/detectPackageManager.js";
+import { PACKAGE_MANAGER_OPTIONS } from "../../utils/stackOptions.js";
 
 export async function askPackageManager() {
   return await inquirer.prompt([
@@ -14,12 +15,7 @@ export async function askPackageManager() {
       type: "list",
       name: "packageManager",
       message: "Choose a package manager:",
-      choices: [
-        { name: chalk.bold.red("npm"), value: "npm" },
-        { name: chalk.bold.cyan("yarn"), value: "yarn" },
-        { name: chalk.bold.yellow("pnpm"), value: "pnpm" },
-        { name: chalk.bold.white("bun"), value: "bun" },
-      ],
+      choices: PACKAGE_MANAGER_OPTIONS.map((opt) => ({ name: opt.color.bold(opt.label), value: opt.value })),
       pageSize: 10,
       default: detectPackageManager(),
     },

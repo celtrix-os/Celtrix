@@ -13,13 +13,20 @@ import { runPhase } from "./progress.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
+  // "." scaffolds into the current folder, which must be empty
+  const inCurrentDir = projectName === ".";
 
-  if (fs.existsSync(projectPath)) {
+  if (inCurrentDir) {
+    if (fs.readdirSync(projectPath).length > 0) {
+      logger.error(`❌ The current folder ${chalk.red(projectPath)} is not empty`);
+      process.exit(1);
+    }
+  } else if (fs.existsSync(projectPath)) {
     logger.error(`❌ Directory ${chalk.red(projectName)} already exists`);
     process.exit(1);
+  } else {
+    fs.mkdirSync(projectPath);
   }
-
-  fs.mkdirSync(projectPath);
 
   // --- Pretty Project Config (Boxed) ---
   const isCustom = config.stack === "custom";
@@ -65,7 +72,8 @@ export async function setupProject(projectName, config, installDeps) {
       installDeps && runPhase("Installing dependencies", () => installDependencies(projectPath, config, projectName, ...args));
 
     if (isCustom) {
-      await scaffoldCustomProject(projectPath, projectName, config, installDeps);
+      // The folder name becomes the package and database name
+      await scaffoldCustomProject(projectPath, inCurrentDir ? path.basename(projectPath) : projectName, config, installDeps);
     }
 
     else if (config.stack === "mern") {
@@ -129,11 +137,12 @@ export async function setupProject(projectName, config, installDeps) {
       await copyPhase();
     }
   } catch (error) {
-    // Clean up the created directory on failure
+    // Clean up the created directory on failure (never remove the user's current folder)
     logger.error(`❌ Scaffolding failed: ${error.message}`);
     logger.debug(`Cleaning up ${projectPath}...`);
     try {
-      fs.removeSync(projectPath);
+      if (inCurrentDir) fs.emptyDirSync(projectPath);
+      else fs.removeSync(projectPath);
       logger.debug("Cleanup complete.");
     } catch {
       logger.debug("Cleanup failed — directory may need manual removal.");
@@ -179,7 +188,7 @@ export function showNextSteps(projectName, config) {
     // .env.example is only written when there is an API or database to configure
     const hasEnv = hasDatabase || (config.backend && config.backend !== "none");
     const steps = [
-      `${chalk.yellow("cd")} ${projectName}`,
+      ...(projectName === "." ? [] : [`${chalk.yellow("cd")} ${projectName}`]),
       ...(hasEnv ? [`${chalk.green("cp .env.example .env")}${config.database?.provider === "docker" ? "" : chalk.gray("   # then fill in your values")}`] : []),
       ...(config.database?.provider === "docker" ? [`${chalk.green(runCmd("db:up"))}${chalk.gray("   # start the database in Docker")}`] : []),
       ...(hasDatabase && config.orm === "prisma" ? [`${chalk.green(runCmd("db:push"))}${chalk.gray("   # create the database tables")}`] : []),

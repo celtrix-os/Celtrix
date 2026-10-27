@@ -35,6 +35,14 @@ const FRAMEWORKS = {
     appCss: null,
     globalCss: "src/routes/welcome.css",
   },
+  // create-next-app names the JavaScript page page.js, so the JSX template is written there
+  nextjs: {
+    page: (ts) => [`nextjs/page.${ts ? "tsx" : "jsx"}`, `src/app/page.${ts ? "tsx" : "js"}`],
+    appCss: null,
+    globalCss: "src/app/globals.css",
+    // older starters styled the page with a CSS module
+    remove: ["src/app/page.module.css"],
+  },
 };
 
 export const WELCOME_FRAMEWORKS = Object.keys(FRAMEWORKS);
@@ -48,7 +56,7 @@ export const WELCOME_FRAMEWORKS = Object.keys(FRAMEWORKS);
  *
  * @param {string} clientDir - Frontend project directory (the one containing src/).
  * @param {object} options
- * @param {"react"|"solid"|"vue"|"svelte"} options.framework - Which starter was scaffolded.
+ * @param {"react"|"solid"|"vue"|"svelte"|"nextjs"} options.framework - Which starter was scaffolded.
  * @param {string} options.projectName - Shown in the navbar and intro.
  * @param {string} options.stack - Stack label shown on the page, e.g. "mern".
  * @param {boolean} options.typescript - Use the TypeScript version of the page.

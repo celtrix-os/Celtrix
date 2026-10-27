@@ -18,7 +18,9 @@ export async function generateFrontend(context) {
   if (context.config.frontend === "nextjs") {
     // Run Next.js CLI non-interactively
     const useTs = context.isTs ? "--typescript" : "--javascript";
-    await run(`npx -y create-next-app@latest . ${useTs} --eslint --tailwind --src-dir --app --import-alias "@/*" --yes`, { cwd: targetDir });
+    // The workspace root owns git; a nested repo also stops Next.js finding the hoisted node_modules
+    const installFlag = context.installDeps ? "" : " --skip-install";
+    await run(`npx -y create-next-app@latest . ${useTs} --eslint --tailwind --src-dir --app --import-alias "@/*" --disable-git${installFlag} --yes`, { cwd: targetDir });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -26,6 +28,14 @@ export async function generateFrontend(context) {
     if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
       fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
     }
+
+    // Replace the stock Next.js page with the Celtrix welcome page
+    writeWelcomePage(targetDir, {
+      framework: "nextjs",
+      projectName: context.projectName,
+      stack: stackLabel(context),
+      typescript: context.isTs,
+    });
     return;
   }
 

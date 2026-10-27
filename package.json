@@ -1,6 +1,6 @@
 {
   "name": "celtrix",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "CLI to setup web apps quickly",
   "repository": {
     "type": "git",
@@ -55,9 +55,10 @@
     "ora": "^8.2.0"
   },
   "scripts": {
-    "test": "node --test tests/setup-back-navigation.test.js tests/welcome-page.test.js tests/backend-generator.test.js tests/template-manager.test.js tests/package-contents.test.js",
+    "test": "node --test tests/cli-flags.test.js tests/setup-back-navigation.test.js tests/welcome-page.test.js tests/backend-generator.test.js tests/template-manager.test.js tests/package-contents.test.js",
     "test:e2e": "node scripts/e2e-custom-stack.js",
     "test:package": "node scripts/smoke-package.js",
+    "test:flags": "node scripts/smoke-flags.js",
     "preversion": "npm test",
     "release:patch": "npm version patch && npm publish --access public",
     "release:minor": "npm version minor && npm publish --access public",

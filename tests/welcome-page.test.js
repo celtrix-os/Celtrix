@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { writeWelcomePage } from "../utils/welcomePage.js";
-import { addStatusView } from "../utils/customGenerators/wiringGenerator.js";
+import { addApiRewrite, addStatusView } from "../utils/customGenerators/wiringGenerator.js";
 
 // Files each starter leaves behind, matching what create-vite / sv create generate.
 const STARTERS = {
@@ -12,6 +12,7 @@ const STARTERS = {
   solid: { "src/App.jsx": "<h1>Vite + Solid</h1>", "src/App.css": "#root { max-width: 1280px; }", "src/index.css": "body { display: flex; }" },
   vue: { "src/App.vue": "<HelloWorld msg=\"Vite + Vue\" />", "src/style.css": "body { display: flex; }", "src/components/HelloWorld.vue": "<template />" },
   svelte: { "src/routes/+page.svelte": "<h1>Welcome to SvelteKit</h1>", "src/routes/+layout.svelte": "{@render children()}" },
+  nextjs: { "src/app/page.js": "<main>Get started by editing page.js</main>", "src/app/layout.js": "<html>{children}</html>", "src/app/globals.css": '@import "tailwindcss";\n\n:root { --background: #fff; }', "src/app/page.module.css": ".page {}" },
 };
 
 function makeStarter(framework) {
@@ -96,6 +97,29 @@ test("SvelteKit page goes in routes with one combined stylesheet", () => {
   assert.equal(read(client, "src/routes/+layout.svelte"), "{@render children()}");
 });
 
+test("Next.js page is a client component in src/app with one combined stylesheet", () => {
+  for (const typescript of [false, true]) {
+    const client = makeStarter("nextjs");
+    write(client, { framework: "nextjs", typescript });
+
+    // create-next-app names the JavaScript page page.js, so it must be replaced rather than shadowed
+    const page = read(client, typescript ? "src/app/page.tsx" : "src/app/page.js");
+    assert.match(page, /^'use client'/);
+    assert.ok(!page.includes("App.css"), "styles come from globals.css, which the layout imports");
+    // localStorage only exists in the browser, so the todo list waits for hydration
+    assert.ok(page.includes("useSyncExternalStore") && page.includes("{view === 'todo' && hydrated && <TodoPanel />}"));
+    assert.ok(page.includes(`edit <code>src/app/page.${typescript ? "tsx" : "js"}</code>`));
+    assert.ok(page.includes("VIEWS") && page.includes("todo") && !/register/i.test(page));
+
+    const css = read(client, "src/app/globals.css");
+    assert.match(css, /^@import 'tailwindcss';/);
+    assert.ok(css.includes("--green: #4ade80") && css.includes(".statusline") && css.includes(".powered-badge"));
+    assert.ok(!fs.existsSync(path.join(client, "src/app/page.module.css")));
+    // the layout is left alone
+    assert.equal(read(client, "src/app/layout.js"), "<html>{children}</html>");
+  }
+});
+
 test("keeps the badge styles next to the theme variables", () => {
   const client = makeStarter("react");
   write(client, { framework: "react" });
@@ -117,7 +141,7 @@ test("keeps an existing Tailwind import in the global stylesheet", () => {
 
 test("inserts project names with quotes and $ patterns literally", () => {
   const name = `it's $& "weird" $1`;
-  for (const [framework, file] of [["react", "src/App.jsx"], ["vue", "src/App.vue"], ["svelte", "src/routes/+page.svelte"]]) {
+  for (const [framework, file] of [["react", "src/App.jsx"], ["vue", "src/App.vue"], ["svelte", "src/routes/+page.svelte"], ["nextjs", "src/app/page.js"]]) {
     const client = makeStarter(framework);
     write(client, { framework, projectName: name });
     assert.ok(read(client, file).includes(`const PROJECT = ${JSON.stringify(name)}`), framework);
@@ -167,4 +191,36 @@ test("custom fullstack apps open on the stack status, with todo one click away",
     assert.ok(app.includes("onClick={() => setView('todo')}") && app.includes("try todo →"));
     assert.ok(app.includes("{view === 'todo' && <TodoPanel />}"));
   }
+});
+
+test("Next.js fullstack apps also open on the stack status", () => {
+  for (const typescript of [false, true]) {
+    const client = makeStarter("nextjs");
+    write(client, { framework: "nextjs", typescript });
+    const app = addStatusView(read(client, typescript ? "src/app/page.tsx" : "src/app/page.js"), "@/components/StackStatus");
+
+    assert.match(app, /^'use client'/, "the directive must stay the first statement");
+    assert.ok(app.includes("import StackStatus from '@/components/StackStatus'"));
+    assert.ok(app.includes("const VIEWS = ['status', 'todo']"));
+    assert.ok(app.includes("{view === 'status' && (") && app.includes("try todo →"));
+    assert.ok(app.includes("{view === 'todo' && hydrated && <TodoPanel />}"));
+  }
+});
+
+test("Next.js rewrites /api to the API and keeps the starter's options", () => {
+  const stock = `import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  cacheComponents: true,
+};
+
+export default nextConfig;
+`;
+  const config = addApiRewrite(stock);
+  assert.ok(config.includes('{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }'));
+  assert.ok(config.includes("rootEnv.PORT || 3001"));
+  assert.ok(config.includes("cacheComponents: true") && config.includes('import type { NextConfig } from "next";'));
+  // an unrecognised config is left alone
+  assert.equal(addApiRewrite("export default {};\n"), "export default {};\n");
 });

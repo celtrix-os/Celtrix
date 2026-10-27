@@ -302,6 +302,14 @@ export async function nextSetup(projectPath, config, projectName, installDeps) {
       throw new Error("Invalid language option. Choose 'javascript' or 'typescript'.");
     }
 
+    writeWelcomePage(projectPath, {
+      framework: "nextjs",
+      // projectPath is the app itself, so "." can't fall back to the parent folder's name
+      projectName: path.basename(projectPath),
+      stack: config.stack,
+      typescript: config.language === "typescript",
+    });
+
     logger.info("✅ Next.js project setup completed!");
   } catch (err) {
     logger.error(`❌ Error setting up Next.js: ${err.message}`);

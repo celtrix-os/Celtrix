@@ -1,30 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Maps each database type to its available provider/setup options.
- * Easily extensible — add a new DB type or provider by appending to the map.
- */
-const SETUP_OPTIONS = {
-  sqlite: [
-    { label: "Local",  color: chalk.gray,           desc: "Local file-based SQLite",         value: "local" },
-  ],
-  postgres: [
-    { label: "Supabase",  color: chalk.hex("#3FCF8E"),  desc: "Open-source Firebase alternative", value: "supabase" },
-    { label: "Docker",    color: chalk.blueBright,      desc: "PostgreSQL in a local Docker container", value: "docker" },
-    { label: "Local",     color: chalk.gray,            desc: "Self-hosted PostgreSQL",          value: "local"    },
-  ],
-  mysql: [
-    { label: "Docker",      color: chalk.blueBright,     desc: "MySQL in a local Docker container", value: "docker"      },
-    { label: "Local",       color: chalk.gray,           desc: "Self-hosted MySQL",               value: "local"       },
-  ],
-  mongodb: [
-    { label: "MongoDB Atlas", color: chalk.greenBright,  desc: "Cloud-hosted MongoDB",            value: "atlas" },
-    { label: "Docker",        color: chalk.blueBright,   desc: "MongoDB in a local Docker container", value: "docker" },
-    { label: "Local",         color: chalk.gray,          desc: "Self-hosted MongoDB",             value: "local" },
-  ],
-};
+import { DATABASE_PROVIDER_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts for database setup/provider based on the selected database type.
@@ -34,7 +11,7 @@ const SETUP_OPTIONS = {
  * @returns {Promise<{ provider: string }>}
  */
 export async function askDatabaseSetup(databaseType, { defaultValue, canGoBack = false } = {}) {
-  const options = SETUP_OPTIONS[databaseType];
+  const options = DATABASE_PROVIDER_OPTIONS[databaseType];
 
   // If no setup options exist for this DB type, default to "local"
   if (!options || options.length === 0) {

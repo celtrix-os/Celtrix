@@ -1,40 +1,34 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { isBackNavigation } from "../common/navigation.js";
-
-/**
- * Backend framework options available for selection.
- */
-const BACKEND_OPTIONS = [
-  { label: "Hono",     color: chalk.hex("#FF6200"),   desc: "Ultrafast edge-ready web framework",     value: "hono"    },
-  { label: "Fastify",  color: chalk.white,            desc: "Fast & low-overhead Node.js framework",  value: "fastify" },
-  { label: "Express",  color: chalk.yellowBright,     desc: "Minimalist Node.js web framework",       value: "express" },
-  { label: "None",     color: chalk.gray,             desc: "Frontend only, no backend",              value: "none"    },
-];
+import { BACKEND_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a backend framework.
  * The "none" option is handled gracefully — it returns { backend: "none" }.
  *
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[3/7]".
+ * @param {object} [options]
+ * @param {boolean} [options.allowNone] - False when a database was already chosen, which needs a backend.
  * @returns {Promise<{ backend: string }>}
  */
-export async function askBackend(stepLabel = "", { defaultValue = "hono", canGoBack = false } = {}) {
+export async function askBackend(stepLabel = "", { defaultValue = "hono", canGoBack = false, allowNone = true } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
+  const options = BACKEND_OPTIONS.filter((opt) => allowNone || opt.value !== "none");
 
   const { backend } = await inquirer.prompt([
     {
       type: "celtrixList",
       name: "backend",
       message: chalk.bold(`${prefix}Select a backend framework:`),
-      choices: BACKEND_OPTIONS.map((opt) => ({
+      choices: options.map((opt) => ({
         name:
           opt.color.bold(`${opt.value === "none" ? "◻" : "⚡"} ${opt.label}`) +
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
       pageSize: 10,
-      default: BACKEND_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "hono",
+      default: options.some((opt) => opt.value === defaultValue) ? defaultValue : "hono",
       canGoBack,
     },
   ]);
