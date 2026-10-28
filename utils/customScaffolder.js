@@ -1,6 +1,5 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
 import { logger } from "./logger.js";
 import { run, runPhase } from "./progress.js";
 import { fileURLToPath } from "url";
@@ -35,17 +34,6 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
   };
 
   const isMonorepo = context.hasFrontend && context.hasBackend;
-
-  await runPhase("Initializing Celtrix scaffolding pipeline", () => {
-    if (context.packageManager === "bun") {
-      try {
-        logger.info("⚡ Proactively clearing Bun's local package manager cache to prevent integrity errors...");
-        execSync("bun pm cache rm", { stdio: "ignore" });
-      } catch (e) {
-        // ignore
-      }
-    }
-  });
 
   await runPhase(
     isMonorepo ? "Bootstrapping project workspace & Turborepo" : "Bootstrapping project workspace",
