@@ -6,6 +6,8 @@ name: Release
 # Ordinary commits and PR merge commits never release. To cut a release:
 #   npm version patch --no-git-tag-version
 #   git commit -am "chore(release): v3.2.1" && git push origin main
+# Or run it by hand from Actions → Release → Run workflow with a version; it
+# releases the latest commit of the selected branch.
 #
 # Publishes with npm Trusted Publishing (OIDC), no npm token. On npmjs.com,
 # celtrix → Settings → Trusted Publisher must be set to GitHub Actions with
@@ -15,6 +17,12 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 3.2.1 (must match package.json)"
+        required: true
+        type: string
 
 permissions:
   contents: write # create the tag and the release
@@ -26,20 +34,29 @@ concurrency:
 
 jobs:
   release:
-    # Skips the job entirely for anything that isn't a release commit.
-    if: "startsWith(github.event.head_commit.message, 'chore(release): v')"
+    # Skips the job entirely for pushes that aren't a release commit.
+    if: "github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'chore(release): v')"
     runs-on: ubuntu-latest
 
     steps:
-      - name: Extract the version from the release commit
+      - name: Read the version from the input or the release commit
         id: version
         env:
+          INPUT_VERSION: ${{ inputs.version }}
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          SUBJECT=$(printf '%s\n' "$MESSAGE" | head -n1)
-          if [[ ! "$SUBJECT" =~ ^chore\(release\):\ v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
-            echo "::error::Release commit must be 'chore(release): vX.Y.Z', got '$SUBJECT'"
-            exit 1
+          SEMVER='[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?'
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [[ ! "$INPUT_VERSION" =~ ^v?($SEMVER)$ ]]; then
+              echo "::error::Version must be X.Y.Z or X.Y.Z-pre, got '$INPUT_VERSION'"
+              exit 1
+            fi
+          else
+            SUBJECT=$(printf '%s\n' "$MESSAGE" | head -n1)
+            if [[ ! "$SUBJECT" =~ ^chore\(release\):\ v($SEMVER)$ ]]; then
+              echo "::error::Release commit must be 'chore(release): vX.Y.Z', got '$SUBJECT'"
+              exit 1
+            fi
           fi
           VERSION="${BASH_REMATCH[1]}"
           echo "Releasing v$VERSION"
@@ -48,6 +65,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
+          ref: ${{ github.sha }} # the commit that gets tested, published and tagged
           fetch-depth: 0 # tags, to check whether this one exists
 
       - name: Setup Node.js
@@ -73,7 +91,7 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           if [ "$PKG_VERSION" != "$VERSION" ]; then
-            echo "::error::Commit says v$VERSION but package.json is $PKG_VERSION"
+            echo "::error::Releasing v$VERSION but package.json is $PKG_VERSION"
             exit 1
           fi
 
