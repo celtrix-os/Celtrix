@@ -1,0 +1,146 @@
+name: Release
+
+# Releases only from a dedicated release commit pushed to main, whose first
+# line is exactly:
+#   chore(release): v3.2.1
+# Ordinary commits and PR merge commits never release. To cut a release:
+#   npm version patch --no-git-tag-version
+#   git commit -am "chore(release): v3.2.1" && git push origin main
+#
+# Publishes with npm Trusted Publishing (OIDC), no npm token. On npmjs.com,
+# celtrix → Settings → Trusted Publisher must be set to GitHub Actions with
+# organization "celtrix-os", repository "Celtrix", workflow "release.yml" and
+# no environment. Provenance is generated automatically.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # create the tag and the release
+  id-token: write # OIDC token for npm Trusted Publishing and provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Skips the job entirely for anything that isn't a release commit.
+    if: "startsWith(github.event.head_commit.message, 'chore(release): v')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract the version from the release commit
+        id: version
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          SUBJECT=$(printf '%s\n' "$MESSAGE" | head -n1)
+          if [[ ! "$SUBJECT" =~ ^chore\(release\):\ v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
+            echo "::error::Release commit must be 'chore(release): vX.Y.Z', got '$SUBJECT'"
+            exit 1
+          fi
+          VERSION="${BASH_REMATCH[1]}"
+          echo "Releasing v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # tags, to check whether this one exists
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          # no registry-url: it writes a token-based .npmrc, OIDC needs none
+
+      - name: Ensure npm supports Trusted Publishing
+        run: |
+          # OIDC publishing needs npm 11.5.1 or newer
+          NPM_VERSION=$(npm --version)
+          if [ "$(printf '%s\n' 11.5.1 "$NPM_VERSION" | sort -V | head -n1)" != "11.5.1" ]; then
+            npm install -g npm@^11.5.1
+          fi
+          npm --version
+
+      - name: Validate the version against package.json
+        id: check
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "::error::Commit says v$VERSION but package.json is $PKG_VERSION"
+            exit 1
+          fi
+
+          # Each step checks its own target, so a failed run can simply be re-run.
+          if npm view "celtrix@$VERSION" version >/dev/null 2>&1; then
+            echo "celtrix@$VERSION is already on npm, skipping publish"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            TAG_SHA=$(git rev-parse "v$VERSION^{commit}")
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "::error::Tag v$VERSION already points at $TAG_SHA, not $GITHUB_SHA"
+              exit 1
+            fi
+            echo "Tag v$VERSION already exists, skipping tag"
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists, skipping release"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Prereleases (3.3.0-beta.1) go to the "next" dist-tag, not "latest".
+          case "$VERSION" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Publish to npm
+        if: steps.check.outputs.published == 'false'
+        env:
+          DIST_TAG: ${{ steps.check.outputs.prerelease == 'true' && 'next' || 'latest' }}
+        run: npm publish --access public --tag "$DIST_TAG"
+
+      - name: Create the tag
+        if: steps.check.outputs.tagged == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag "v$VERSION" "$GITHUB_SHA"
+          git push origin "v$VERSION"
+
+      - name: Create the GitHub release
+        if: steps.check.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.check.outputs.prerelease }}
+        run: |
+          FLAGS=""
+          [ "$PRERELEASE" = "true" ] && FLAGS="--prerelease"
+          gh release create "v$VERSION" \
+            --verify-tag \
+            --title "v$VERSION" \
+            --generate-notes \
+            $FLAGS
