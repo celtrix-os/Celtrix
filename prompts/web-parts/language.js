@@ -9,7 +9,7 @@ import { LANGUAGE_OPTIONS } from "../../utils/stackOptions.js";
  * @param {string} [stepLabel] - Optional step label prefix, e.g. "[1/7]".
  * @returns {Promise<{ language: string }>}
  */
-export async function askLanguage(stepLabel = "", { defaultValue = "typescript", canGoBack = false } = {}) {
+export async function askLanguage(stepLabel = "", { defaultValue = "typescript", canGoBack = false, backHint = undefined } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { language } = await inquirer.prompt([
@@ -25,6 +25,7 @@ export async function askLanguage(stepLabel = "", { defaultValue = "typescript",
       })),
       default: LANGUAGE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "typescript",
       canGoBack,
+      backHint,
     },
   ]);
 

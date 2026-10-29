@@ -115,7 +115,7 @@ const listPrompt = createPrompt((config, done) => {
     return `${cursor} ${label}${disabled}`;
   });
 
-  const hint = config.canGoBack ? `\n${BACK_HINT}` : "";
+  const hint = config.canGoBack ? `\n${config.backHint ?? BACK_HINT}` : "";
   return `${chalk.cyan("?")} ${config.message}\n${renderedChoices.join("\n")}${hint}`;
 });
 
