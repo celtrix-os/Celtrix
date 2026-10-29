@@ -56,6 +56,7 @@ async function main() {
     { createProject },
     { gatherCustomConfig },
     { isPromptCancellation },
+    { isBackNavigation, eraseOutputTo, outputMark },
     { askStackQuestions },
     { askProjectName },
     { showBanner },
@@ -73,6 +74,7 @@ async function main() {
     import("./commands/scaffold.js"),
     import("./prompts/index.js"),
     import("./utils/shared.js"),
+    import("./prompts/common/navigation.js"),
     import("./prompts/stack/stack.js"),
     import("./prompts/user/projectName.js"),
     import("./prompts/stable/showBanner.js"),
@@ -150,19 +152,32 @@ async function main() {
 
     } else {
       // NORMAL MODE
-      const stackAnswers = await askStackQuestions();
+      while (true) {
+        const flowMark = outputMark();
+        const stackAnswers = await askStackQuestions();
 
-      if (stackAnswers.stack === "custom") {
-        // ── Custom Stack Flow ──
-        console.log(chalk.gray("\n── Customise your tech stack ──\n"));
-        const customConfig = await gatherCustomConfig();
-        packageManager = await askPM();
-        config = { stack: "custom", ...customConfig, projectName, packageManager };
-      } else {
-        // ── Preset Stack Flow ──
-        const runtimeAnswers = await askRuntimeEnvironment();
-        packageManager = await askPM();
-        config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
+        if (stackAnswers.stack === "custom") {
+          // ── Custom Stack Flow ──
+          console.log(chalk.gray("\n── Customise your tech stack ──\n"));
+          const customConfig = await gatherCustomConfig();
+          if (isBackNavigation(customConfig)) {
+            eraseOutputTo(flowMark);
+            continue;
+          }
+          packageManager = await askPM();
+          config = { stack: "custom", ...customConfig, projectName, packageManager };
+          break;
+        } else {
+          // ── Preset Stack Flow ──
+          const runtimeAnswers = await askRuntimeEnvironment();
+          if (isBackNavigation(runtimeAnswers.runtime)) {
+            eraseOutputTo(flowMark);
+            continue;
+          }
+          packageManager = await askPM();
+          config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
+          break;
+        }
       }
     }
 

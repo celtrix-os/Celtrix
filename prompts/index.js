@@ -133,14 +133,19 @@ export async function gatherCustomConfig(fixed = {}) {
   }
 
   while (true) {
-    const canGoBack = history.length > 0;
+    const canGoBack = true;
     const stepMark = outputMark();
     const preset = fixedAnswers[currentStep];
     let answer;
 
     switch (currentStep) {
       case "language":
-        answer = preset || await askLanguage(step(1), { defaultValue: config.language, canGoBack });
+        answer = preset || await askLanguage(step(1), {
+          defaultValue: config.language,
+          canGoBack,
+          backHint: chalk.dim("  ⌫ Press Backspace to change the stack selection"),
+        });
+        if (isBackNavigation(answer)) return { back: true };
         if (!answer.back) config.language = answer.language;
         break;
       case "frontend":
