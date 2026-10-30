@@ -13,19 +13,11 @@ import { runPhase } from "./progress.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
-  // "." scaffolds into the current folder, which must be empty
   const inCurrentDir = projectName === ".";
+  const wasExistingDir = inCurrentDir || fs.existsSync(projectPath);
 
-  if (inCurrentDir) {
-    if (fs.readdirSync(projectPath).length > 0) {
-      logger.error(`❌ The current folder ${chalk.red(projectPath)} is not empty`);
-      process.exit(1);
-    }
-  } else if (fs.existsSync(projectPath)) {
-    logger.error(`❌ Directory ${chalk.red(projectName)} already exists`);
-    process.exit(1);
-  } else {
-    fs.mkdirSync(projectPath);
+  if (!wasExistingDir) {
+    fs.mkdirSync(projectPath, { recursive: true });
   }
 
   // --- Pretty Project Config (Boxed) ---
@@ -137,15 +129,16 @@ export async function setupProject(projectName, config, installDeps) {
       await copyPhase();
     }
   } catch (error) {
-    // Clean up the created directory on failure (never remove the user's current folder)
+    // Clean up the created directory on failure (never remove the user's current folder or existing directory)
     logger.error(`❌ Scaffolding failed: ${error.message}`);
-    logger.debug(`Cleaning up ${projectPath}...`);
-    try {
-      if (inCurrentDir) fs.emptyDirSync(projectPath);
-      else fs.removeSync(projectPath);
-      logger.debug("Cleanup complete.");
-    } catch {
-      logger.debug("Cleanup failed — directory may need manual removal.");
+    if (!wasExistingDir && !inCurrentDir) {
+      logger.debug(`Cleaning up ${projectPath}...`);
+      try {
+        fs.removeSync(projectPath);
+        logger.debug("Cleanup complete.");
+      } catch {
+        logger.debug("Cleanup failed — directory may need manual removal.");
+      }
     }
     throw error;
   }
@@ -196,24 +189,36 @@ export function showNextSteps(projectName, config) {
     ];
     steps.forEach((step, i) => console.log(`   ${chalk.gray(`${i + 1}.`)} ${step}`));
   } else if (config.stack === "mean" || config.stack === "mean+tailwind+auth") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("start"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
+    const clientDir = projectName === "." ? "client" : `${projectName}/client`;
+    const serverDir = projectName === "." ? "server" : `${projectName}/server`;
+    console.log(`   ${chalk.yellow("cd")} ${clientDir} && ${chalk.green(cmd("start"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${serverDir} && ${chalk.green(cmd("start"))}`);
   } else if (config.stack === "nextjs") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
+    if (projectName === ".") {
+      console.log(`   ${chalk.green(cmd("dev"))}`);
+    } else {
+      console.log(`   ${chalk.yellow("cd")} ${projectName} && ${chalk.green(cmd("dev"))}`);
+    }
   } else if (config.stack === "react+tailwind+firebase") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
+    const clientDir = projectName === "." ? "client" : `${projectName}/client`;
+    console.log(`   ${chalk.yellow("cd")} ${clientDir} && ${chalk.green(cmd("dev"))}`);
     console.log(`   ${chalk.gray("📝 Don't forget to configure your Firebase project in .env file!")}`);
   } else if (config.stack === "hono") {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("dev"))}`);
+    const clientDir = projectName === "." ? "client" : `${projectName}/client`;
+    const serverDir = projectName === "." ? "server" : `${projectName}/server`;
+    console.log(`   ${chalk.yellow("cd")} ${clientDir} && ${chalk.green(cmd("dev"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${serverDir} && ${chalk.green(cmd("dev"))}`);
   } else {
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/client && ${chalk.green(cmd("dev"))}`);
-    console.log(`   ${chalk.yellow("cd")} ${projectName}/server && ${chalk.green(cmd("start"))}`);
+    const clientDir = projectName === "." ? "client" : `${projectName}/client`;
+    const serverDir = projectName === "." ? "server" : `${projectName}/server`;
+    console.log(`   ${chalk.yellow("cd")} ${clientDir} && ${chalk.green(cmd("dev"))}`);
+    console.log(`   ${chalk.yellow("cd")} ${serverDir} && ${chalk.green(cmd("start"))}`);
   }
 
   // Last thing the user sees: where the full setup and run instructions live
   if (isCustom) {
-    console.log(`\n   📖 ${chalk.bold.cyan(`Read ${path.join(projectName, SETUP_GUIDE)} for the full guide to set up and run your app.`)}`);
+    const guidePath = projectName === "." ? SETUP_GUIDE : path.join(projectName, SETUP_GUIDE);
+    console.log(`\n   📖 ${chalk.bold.cyan(`Read ${guidePath} for the full guide to set up and run your app.`)}`);
   }
   console.log("");
 }

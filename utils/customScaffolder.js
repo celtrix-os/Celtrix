@@ -101,12 +101,37 @@ function bootstrapWorkspace(context) {
         lint: "turbo lint"
       }
     };
-    fs.writeJsonSync(path.join(context.projectPath, "package.json"), rootPkg, { spaces: 2 });
+    const rootPkgPath = path.join(context.projectPath, "package.json");
+    if (fs.existsSync(rootPkgPath)) {
+      try {
+        const existing = fs.readJsonSync(rootPkgPath);
+        const mergedWorkspaces = Array.from(new Set([
+          ...(Array.isArray(existing.workspaces) ? existing.workspaces : []),
+          "apps/*",
+          "packages/*"
+        ]));
+        const merged = {
+          ...rootPkg,
+          ...existing,
+          workspaces: mergedWorkspaces,
+          scripts: {
+            ...rootPkg.scripts,
+            ...(existing.scripts || {})
+          }
+        };
+        fs.writeJsonSync(rootPkgPath, merged, { spaces: 2 });
+      } catch {
+        // If cannot parse, don't overwrite
+      }
+    } else {
+      fs.writeJsonSync(rootPkgPath, rootPkg, { spaces: 2 });
+    }
 
     // 2. Root .gitignore for monorepo
     const rootGitignorePath = path.join(context.templatesDir, "root.gitignore");
-    if (fs.existsSync(rootGitignorePath)) {
-      fs.copyFileSync(rootGitignorePath, path.join(context.projectPath, ".gitignore"));
+    const destGitignorePath = path.join(context.projectPath, ".gitignore");
+    if (fs.existsSync(rootGitignorePath) && !fs.existsSync(destGitignorePath)) {
+      fs.copyFileSync(rootGitignorePath, destGitignorePath);
     }
 
     // 3. turbo.json
@@ -126,7 +151,10 @@ function bootstrapWorkspace(context) {
         }
       }
     };
-    fs.writeJsonSync(path.join(context.projectPath, "turbo.json"), turboConfig, { spaces: 2 });
+    const turboPath = path.join(context.projectPath, "turbo.json");
+    if (!fs.existsSync(turboPath)) {
+      fs.writeJsonSync(turboPath, turboConfig, { spaces: 2 });
+    }
 
     // 4. packages/tsconfig workspace configs
     const tsconfigDir = path.join(context.projectPath, "packages", "tsconfig");
