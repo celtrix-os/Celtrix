@@ -318,9 +318,7 @@ export function mernSetup(projectPath, config, projectName, installDeps) {
     createViteProject(projectPath, config, "react");
     injectReactBadge(projectPath, config);
 
-    if (config.stack === "mern+tailwind+auth") {
-      serverAuthSetup(projectPath, config, projectName, installDeps);
-    } else if (config.stack === "mern") {
+    if (config.stack === "mern") {
       serverSetup(projectPath, config, projectName, installDeps);
     }
 
@@ -395,7 +393,6 @@ export function mevnTailwindAuthSetup(projectPath, config, projectName, installD
     injectVueBadge(projectPath);
 
     logger.info("✅ MEVN + Tailwind + Auth setup completed!");
-    serverAuthSetup(projectPath, config, projectName, installDeps);
   } catch (error) {
     logger.error("❌ Failed to set up MEVN + Tailwind + Auth");
     throw error;
