@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
@@ -10,9 +10,9 @@ const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf
 
 // What `npm publish` would upload, without writing a tarball
 const [packed] = JSON.parse(
-  execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: repoRoot, encoding: "utf-8" })
+  execSync("npm pack --dry-run --json --ignore-scripts", { cwd: repoRoot, encoding: "utf-8" })
 );
-const packedFiles = new Set(packed.files.map((file) => file.path));
+const packedFiles = new Set(packed.files.map((file) => path.normalize(file.path)));
 
 const RUNTIME_PATHS = ["index.js", "bin", "commands", "prompts", "utils", "templates"];
 
@@ -36,7 +36,7 @@ test("every tracked runtime file and template is packaged", (t) => {
     t.skip("not a git checkout");
     return;
   }
-  const missing = tracked.split("\n").filter(Boolean).filter((file) => !packedFiles.has(file));
+  const missing = tracked.split("\n").filter(Boolean).filter((file) => !packedFiles.has(path.normalize(file)));
   assert.deepEqual(missing, [], "npm would leave these files out of the package");
 });
 

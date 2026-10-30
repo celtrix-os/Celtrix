@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 // npm never publishes files named .gitignore, so templates ship them as
 // _gitignore and they get their real name back once copied into the project
 function copyTemplateDir(templateDir, targetDir) {
-  fs.copySync(templateDir, targetDir);
+  fs.copySync(templateDir, targetDir, { overwrite: false, errorOnExist: false });
   restoreGitignores(targetDir);
 }
 
@@ -20,7 +20,12 @@ function restoreGitignores(dir) {
     if (entry.isDirectory()) {
       if (entry.name !== "node_modules") restoreGitignores(entryPath);
     } else if (entry.name === "_gitignore") {
-      fs.moveSync(entryPath, path.join(dir, ".gitignore"), { overwrite: true });
+      const destGitignore = path.join(dir, ".gitignore");
+      if (!fs.existsSync(destGitignore)) {
+        fs.moveSync(entryPath, destGitignore);
+      } else {
+        fs.removeSync(entryPath);
+      }
     }
   }
 }
@@ -97,7 +102,9 @@ coverage
 `;
 
   fs.writeFileSync(dockerfilePath, dockerfileContent);
-  fs.writeFileSync(dockerignorePath, dockerignoreContent);
+  if (!fs.existsSync(dockerignorePath)) {
+    fs.writeFileSync(dockerignorePath, dockerignoreContent);
+  }
   logger.info("🐳 Added Dockerfile to client...");
 }
 
@@ -113,7 +120,7 @@ function copyDockerCompose(projectPath, config) {
     );
     const dockerComposeDest = path.join(projectPath, 'docker-compose.yml');
 
-    if (fs.existsSync(dockerComposeTemplate)) {
+    if (fs.existsSync(dockerComposeTemplate) && !fs.existsSync(dockerComposeDest)) {
       logger.info('🐳 Copying docker-compose.yml...');
       fs.copySync(dockerComposeTemplate, dockerComposeDest);
     }
@@ -134,7 +141,7 @@ function copyDockerCompose(projectPath, config) {
     );
     const dockerComposeExampleDest = path.join(projectPath, 'docker-compose.yml');
 
-    if (fs.existsSync(dockerComposeExample)) {
+    if (fs.existsSync(dockerComposeExample) && !fs.existsSync(dockerComposeExampleDest)) {
       logger.info('🐳 Copying docker-compose.yml...');
       fs.copySync(dockerComposeExample, dockerComposeExampleDest);
     }

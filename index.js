@@ -57,7 +57,7 @@ async function main() {
     { gatherCustomConfig },
     { isPromptCancellation },
     { askStackQuestions },
-    { askProjectName },
+    { askProjectName, handleFolderConflict },
     { showBanner },
     { getStackMeta },
     { askRuntimeEnvironment },
@@ -68,7 +68,8 @@ async function main() {
     { detectPackageManager },
     { default: inquirer },
     { default: logSymbols },
-    { default: path }
+    { default: path },
+    { default: fs }
   ] = await Promise.all([
     import("./commands/scaffold.js"),
     import("./prompts/index.js"),
@@ -85,7 +86,8 @@ async function main() {
     import("./prompts/stable/detectPackageManager.js"),
     import("inquirer"),
     import("log-symbols"),
-    import("path")
+    import("path"),
+    import("fs")
   ]);
 
   // Without a TTY there is no one to answer a prompt, so fail fast instead of hanging
@@ -118,6 +120,10 @@ async function main() {
 
     if (!projectName) {
       projectName = cli.yes ? DEFAULT_PROJECT_NAME : await askProjectName();
+    } else if (!cli.yes && isInteractive && projectName !== ".") {
+      if (fs.existsSync(path.join(process.cwd(), projectName))) {
+        projectName = await handleFolderConflict(projectName);
+      }
     }
 
     if (isQuick) {
@@ -204,14 +210,18 @@ async function main() {
     // --- Git init ---
     if (initGit) {
       const projectPath = path.join(process.cwd(), projectName);
-      try {
-        const { execSync } = await import("child_process");
-        execSync("git init", { cwd: projectPath, stdio: "ignore" });
-        execSync("git add .", { cwd: projectPath, stdio: "ignore" });
-        execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: "ignore" });
-        console.log(chalk.green("\n🎉 Git repository initialized with initial commit."));
-      } catch {
-        console.log(chalk.yellow("\n⚠️  Could not initialize git — you can run 'git init' manually."));
+      if (fs.existsSync(path.join(projectPath, ".git"))) {
+        console.log(chalk.gray("\nℹ️  Existing git repository detected — skipping git initialization."));
+      } else {
+        try {
+          const { execSync } = await import("child_process");
+          execSync("git init", { cwd: projectPath, stdio: "ignore" });
+          execSync("git add .", { cwd: projectPath, stdio: "ignore" });
+          execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: "ignore" });
+          console.log(chalk.green("\n🎉 Git repository initialized with initial commit."));
+        } catch {
+          console.log(chalk.yellow("\n⚠️  Could not initialize git — you can run 'git init' manually."));
+        }
       }
     }
 

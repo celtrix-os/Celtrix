@@ -79,8 +79,8 @@ export async function generateWiring(context) {
 export function addStatusView(content, importPath = "./components/StackStatus") {
   const views = "const VIEWS = ['todo']";
   // The Next.js page renders the todo list only once it has hydrated
-  const todoPanel = content.match(/^ {8}\{view === 'todo' && (hydrated && )?<TodoPanel \/>\}$/m)?.[0];
-  const reactImport = content.match(/^import .* from 'react'\n/m)?.[0];
+  const todoPanel = content.match(/^ {8}\{view === 'todo' && (hydrated && )?<TodoPanel \/>\}\r?$/m)?.[0];
+  const reactImport = content.match(/^import .* from 'react'\r?\n/m)?.[0];
   if (!content.includes(views) || !todoPanel || !reactImport) {
     logger.warn("⚠️ Unexpected App layout, skipping the stack status screen");
     return content;
@@ -106,7 +106,7 @@ ${todoPanel}`);
  * the shared root .env, while keeping the options create-next-app set.
  */
 export function addApiRewrite(content) {
-  const marker = "  /* config options here */\n";
+  const marker = content.includes("  /* config options here */\r\n") ? "  /* config options here */\r\n" : "  /* config options here */\n";
   if (!content.includes(marker)) {
     logger.warn("⚠️ Unexpected next.config layout, skipping the /api rewrite");
     return content;
