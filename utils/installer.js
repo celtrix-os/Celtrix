@@ -1,6 +1,6 @@
 import { run } from "./progress.js";
 import { logger } from "./logger.js";
-import { buildViteCommand, getInstallCommand } from "./shared.js";
+import { buildHonoCommand, buildViteCommand, getInstallCommand } from "./shared.js";
 import { writeWelcomePage } from "./welcomePage.js";
 import path from "path";
 import fs from "fs";
@@ -174,7 +174,8 @@ export async function HonoReactSetup(projectPath, config, projectName, installDe
       typescript: config.language === "typescript",
     });
 
-    await run(`npm create hono@latest server -- --template cloudflare-workers --pm npm`, { cwd: projectPath });
+    const honoCmd = buildHonoCommand(config);
+    await run(honoCmd, { cwd: projectPath });
 
     logger.info("✅ Created Hono + React project!");
     await serverAuthSetup(projectPath, config, projectName, installDeps);
@@ -363,3 +364,5 @@ export async function serverAuthSetup(projectPath, config, projectName, installD
     throw error;
   }
 }
+
+export { buildHonoCommand };

@@ -45,6 +45,32 @@ export function buildViteCommand(config, template, outputDir) {
 }
 
 /**
+ * Builds the correct `create hono` command string for the given package
+ * manager, template, and target directory.
+ *
+ * @param {object} config - Project configuration.
+ * @param {string} [config.packageManager="npm"] - npm | yarn | pnpm | bun.
+ * @param {string} [template="cloudflare-workers"] - Hono template name.
+ * @param {string} [targetDir="server"] - Target directory for the scaffolded Hono project.
+ * @returns {string} Ready-to-exec shell command.
+ */
+export function buildHonoCommand(config, template = "cloudflare-workers", targetDir = "server") {
+  const pm = config?.packageManager || "npm";
+
+  switch (pm) {
+    case "pnpm":
+      return `pnpm create hono@latest ${targetDir} --template ${template} --pm pnpm`;
+    case "yarn":
+      return `yarn create hono ${targetDir} --template ${template} --pm yarn`;
+    case "bun":
+      return `bun create hono@latest ${targetDir} --template ${template} --pm bun`;
+    case "npm":
+    default:
+      return `npm create hono@latest ${targetDir} -- --template ${template} --pm npm`;
+  }
+}
+
+/**
  * Returns the correct install/add sub-command for a given package manager.
  *
  * @param {string} packageManager - npm | yarn | pnpm | bun.
