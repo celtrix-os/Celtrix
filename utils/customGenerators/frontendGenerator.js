@@ -1,7 +1,8 @@
 import fs from "fs-extra";
 import path from "path";
-import { execSync } from "child_process";
+import { run } from "../progress.js";
 import { buildViteCommand } from "../shared.js";
+import { writeWelcomePage } from "../welcomePage.js";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,10 +18,9 @@ export async function generateFrontend(context) {
   if (context.config.frontend === "nextjs") {
     // Run Next.js CLI non-interactively
     const useTs = context.isTs ? "--typescript" : "--javascript";
-    execSync(`npx -y create-next-app@latest . ${useTs} --eslint --tailwind --src-dir --app --import-alias "@/*" --yes`, {
-      cwd: targetDir,
-      stdio: "inherit"
-    });
+    // The workspace root owns git; a nested repo also stops Next.js finding the hoisted node_modules
+    const installFlag = context.installDeps ? "" : " --skip-install";
+    await run(`npx -y create-next-app@latest . ${useTs} --eslint --tailwind --src-dir --app --import-alias "@/*" --disable-git${installFlag} --yes`, { cwd: targetDir });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -28,6 +28,14 @@ export async function generateFrontend(context) {
     if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
       fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
     }
+
+    // Replace the stock Next.js page with the Celtrix welcome page
+    writeWelcomePage(targetDir, {
+      framework: "nextjs",
+      projectName: context.projectName,
+      stack: stackLabel(context),
+      typescript: context.isTs,
+    });
     return;
   }
 
@@ -35,10 +43,7 @@ export async function generateFrontend(context) {
     // Run Nuxt CLI non-interactively
     const gitFlag = "--gitInit false";
     const installFlag = context.installDeps ? "--install" : "--no-install";
-    execSync(`npx -y nuxi@latest init . --packageManager ${context.packageManager} ${gitFlag} ${installFlag} --yes`, {
-      cwd: targetDir,
-      stdio: "inherit"
-    });
+    await run(`npx -y nuxi@latest init . --packageManager ${context.packageManager} ${gitFlag} ${installFlag} --yes`, { cwd: targetDir });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -52,27 +57,7 @@ export async function generateFrontend(context) {
   if (context.config.frontend === "astro") {
     // Run Astro CLI non-interactively
     const installFlag = context.installDeps ? "--install" : "--no-install";
-    execSync(`npm create astro@latest . -- --template minimal ${installFlag} --no-git --yes`, {
-      cwd: targetDir,
-      stdio: "inherit"
-    });
-    
-    // Add .gitignore for frontend from template
-    const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
-    const packageGitignorePath = path.join(templatesDir, "package.gitignore");
-    if (fs.existsSync(packageGitignorePath) && !fs.existsSync(path.join(targetDir, ".gitignore"))) {
-      fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
-    }
-    return;
-  }
-
-  if (context.config.frontend === "svelte") {
-    // Run SvelteKit CLI non-interactively using modern sv CLI
-    const types = context.isTs ? "ts" : "jsdoc";
-    execSync(`npx sv create . --template minimal --types ${types} --no-add-ons --no-install --no-dir-check`, {
-      cwd: targetDir,
-      stdio: "inherit"
-    });
+    await run(`npm create astro@latest . -- --template minimal ${installFlag} --no-git --yes`, { cwd: targetDir });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -87,10 +72,7 @@ export async function generateFrontend(context) {
     // Run TanStack Start CLI non-interactively using the new @tanstack/cli
     const installFlag = context.installDeps ? "" : "--no-install";
     const pmFlag = `--package-manager ${context.packageManager}`;
-    execSync(`npx -y @tanstack/cli create . -y ${pmFlag} ${installFlag}`, {
-      cwd: targetDir,
-      stdio: "inherit"
-    });
+    await run(`npx -y @tanstack/cli create . -y ${pmFlag} ${installFlag}`, { cwd: targetDir });
     
     // Add .gitignore for frontend from template
     const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -101,12 +83,12 @@ export async function generateFrontend(context) {
     return;
   }
 
-  // Vite Boilerplate for React, Vue, Svelte, Solid
+  // Vite Boilerplate for React, Vue, Solid
   const baseTemplate = getBaseTemplate(context.config.frontend);
   const templateName = context.isTs ? `${baseTemplate}-ts` : baseTemplate;
   const viteCmd = buildViteCommand(context.config, templateName, ".");
 
-  execSync(viteCmd, { cwd: targetDir, stdio: "inherit", shell: true });
+  await run(viteCmd, { cwd: targetDir });
 
   // Add .gitignore for frontend from template
   const templatesDir = context.templatesDir || path.join(__dirname, "../../templates/gitignore");
@@ -115,93 +97,27 @@ export async function generateFrontend(context) {
     fs.copyFileSync(packageGitignorePath, path.join(targetDir, ".gitignore"));
   }
 
-  // Injects base stylesheets and components
-  fs.writeFileSync(
-    path.join(targetDir, "src", `App.${context.jsxExt}`),
-    getFrontendAppTemplate(context.config.frontend, context.isTs)
-  );
+  // Replace the stock Vite page with the Celtrix welcome page
+  writeWelcomePage(targetDir, {
+    framework: baseTemplate,
+    projectName: context.projectName,
+    stack: stackLabel(context),
+    typescript: context.isTs,
+  });
+}
+
+function stackLabel(context) {
+  return context.hasBackend
+    ? `${context.config.frontend} + ${context.config.backend}`
+    : context.config.frontend;
 }
 
 function getBaseTemplate(frontend) {
   switch (frontend) {
     case "vue": return "vue";
-    case "svelte": return "svelte";
     case "solid": return "solid";
     case "react-router":
     default:
       return "react";
   }
-}
-
-function getFrontendAppTemplate(frontend, isTs) {
-  return `import React from 'react';
-
-export default function App() {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#ffffff',
-      fontFamily: 'system-ui, sans-serif'
-    }}>
-      {/* Navbar */}
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '1rem 2rem',
-        backgroundColor: '#f8f9fa',
-        borderBottom: '1px solid #e9ecef'
-      }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' , textDecoration: 'underline', cursor: 'pointer'}} 
-        onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>
-          Celtrix
-        </div>
-        <div style={{ display: 'flex', gap: '1.5rem' }}>
-          <a href="#" style={{
-            textDecoration: 'none',
-            color: '#333',
-            fontSize: '1rem'
-          }}>Home</a>
-          <a href="#" style={{
-            textDecoration: 'none',
-            color: '#333',
-            fontSize: '1rem'
-          }}>Dashboard</a>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flex: 1,
-        padding: '2rem'
-      }}>
-        <h1 style={{ fontSize: '2rem', color: '#333', marginBottom: '0.5rem' }}>
-          Welcome to your application
-        </h1>
-        <p style={{ fontSize: '1rem', color: '#666' }}>
-          Built with ${frontend}
-        </p>
-      </main>
-
-      {/* Powered by Celtrix Badge */}
-      <div style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        backgroundColor: '#000',
-        color: '#fff',
-        padding: '0.5rem 1rem',
-        borderRadius: '0.5rem',
-        fontSize: '0.875rem',
-        cursor: 'pointer'
-      }} onClick={() => window.open('https://github.com/celtrix-os/Celtrix', '_blank')}>
-        🔗 Powered by <span style={{ fontWeight: 'bold', color: '#4ade80' }}>Celtrix</span>
-      </div>
-    </div>
-  );
-}`;
 }

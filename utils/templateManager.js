@@ -7,6 +7,24 @@ import { angularSetup } from "./installer.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// npm never publishes files named .gitignore, so templates ship them as
+// _gitignore and they get their real name back once copied into the project
+function copyTemplateDir(templateDir, targetDir) {
+  fs.copySync(templateDir, targetDir);
+  restoreGitignores(targetDir);
+}
+
+function restoreGitignores(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules") restoreGitignores(entryPath);
+    } else if (entry.name === "_gitignore") {
+      fs.moveSync(entryPath, path.join(dir, ".gitignore"), { overwrite: true });
+    }
+  }
+}
+
 function addClientDockerfile(projectPath, _config) {
   const clientPath = path.join(projectPath, "client");
 
@@ -142,7 +160,7 @@ export function copyTemplates(projectPath, config) {
       );
       
       logger.info('📂 Copying template files...');
-      fs.copySync(backendTemplate, serverPath);
+      copyTemplateDir(backendTemplate, serverPath);
       break;
     }
 
@@ -158,8 +176,8 @@ export function copyTemplates(projectPath, config) {
         );
 
         logger.info("📂 Copying template files...");
-        fs.copySync(frontendTemplate, clientPath);
-        fs.copySync(backendTemplate, serverPath);
+        copyTemplateDir(frontendTemplate, clientPath);
+        copyTemplateDir(backendTemplate, serverPath);
         break;
       }
 
@@ -171,14 +189,14 @@ export function copyTemplates(projectPath, config) {
       );
       
       logger.info('📂 Copying template files...');
-      fs.copySync(frontendTemplate, clientPath);
+      copyTemplateDir(frontendTemplate, clientPath);
       break;
     }
 
     case 'nextjs' : {
       const backendTemplate = path.join(__dirname, '..', 'templates', stack);
       logger.info('📂 Copying template files...');
-      fs.copySync(backendTemplate, projectPath);
+      copyTemplateDir(backendTemplate, projectPath);
       break;
     }
 
@@ -193,7 +211,7 @@ export function copyTemplates(projectPath, config) {
       );
       
       logger.info('📂 Copying template files...');
-      fs.copySync(backendTemplate, serverPath);
+      copyTemplateDir(backendTemplate, serverPath);
       break;
     }
     
@@ -205,8 +223,8 @@ export function copyTemplates(projectPath, config) {
       const backendTemplate = path.join(__dirname, '..', 'templates', stack, config.language, 'server');
       
       logger.info('📂 Copying template files...');
-      fs.copySync(frontendTemplate, clientPath);
-      fs.copySync(backendTemplate, serverPath);
+      copyTemplateDir(frontendTemplate, clientPath);
+      copyTemplateDir(backendTemplate, serverPath);
     }
   }
 

@@ -1,26 +1,20 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-
-/**
- * Runtime environment options.
- */
-const RUNTIME_OPTIONS = [
-  { label: "Node.js", color: chalk.greenBright, desc: "The standard JavaScript runtime",        value: "node" },
-  { label: "Bun",     color: chalk.white,       desc: "Fast all-in-one JS runtime & toolkit",   value: "bun"  },
-];
+import { isBackNavigation } from "../common/navigation.js";
+import { RUNTIME_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a runtime environment.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[4/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[4/7]".
  * @returns {Promise<{ runtime: string }>}
  */
-export async function askRuntime(stepLabel = "") {
+export async function askRuntime(stepLabel = "", { defaultValue = "node", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { runtime } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "runtime",
       message: chalk.bold(`${prefix}Select a runtime environment:`),
       choices: RUNTIME_OPTIONS.map((opt) => ({
@@ -29,9 +23,11 @@ export async function askRuntime(stepLabel = "") {
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: "node",
+      default: RUNTIME_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "node",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(runtime)) return { back: true };
   return { runtime };
 }

@@ -6,6 +6,7 @@ import ora from "ora";
 import boxen from "boxen";
 import fs from "fs";
 import path from "path";
+import { RUNTIME_OPTIONS } from "../../utils/stackOptions.js";
 
 export async function askRuntimeEnvironment() {
   return await inquirer.prompt([
@@ -13,10 +14,7 @@ export async function askRuntimeEnvironment() {
       type: "list",
       name: "runtime",
       message: "Select a runtime environment:",
-      choices: [
-        { name: chalk.greenBright.bold("Node.js"), value: "node" },
-        { name: chalk.white.bold("Bun"), value: "bun" },
-      ],
+      choices: RUNTIME_OPTIONS.map((opt) => ({ name: opt.color.bold(opt.label), value: opt.value })),
       default: "node",
     },
   ]);

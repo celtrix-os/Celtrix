@@ -6,6 +6,7 @@ import ora from "ora";
 import boxen from "boxen";
 import fs from "fs";
 import path from "path";
+import { LANGUAGE_OPTIONS } from "../../utils/stackOptions.js";
 
 const orange = chalk.hex("#FF6200");
 
@@ -93,10 +94,7 @@ export async function askStackQuestions() {
       type: "list",
       name: "language",
       message: "Choose your language:",
-      choices: [
-        { name: chalk.bold.yellow("JavaScript"), value: "javascript" },
-        { name: chalk.bold.blue("TypeScript"), value: "typescript" },
-      ],
+      choices: LANGUAGE_OPTIONS.map((opt) => ({ name: opt.color.bold(opt.label), value: opt.value })),
       pageSize: 10,
       default: "typescript",
     },

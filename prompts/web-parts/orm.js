@@ -1,31 +1,24 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-
-/**
- * ORM options available for selection.
- */
-const ORM_OPTIONS = [
-  { label: "Drizzle", color: chalk.greenBright,    desc: "Type-safe SQL-first ORM",             value: "drizzle" },
-  { label: "Prisma",  color: chalk.magentaBright,  desc: "Next-gen Node.js & TypeScript ORM",   value: "prisma"  },
-  { label: "None",    color: chalk.gray,            desc: "No ORM",                              value: "none"    },
-];
+import { isBackNavigation } from "../common/navigation.js";
+import { ORM_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select an ORM.
  * Should be skipped when the database selection is "none".
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[6/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[6/7]".
  * @param {string[]} [allowedORMs] - List of compatible ORMs for this selection.
  * @returns {Promise<{ orm: string }>}
  */
-export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma", "none"]) {
+export async function askORM(stepLabel = "", allowedORMs = ORM_OPTIONS.map((opt) => opt.value), { defaultValue, canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const filteredOptions = ORM_OPTIONS.filter((opt) => allowedORMs.includes(opt.value));
 
   const { orm } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "orm",
       message: chalk.bold(`${prefix}Select an ORM:`),
       choices: filteredOptions.map((opt) => ({
@@ -34,9 +27,13 @@ export async function askORM(stepLabel = "", allowedORMs = ["drizzle", "prisma",
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: filteredOptions[0]?.value || "drizzle",
+      default: filteredOptions.some((opt) => opt.value === defaultValue)
+        ? defaultValue
+        : filteredOptions[0]?.value || "prisma",
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(orm)) return { back: true };
   return { orm };
 }

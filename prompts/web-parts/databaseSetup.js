@@ -1,29 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-
-/**
- * Maps each database type to its available provider/setup options.
- * Easily extensible — add a new DB type or provider by appending to the map.
- */
-const SETUP_OPTIONS = {
-  sqlite: [
-    { label: "Turso",  color: chalk.cyanBright,    desc: "Edge-hosted distributed SQLite",  value: "turso" },
-    { label: "Local",  color: chalk.gray,           desc: "Local file-based SQLite",         value: "local" },
-  ],
-  postgres: [
-    { label: "Neon",      color: chalk.greenBright,    desc: "Serverless Postgres",             value: "neon"     },
-    { label: "Supabase",  color: chalk.hex("#3FCF8E"),  desc: "Open-source Firebase alternative", value: "supabase" },
-    { label: "Local",     color: chalk.gray,            desc: "Self-hosted PostgreSQL",          value: "local"    },
-  ],
-  mysql: [
-    { label: "PlanetScale", color: chalk.yellowBright,  desc: "Serverless MySQL platform",       value: "planetscale" },
-    { label: "Local",       color: chalk.gray,           desc: "Self-hosted MySQL",               value: "local"       },
-  ],
-  mongodb: [
-    { label: "MongoDB Atlas", color: chalk.greenBright,  desc: "Cloud-hosted MongoDB",            value: "atlas" },
-    { label: "Local",         color: chalk.gray,          desc: "Self-hosted MongoDB",             value: "local" },
-  ],
-};
+import { isBackNavigation } from "../common/navigation.js";
+import { DATABASE_PROVIDER_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts for database setup/provider based on the selected database type.
@@ -32,8 +10,8 @@ const SETUP_OPTIONS = {
  * @param {string} databaseType - The chosen database type (sqlite, postgres, etc.).
  * @returns {Promise<{ provider: string }>}
  */
-export async function askDatabaseSetup(databaseType) {
-  const options = SETUP_OPTIONS[databaseType];
+export async function askDatabaseSetup(databaseType, { defaultValue, canGoBack = false } = {}) {
+  const options = DATABASE_PROVIDER_OPTIONS[databaseType];
 
   // If no setup options exist for this DB type, default to "local"
   if (!options || options.length === 0) {
@@ -42,7 +20,7 @@ export async function askDatabaseSetup(databaseType) {
 
   const { provider } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "provider",
       message: chalk.bold(`Select a ${chalk.cyanBright(databaseType)} provider:`),
       choices: options.map((opt) => ({
@@ -51,9 +29,11 @@ export async function askDatabaseSetup(databaseType) {
           chalk.gray(` → ${opt.desc}`),
         value: opt.value,
       })),
-      default: options[0].value,
+      default: options.some((opt) => opt.value === defaultValue) ? defaultValue : options[0].value,
+      canGoBack,
     },
   ]);
 
+  if (isBackNavigation(provider)) return { back: true };
   return { provider };
 }

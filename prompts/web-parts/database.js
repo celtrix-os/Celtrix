@@ -1,31 +1,21 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import { askDatabaseSetup } from "./databaseSetup.js";
-
-/**
- * Database engine options available for selection.
- */
-const DATABASE_OPTIONS = [
-  { label: "SQLite",    color: chalk.cyanBright,      desc: "Lightweight embedded database",    value: "sqlite"  },
-  { label: "MySQL",     color: chalk.hex("#F29111"),   desc: "Popular relational database",      value: "mysql"   },
-  { label: "PostgreSQL", color: chalk.blueBright,      desc: "Advanced open-source RDBMS",       value: "postgres" },
-  { label: "MongoDB",   color: chalk.greenBright,      desc: "Document-oriented NoSQL database", value: "mongodb" },
-  { label: "None",      color: chalk.gray,             desc: "No database",                      value: "none"    },
-];
+import { isBackNavigation } from "../common/navigation.js";
+import { DATABASE_OPTIONS } from "../../utils/stackOptions.js";
 
 /**
  * Prompts the user to select a database, and if one is selected,
  * follows up with the provider/setup prompt.
  *
- * @param {string} [stepLabel] - Optional step label prefix, e.g. "[5/10]".
+ * @param {string} [stepLabel] - Optional step label prefix, e.g. "[5/7]".
  * @returns {Promise<{ database: { type: string, provider: string } }>}
  */
-export async function askDatabase(stepLabel = "") {
+export async function askDatabaseType(stepLabel = "", { defaultValue = "postgres", canGoBack = false } = {}) {
   const prefix = stepLabel ? `${stepLabel} ` : "";
 
   const { databaseType } = await inquirer.prompt([
     {
-      type: "list",
+      type: "celtrixList",
       name: "databaseType",
       message: chalk.bold(`${prefix}Select a database:`),
       choices: DATABASE_OPTIONS.map((opt) => ({
@@ -35,17 +25,11 @@ export async function askDatabase(stepLabel = "") {
         value: opt.value,
       })),
       pageSize: 10,
-      default: "postgres",
+      default: DATABASE_OPTIONS.some((opt) => opt.value === defaultValue) ? defaultValue : "postgres",
+      canGoBack,
     },
   ]);
 
-  // If "none" is selected, skip the provider prompt
-  if (databaseType === "none") {
-    return { database: { type: "none", provider: "" } };
-  }
-
-  // Trigger the conditional setup prompt (Issue #214)
-  const { provider } = await askDatabaseSetup(databaseType);
-
-  return { database: { type: databaseType, provider } };
+  if (isBackNavigation(databaseType)) return { back: true };
+  return { databaseType };
 }
