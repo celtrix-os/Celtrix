@@ -196,6 +196,9 @@ export async function mernSetup(projectPath, config, projectName, installDeps) {
       typescript: config.language === "typescript",
     });
 
+
+    if (config.stack === "mern") {
+      serverSetup(projectPath, config, projectName, installDeps);
     if (config.stack === "mern+tailwind+auth") {
       await serverAuthSetup(projectPath, config, projectName, installDeps);
     } else if (config.stack === "mern") {
@@ -271,7 +274,9 @@ export async function mevnTailwindAuthSetup(projectPath, config, projectName, in
     ensureTailwindImport(clientPath);
 
     logger.info("✅ MEVN + Tailwind + Auth setup completed!");
+
     await serverAuthSetup(projectPath, config, projectName, installDeps);
+
   } catch (error) {
     logger.error("❌ Failed to set up MEVN + Tailwind + Auth");
     throw error;
