@@ -10,6 +10,7 @@ import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
 import { SETUP_GUIDE } from "./customGenerators/envGenerator.js";
 import { runPhase } from "./progress.js";
+import { updateCeltrixLock } from "./projectDetector.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
@@ -149,6 +150,19 @@ export async function setupProject(projectName, config, installDeps) {
     }
     throw error;
   }
+
+  // Write celtrix.json lockfile tracking scaffold choices
+  updateCeltrixLock(projectPath, {
+    name: projectName,
+    stack: config.stack,
+    language: config.language,
+    frontend: config.frontend,
+    backend: config.backend,
+    runtime: config.runtime,
+    database: config.database,
+    orm: config.orm,
+    packageManager: config.packageManager,
+  });
 
   console.log(chalk.gray("-------------------------------------------"));
   console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);
