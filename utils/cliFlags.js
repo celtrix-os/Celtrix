@@ -53,7 +53,7 @@ export const QUICK_TEMPLATES = {
   "mern-ts": { stack: "mern", language: "typescript" },
 };
 
-const COMMANDS = ["login", ...Object.keys(QUICK_TEMPLATES)];
+const COMMANDS = ["login", "add", ...Object.keys(QUICK_TEMPLATES)];
 
 // Quick templates fix their own stack, so only these flags apply to them
 const QUICK_TEMPLATE_FLAGS = ["runtime", "pm"];
@@ -177,12 +177,22 @@ export function parseCliArgs(argv) {
   }
 
   const command = COMMANDS.includes(positionals[0]) ? positionals.shift() : null;
-  const projectName = positionals.shift();
-  for (const extra of positionals) {
-    errors.push(`Unexpected argument "${extra}". Only one project name can be given.`);
-  }
-  if (projectName !== undefined && projectName !== "." && !isValidProjectName(projectName)) {
-    errors.push(`Invalid project name "${projectName}". Use letters, numbers, hyphens and underscores, or "." for the current folder.`);
+  let integration = null;
+  let subArguments = [];
+  let projectName = undefined;
+
+  if (command === "add") {
+    integration = positionals.shift() || null;
+    subArguments = [...positionals];
+    positionals.length = 0;
+  } else {
+    projectName = positionals.shift();
+    for (const extra of positionals) {
+      errors.push(`Unexpected argument "${extra}". Only one project name can be given.`);
+    }
+    if (projectName !== undefined && projectName !== "." && !isValidProjectName(projectName)) {
+      errors.push(`Invalid project name "${projectName}". Use letters, numbers, hyphens and underscores, or "." for the current folder.`);
+    }
   }
 
   if (command && QUICK_TEMPLATES[command]) {
@@ -193,11 +203,13 @@ export function parseCliArgs(argv) {
     }
   }
 
-  if (errors.length === 0) errors.push(...validateStackValues(values));
+  if (command !== "add" && errors.length === 0) errors.push(...validateStackValues(values));
   if (errors.length > 0) throw new CliError(errors);
 
   return {
     command,
+    integration,
+    subArguments,
     projectName,
     values,
     yes: Boolean(switches.yes),

@@ -12,7 +12,8 @@ export function showHelp() {
 
   console.log(chalk.bold('Usage:'));
   console.log(`  ${chalk.cyan('npx celtrix')} ${chalk.gray('[project-name] [flags]')}`);
-  console.log(`  ${chalk.cyan('npx celtrix')} ${chalk.gray('mern-js|mern-ts [project-name] [--runtime] [--pm]')}\n`);
+  console.log(`  ${chalk.cyan('npx celtrix')} ${chalk.gray('mern-js|mern-ts [project-name] [--runtime] [--pm]')}`);
+  console.log(`  ${chalk.cyan('npx celtrix')} ${chalk.gray('add [integration]')}\n`);
   console.log(`  ${chalk.gray('[project-name]')}  A folder name, or "." for the current (empty) folder\n`);
 
   console.log(chalk.bold('Stack flags:'));

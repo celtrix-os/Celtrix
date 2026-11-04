@@ -12,6 +12,7 @@ import { generateSupabase } from "./customGenerators/supabaseGenerator.js";
 import { generateDocker } from "./customGenerators/dockerGenerator.js";
 import { generateWiring } from "./customGenerators/wiringGenerator.js";
 import { generateEnv } from "./customGenerators/envGenerator.js";
+import { updateCeltrixLock } from "./projectDetector.js";
 
 // Get the directory where this file is located
 const __filename = fileURLToPath(import.meta.url);
@@ -68,6 +69,17 @@ export async function scaffoldCustomProject(projectPath, projectName, config, in
 
   // Written last, so framework CLIs that need an empty folder have already run
   fs.writeJsonSync(path.join(context.projectPath, "celtrix.config.json"), context.config, { spaces: 2 });
+  updateCeltrixLock(context.projectPath, {
+    name: context.projectName,
+    stack: "custom",
+    language: context.language,
+    frontend: context.config.frontend,
+    backend: context.config.backend,
+    runtime: context.config.runtime,
+    database: context.config.database,
+    orm: context.config.orm,
+    packageManager: context.packageManager,
+  });
 
   if (context.installDeps) {
     await runPhase("Installing dependencies", () => finalizeWorkspace(context));

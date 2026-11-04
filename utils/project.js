@@ -10,6 +10,7 @@ import { angularSetup, angularTailwindSetup } from "./installer.js";
 import { scaffoldCustomProject } from "./customScaffolder.js";
 import { SETUP_GUIDE } from "./customGenerators/envGenerator.js";
 import { runPhase } from "./progress.js";
+import { updateCeltrixLock } from "./projectDetector.js";
 
 export async function setupProject(projectName, config, installDeps) {
   const projectPath = path.join(process.cwd(), projectName);
@@ -148,6 +149,21 @@ export async function setupProject(projectName, config, installDeps) {
       logger.debug("Cleanup failed — directory may need manual removal.");
     }
     throw error;
+  }
+
+  // Write celtrix.json lockfile tracking scaffold choices (custom stacks write it inside scaffoldCustomProject)
+  if (!isCustom) {
+    updateCeltrixLock(projectPath, {
+      name: inCurrentDir ? path.basename(projectPath) : projectName,
+      stack: config.stack,
+      language: config.language,
+      frontend: config.frontend,
+      backend: config.backend,
+      runtime: config.runtime,
+      database: config.database,
+      orm: config.orm,
+      packageManager: config.packageManager,
+    });
   }
 
   console.log(chalk.gray("-------------------------------------------"));

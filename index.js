@@ -33,6 +33,11 @@ async function main() {
 
   // Handle help flag
   if (args.includes('--help') || args.includes('-h')) {
+    if (args[0] === 'add') {
+      const { showAddHelp } = await import("./commands/add.js");
+      showAddHelp();
+      process.exit(0);
+    }
     showHelp();
     process.exit(0);
   }
@@ -48,6 +53,23 @@ async function main() {
   if (cli.command === 'login') {
     const { loginCommand } = await import("./commands/login.js");
     await loginCommand();
+    process.exit(0);
+  }
+
+  if (cli.command === 'add') {
+    const { addCommand } = await import("./commands/add.js");
+    const { isPromptCancellation } = await import("./utils/shared.js");
+    try {
+      await addCommand(cli);
+    } catch (err) {
+      if (isPromptCancellation(err)) {
+        console.log(chalk.yellow("\n👋 Cancelled — see you next time!\n"));
+        process.exit(0);
+      }
+      console.error(chalk.red(`\n✖ Failed to add integration: ${err.message}\n`));
+      if (isVerbose && err.stack) console.error(chalk.gray(err.stack));
+      process.exit(1);
+    }
     process.exit(0);
   }
 
