@@ -148,6 +148,24 @@ test("addCommand auth (better-auth) sets up Better Auth config, route handler, a
   }
 });
 
+test("addCommand prisma rejects invalid database type and lists allowed options", async () => {
+  const projectDir = createTempProject();
+  const origCwd = process.cwd();
+  process.chdir(projectDir);
+
+  try {
+    await assert.rejects(
+      async () => {
+        await addCommand({ command: "add", integration: "prisma", subArguments: ["invalidDb"], install: false });
+      },
+      /Invalid database "invalidDb"\. Expected one of: postgresql, mysql, sqlite, mongodb, cockroachdb, sqlserver/i
+    );
+  } finally {
+    process.chdir(origCwd);
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("addCommand prisma writes schema.prisma with chosen DB, client helper, scripts, and updates celtrix.json", async () => {
   const projectDir = createTempProject();
   const origCwd = process.cwd();

@@ -151,18 +151,20 @@ export async function setupProject(projectName, config, installDeps) {
     throw error;
   }
 
-  // Write celtrix.json lockfile tracking scaffold choices
-  updateCeltrixLock(projectPath, {
-    name: projectName,
-    stack: config.stack,
-    language: config.language,
-    frontend: config.frontend,
-    backend: config.backend,
-    runtime: config.runtime,
-    database: config.database,
-    orm: config.orm,
-    packageManager: config.packageManager,
-  });
+  // Write celtrix.json lockfile tracking scaffold choices (custom stacks write it inside scaffoldCustomProject)
+  if (!isCustom) {
+    updateCeltrixLock(projectPath, {
+      name: inCurrentDir ? path.basename(projectPath) : projectName,
+      stack: config.stack,
+      language: config.language,
+      frontend: config.frontend,
+      backend: config.backend,
+      runtime: config.runtime,
+      database: config.database,
+      orm: config.orm,
+      packageManager: config.packageManager,
+    });
+  }
 
   console.log(chalk.gray("-------------------------------------------"));
   console.log(`${chalk.greenBright(`✅ Project ${chalk.bold.yellow(`${projectName}`)} created successfully! 🎉`)}`);

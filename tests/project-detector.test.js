@@ -80,22 +80,27 @@ test("safeAppendEnv appends new variables and ignores existing keys", () => {
   const root = createTempDir();
   const envFile = path.join(root, ".env.example");
 
-  fs.writeFileSync(envFile, "EXISTING_KEY=123\n");
+  fs.writeFileSync(
+    envFile,
+    "# Comment with DATABASE_URL inside\nDATABASE_URL_UNPOOLED=123\nOTHER=DATABASE_URL\nexport EXISTING_KEY=123\n"
+  );
 
+  // DATABASE_URL should be added even though DATABASE_URL_UNPOOLED and a comment exist
   const appended1 = safeAppendEnv(
     envFile,
-    "EXISTING_KEY=456\nNEW_KEY=abc",
+    "EXISTING_KEY=456\nDATABASE_URL=postgres://localhost:5432\nNEW_KEY=abc",
     "Section 1"
   );
 
   assert.equal(appended1, true);
   const content = fs.readFileSync(envFile, "utf-8");
-  assert.ok(content.includes("EXISTING_KEY=123"));
+  assert.ok(content.includes("export EXISTING_KEY=123"));
+  assert.ok(content.includes("DATABASE_URL=postgres://localhost:5432"));
   assert.ok(content.includes("NEW_KEY=abc"));
   assert.ok(!content.includes("EXISTING_KEY=456"));
 
-  // Try appending when everything already exists
-  const appended2 = safeAppendEnv(envFile, "NEW_KEY=different");
+  // Try appending when DATABASE_URL already exists
+  const appended2 = safeAppendEnv(envFile, "DATABASE_URL=different");
   assert.equal(appended2, false);
 
   fs.rmSync(root, { recursive: true, force: true });

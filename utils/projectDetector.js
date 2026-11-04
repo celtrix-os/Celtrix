@@ -134,8 +134,12 @@ export function safeAppendEnv(envPath, content, header = "") {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
     const key = trimmed.split("=")[0].trim();
-    if (key && !existing.includes(key)) {
-      linesToAdd.push(trimmed);
+    if (key) {
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const keyRegex = new RegExp(`^\\s*(?:export\\s+)?${escapedKey}\\s*=`, "m");
+      if (!keyRegex.test(existing)) {
+        linesToAdd.push(trimmed);
+      }
     }
   }
 

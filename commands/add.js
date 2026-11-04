@@ -55,74 +55,55 @@ export async function addCommand(cli = {}) {
   const project = detectProject(process.cwd());
 
   if (!project.isProject) {
-    console.error(chalk.red(`\n✖ ${project.error}\n`));
-    process.exit(1);
+    throw new Error(project.error);
   }
 
   let integration = cli.integration;
 
   // If no integration specified, ask interactively
   if (!integration) {
-    try {
-      const answers = await inquirer.prompt([
-        {
-          type: "list",
-          name: "integration",
-          message: "Select an integration to add:",
-          choices: [
-            { name: `${chalk.bold("Husky")}       ${chalk.gray("Git hooks & lint-staged config")}`, value: "husky" },
-            { name: `${chalk.bold("Biome")}       ${chalk.gray("Biome fast linting and formatting")}`, value: "biome" },
-            { name: `${chalk.bold("Auth")}        ${chalk.gray("Authentication (Clerk or Better Auth)")}`, value: "auth" },
-            { name: `${chalk.bold("Prisma")}      ${chalk.gray("Prisma ORM with interactive DB selection")}`, value: "prisma" },
-            { name: `${chalk.bold("Vercel AI")}   ${chalk.gray("Vercel AI SDK boilerplate & streaming")}`, value: "vercel-ai" },
-          ],
-        },
-      ]);
-      integration = answers.integration;
-    } catch (err) {
-      if (isPromptCancellation(err)) {
-        console.log(chalk.yellow("\n👋 Cancelled — see you next time!\n"));
-        process.exit(0);
-      }
-      throw err;
-    }
+    const answers = await inquirer.prompt([
+      {
+        type: "list",
+        name: "integration",
+        message: "Select an integration to add:",
+        choices: [
+          { name: `${chalk.bold("Husky")}       ${chalk.gray("Git hooks & lint-staged config")}`, value: "husky" },
+          { name: `${chalk.bold("Biome")}       ${chalk.gray("Biome fast linting and formatting")}`, value: "biome" },
+          { name: `${chalk.bold("Auth")}        ${chalk.gray("Authentication (Clerk or Better Auth)")}`, value: "auth" },
+          { name: `${chalk.bold("Prisma")}      ${chalk.gray("Prisma ORM with interactive DB selection")}`, value: "prisma" },
+          { name: `${chalk.bold("Vercel AI")}   ${chalk.gray("Vercel AI SDK boilerplate & streaming")}`, value: "vercel-ai" },
+        ],
+      },
+    ]);
+    integration = answers.integration;
   }
 
   const normalized = normalizeIntegrationName(integration);
   if (!normalized) {
-    console.error(chalk.red(`\n✖ Unknown integration "${integration}".`));
-    console.log(chalk.gray("Available integrations: husky, biome, auth (clerk, better-auth), prisma, vercel-ai\n"));
-    process.exit(1);
+    throw new Error(
+      `Unknown integration "${integration}". Available integrations: husky, biome, auth (clerk, better-auth), prisma, vercel-ai`
+    );
   }
 
   console.log(`\n${chalk.cyan("📦 Target Project:")} ${chalk.bold.white(project.name)} ${chalk.gray(`(${project.structure}, ${project.packageManager})`)}`);
 
-  try {
-    switch (normalized.type) {
-      case "husky":
-        await handleHusky(project, cli);
-        break;
-      case "biome":
-        await handleBiome(project, cli);
-        break;
-      case "auth":
-        await handleAuth(project, cli, normalized.provider);
-        break;
-      case "prisma":
-        await handlePrisma(project, cli, normalized.db);
-        break;
-      case "vercel-ai":
-        await handleVercelAi(project, cli);
-        break;
-    }
-  } catch (err) {
-    if (isPromptCancellation(err)) {
-      console.log(chalk.yellow("\n👋 Cancelled — see you next time!\n"));
-      process.exit(0);
-    }
-    console.error(chalk.red(`\n✖ Failed to add integration: ${err.message}`));
-    if (cli.verbose && err.stack) console.error(chalk.gray(err.stack));
-    process.exit(1);
+  switch (normalized.type) {
+    case "husky":
+      await handleHusky(project, cli);
+      break;
+    case "biome":
+      await handleBiome(project, cli);
+      break;
+    case "auth":
+      await handleAuth(project, cli, normalized.provider);
+      break;
+    case "prisma":
+      await handlePrisma(project, cli, normalized.db);
+      break;
+    case "vercel-ai":
+      await handleVercelAi(project, cli);
+      break;
   }
 }
 
@@ -196,6 +177,15 @@ async function handleHusky(project, cli) {
   });
   if (added.length > 0) {
     console.log(chalk.green(`✔ Updated package.json scripts: ${added.join(", ")}`));
+  }
+
+  // Activate Husky once so Git configures core.hooksPath
+  if (cli.install !== false) {
+    try {
+      await run("npx husky", { cwd: project.root });
+    } catch {
+      // Non-fatal if git or husky binary is not directly invokable
+    }
   }
 
   // 6. Update celtrix.json
@@ -451,8 +441,10 @@ export function AuthProvider({ children }) {
 async function setupBetterAuth(project, cli) {
   console.log(chalk.cyan("\n🔧 Adding Better Auth..."));
 
-  const targetDir = project.paths.backend !== project.root ? project.paths.backend : project.root;
   const isNext = project.frontend === "nextjs";
+  const targetDir = isNext
+    ? project.paths.frontend
+    : (project.paths.backend !== project.root ? project.paths.backend : project.root);
 
   // 1. Install dependencies
   if (cli.install !== false) {
@@ -561,7 +553,11 @@ async function handlePrisma(project, cli, explicitDb) {
   // Normalize aliases like 'postgres' -> 'postgresql'
   if (dbType === "postgres") dbType = "postgresql";
 
-  const dbConfig = DB_CHOICES.find((d) => d.value === dbType) || DB_CHOICES[0];
+  const dbConfig = DB_CHOICES.find((d) => d.value === dbType);
+  if (!dbConfig) {
+    const valid = DB_CHOICES.map((d) => d.value).join(", ");
+    throw new Error(`Invalid database "${dbType}". Expected one of: ${valid}`);
+  }
   const targetDir = project.paths.database !== project.root ? project.paths.database : project.root;
 
   console.log(chalk.cyan(`\n🔧 Adding Prisma with ${dbConfig.name}...`));
