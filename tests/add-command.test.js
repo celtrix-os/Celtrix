@@ -225,3 +225,4 @@ test("addCommand NEVER overwrites existing user files", async () => {
     fs.rmSync(projectDir, { recursive: true, force: true });
   }
 });
+

@@ -228,3 +228,4 @@ test("detectProject detects monorepo structure with apps and packages", () => {
 
   fs.rmSync(root, { recursive: true, force: true });
 });
+
