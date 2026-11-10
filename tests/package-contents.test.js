@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
@@ -10,7 +10,10 @@ const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf
 
 // What `npm publish` would upload, without writing a tarball
 const [packed] = JSON.parse(
-  execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: repoRoot, encoding: "utf-8" })
+  execSync("npm pack --dry-run --json --ignore-scripts", {
+    cwd: repoRoot,
+    encoding: "utf-8",
+  })
 );
 const packedFiles = new Set(packed.files.map((file) => file.path));
 
@@ -23,7 +26,13 @@ test("every entry in package.json#files exists", () => {
 });
 
 test("the package ships the CLI entry point, readme and license", () => {
-  for (const file of ["package.json", "README.md", "LICENSE", "index.js", ...Object.values(pkg.bin).map((bin) => path.normalize(bin))]) {
+  for (const file of [
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "index.js",
+    ...Object.values(pkg.bin).map((bin) => path.posix.normalize(bin)),
+  ]) {
     assert.ok(packedFiles.has(file), `${file} is missing from the package`);
   }
 });
