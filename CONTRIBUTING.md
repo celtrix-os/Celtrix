@@ -10,10 +10,12 @@ Thank you for your interest in contributing to Celtrix! Your help is greatly app
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Submitting Pull Requests](#submitting-pull-requests)
 - [Development Setup](#development-setup)
+- [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Coding Guidelines](#coding-guidelines)
 - [Template Contributions](#template-contributions)
 - [Community & Support](#community--support)
+
 
 ---
 
@@ -91,6 +93,12 @@ Following these rules helps reviewers understand your contribution and speeds up
 4. **Test template scaffolding:**
    - Use the CLI to scaffold a new project and verify the output.
 
+## Running Tests
+
+Run the complete test suite from the project root:
+
+```sh
+npm test
 ## Project Structure
 
 - `index.js` – Main entry point for the CLI.

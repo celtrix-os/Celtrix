@@ -77,18 +77,28 @@ export async function generateWiring(context) {
  * screen. The todo demo stays reachable from the navbar and a button below it.
  */
 export function addStatusView(content, importPath = "./components/StackStatus") {
+  // Normalize line endings so the matching logic works on Windows and Unix.
+  const lineEnding = content.includes("\r\n") ? "\r\n" : "\n";
+  const normalizedContent = content.replace(/\r\n/g, "\n");
+
   const views = "const VIEWS = ['todo']";
-  // The Next.js page renders the todo list only once it has hydrated
-  const todoPanel = content.match(/^ {8}\{view === 'todo' && (hydrated && )?<TodoPanel \/>\}$/m)?.[0];
-  const reactImport = content.match(/^import .* from 'react'\n/m)?.[0];
-  if (!content.includes(views) || !todoPanel || !reactImport) {
+
+  // Supports both React and Next.js TodoPanel layouts.
+  const todoPanel = normalizedContent.match(
+    /^ {8}\{view === 'todo' && (?:hydrated && )?<TodoPanel \/>}[ \t]*$/m
+  )?.[0];
+
+  const reactImport = normalizedContent.match(
+    /^import .* from 'react'\n/m
+  )?.[0];
+
+  if (!normalizedContent.includes(views) || !todoPanel || !reactImport) {
     logger.warn("⚠️ Unexpected App layout, skipping the stack status screen");
     return content;
   }
 
-  // Replacer functions so the matched text is inserted literally
-  return content
-    .replace(reactImport, () => `${reactImport}import StackStatus from '${importPath}'\n`)
+  const updatedContent = normalizedContent
+    .replace(reactImport, `${reactImport}import StackStatus from '${importPath}'\n`)
     .replace(views, "const VIEWS = ['status', 'todo']")
     .replace(todoPanel, () => `        {view === 'status' && (
           <>
@@ -99,6 +109,9 @@ export function addStatusView(content, importPath = "./components/StackStatus") 
           </>
         )}
 ${todoPanel}`);
+
+  // Keep the file's original line-ending convention.
+  return updatedContent.replace(/\n/g, lineEnding);
 }
 
 /**
