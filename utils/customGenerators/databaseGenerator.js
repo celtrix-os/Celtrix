@@ -205,7 +205,7 @@ let connection${t(": Promise<typeof mongoose> | undefined")};
 // A failed attempt is forgotten so the next request retries.
 export function connect() {
   connection ??= mongoose
-    .connect(process.env.DATABASE_URL${t("!")}, { serverSelectionTimeoutMS: 5000 })
+    .connect((process.env.DATABASE_URL || process.env.MONGODB_URI)${t("!")}, { serverSelectionTimeoutMS: 5000 })
     .catch((error) => {
       connection = undefined;
       throw error;

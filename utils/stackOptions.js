@@ -45,12 +45,14 @@ export const DATABASE_OPTIONS = [
 export const DATABASE_PROVIDER_OPTIONS = {
   postgres: [
     { label: "Supabase",  color: chalk.hex("#3FCF8E"),  desc: "Open-source Firebase alternative",        value: "supabase" },
+    { label: "Neon",      color: chalk.hex("#00E599"),  desc: "Serverless PostgreSQL with branching",    value: "neon" },
     { label: "Docker",    color: chalk.blueBright,      desc: "PostgreSQL in a local Docker container",  value: "docker"   },
     { label: "Local",     color: chalk.gray,            desc: "Self-hosted PostgreSQL",                  value: "local"    },
   ],
   mysql: [
-    { label: "Docker",    color: chalk.blueBright,      desc: "MySQL in a local Docker container",       value: "docker"   },
-    { label: "Local",     color: chalk.gray,            desc: "Self-hosted MySQL",                       value: "local"    },
+    { label: "Docker",      color: chalk.blueBright,     desc: "MySQL in a local Docker container",      value: "docker"   },
+    { label: "PlanetScale", color: chalk.hex("#FA8072"), desc: "Serverless MySQL platform",              value: "planetscale" },
+    { label: "Local",       color: chalk.gray,           desc: "Self-hosted MySQL",                      value: "local"    },
   ],
   mongodb: [
     { label: "MongoDB Atlas", color: chalk.greenBright, desc: "Cloud-hosted MongoDB",                    value: "atlas"    },
@@ -59,6 +61,7 @@ export const DATABASE_PROVIDER_OPTIONS = {
   ],
   sqlite: [
     { label: "Local",     color: chalk.gray,            desc: "Local file-based SQLite",                 value: "local"    },
+    { label: "Turso",     color: chalk.hex("#4FF8D2"),  desc: "Distributed SQLite powered by libSQL",    value: "turso"    },
   ],
 };
 

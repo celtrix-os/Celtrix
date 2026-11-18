@@ -77,6 +77,7 @@ async function main() {
   const tarballName = execFileSync("npm", ["pack", "--silent", "--pack-destination", workDir], {
     cwd: repoRoot,
     encoding: "utf-8",
+    shell: true,
   }).trim().split("\n").at(-1);
   const tarball = path.join(workDir, tarballName);
   check(`packed ${tarballName}`, fs.existsSync(tarball));
@@ -88,6 +89,7 @@ async function main() {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf-8",
     timeout: 10 * 60_000,
+    shell: true,
   });
   const output = `${run.stdout}\n${run.stderr}`;
   check("CLI exits 0 without a TTY", run.status === 0, `exit ${run.status ?? run.signal}\n${output.slice(-3000)}`);

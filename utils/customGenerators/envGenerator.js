@@ -44,10 +44,20 @@ function getEnvSections(context) {
   const isViteReact = frontend === "react-router";
   const sections = [];
 
+  if (context.hasFrontend) {
+    sections.push({
+      title: "Frontend",
+      lines: [
+        `FRONTEND_API_URL="http://localhost:3001/"`,
+      ],
+    });
+  }
+
   if (context.hasBackend) {
     sections.push({
-      title: "API server",
+      title: "Backend",
       lines: [
+        "BACKEND_PORT=3001",
         "PORT=3001",
         ...(frontend === "nextjs"
           ? [
@@ -69,16 +79,18 @@ function getEnvSections(context) {
   if (database?.provider === "supabase") {
     const lines = [
       "# Project Settings → API Keys",
-      `SUPABASE_URL="https://<project-ref>.supabase.co"`,
+      `SUPABASE_URL="https://[supabase-project-url].supabase.co"`,
+      `SUPABASE_ANON_KEY="[supabase-anon-key]"`,
       "# Server only: bypasses Row Level Security. Never expose it to the browser.",
-      `SUPABASE_SECRET_KEY="sb_secret_..."`,
+      `SUPABASE_SECRET_KEY="[supabase-secret-key]"`,
     ];
     if (isViteReact) {
       lines.push(
         "",
         "# Browser (Vite only exposes VITE_* variables to client code)",
-        `VITE_SUPABASE_URL="https://<project-ref>.supabase.co"`,
-        `VITE_SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."`
+        `VITE_SUPABASE_URL="https://[supabase-project-url].supabase.co"`,
+        `VITE_SUPABASE_ANON_KEY="[supabase-anon-key]"`,
+        `VITE_SUPABASE_PUBLISHABLE_KEY="[supabase-anon-key]"`
       );
     }
     sections.push({ title: "Supabase", lines });
@@ -102,25 +114,45 @@ function getDatabaseLines(context, database) {
   switch (`${database.type}:${database.provider}`) {
     case "postgres:supabase":
       return [
-        "# Project → Connect → ORMs. Replace [PASSWORD] with your database password.",
+        "# Project → Connect → ORMs. Replace placeholders with your database credentials.",
         "# Transaction pooler (port 6543): used by the app at runtime",
         `DATABASE_URL="postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"`,
         "# Session pooler (port 5432): used by Prisma for migrations",
         `DIRECT_URL="postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"`,
       ];
+    case "postgres:neon":
+      return [
+        `DATABASE_URL="postgresql://[username]:[password]@[host]/[database]?sslmode=require"`,
+      ];
+    case "mysql:planetscale":
+      return [
+        `DATABASE_URL="mysql://[username]:[password]@[host]/[database]"`,
+      ];
+    case "sqlite:turso":
+      return [
+        `TURSO_DATABASE_URL="[turso-database-url]"`,
+        `TURSO_AUTH_TOKEN="[turso-auth-token]"`,
+        `DATABASE_URL="libsql://[turso-database-url]?authToken=[turso-auth-token]"`,
+      ];
     case "mongodb:atlas":
-      return [`DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/${dbName}"`];
+      return [
+        `MONGODB_URI="mongodb+srv://[username]:[password]@[cluster].mongodb.net/[database]"`,
+        `DATABASE_URL="mongodb+srv://[username]:[password]@[cluster].mongodb.net/[database]"`,
+      ];
     default:
       break;
   }
 
   switch (database.type) {
     case "postgres":
-      return [`DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${dbName}"`];
+      return [`DATABASE_URL="postgresql://[username]:[password]@localhost:5432/[database]"`];
     case "mysql":
-      return [`DATABASE_URL="mysql://root:root@localhost:3306/${dbName}"`];
+      return [`DATABASE_URL="mysql://[username]:[password]@localhost:3306/[database]"`];
     case "mongodb":
-      return [`DATABASE_URL="mongodb://localhost:27017/${dbName}"`];
+      return [
+        `MONGODB_URI="mongodb://[username]:[password]@localhost:27017/[database]"`,
+        `DATABASE_URL="mongodb://[username]:[password]@localhost:27017/[database]"`,
+      ];
     case "sqlite":
     default:
       return [`DATABASE_URL="file:./dev.db"`];
@@ -169,7 +201,7 @@ function getSetupGuide(context, hasEnv) {
     lines.push(
       isDocker
         ? `${step++}. Copy the environment template. Its \`DATABASE_URL\` already points at the Docker database. A single \`.env\` at the repo root is shared by every app and package:`
-        : `${step++}. Copy the environment template and fill it in. A single \`.env\` at the repo root is shared by every app and package:`,
+        : `${step++}. Copy the environment template and replace all placeholders with valid values before starting the application. A single \`.env\` at the repo root is shared by every app and package:`,
       "",
       "   ```bash",
       "   cp .env.example .env",
@@ -182,7 +214,42 @@ function getSetupGuide(context, hasEnv) {
     lines.push(
       `${step++}. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard), then copy into \`.env\`:`,
       "   - **Connect → ORMs**: the transaction pooler string (port 6543) as `DATABASE_URL` and the session pooler string (port 5432) as `DIRECT_URL`",
-      "   - **Project Settings → API Keys**: the project URL, the secret key (`SUPABASE_SECRET_KEY`, server only) and the publishable key (`VITE_SUPABASE_PUBLISHABLE_KEY`, browser)",
+      "   - **Project Settings → API Keys**: the project URL (`SUPABASE_URL`), the anon key (`SUPABASE_ANON_KEY`), and secret key (`SUPABASE_SECRET_KEY`)",
+      ""
+    );
+  }
+
+  if (config.database?.provider === "neon") {
+    lines.push(
+      `${step++}. Create a project at [neon.tech](https://neon.tech), then copy your PostgreSQL connection string into \`.env\` as \`DATABASE_URL\`.`,
+      ""
+    );
+  }
+
+  if (config.database?.provider === "turso") {
+    lines.push(
+      `${step++}. Create a database at [turso.tech](https://turso.tech), then copy your database URL and auth token into \`.env\` as \`TURSO_DATABASE_URL\` and \`TURSO_AUTH_TOKEN\`.`,
+      ""
+    );
+  }
+
+  if (config.database?.provider === "planetscale") {
+    lines.push(
+      `${step++}. Create a database at [planetscale.com](https://planetscale.com), then copy your MySQL connection string into \`.env\` as \`DATABASE_URL\`.`,
+      ""
+    );
+  }
+
+  if (config.database?.provider === "atlas") {
+    lines.push(
+      `${step++}. Create a database cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas), then copy your connection string into \`.env\` as \`MONGODB_URI\` and \`DATABASE_URL\`.`,
+      ""
+    );
+  }
+
+  if (config.database?.type === "postgres" && config.database?.provider === "local") {
+    lines.push(
+      `${step++}. Ensure your local PostgreSQL server is running on port 5432, then update \`DATABASE_URL\` in \`.env\` with your valid credentials and database name.`,
       ""
     );
   }

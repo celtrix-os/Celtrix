@@ -113,8 +113,8 @@ test("quick templates take a name, --runtime and --pm", () => {
 test("partial flags prompt only for the missing values", async () => {
   const { config, prompts } = await runWizard({ frontend: "nextjs", backend: "express", databaseType: "sqlite" });
 
-  // SQLite has a single provider, so its question is skipped too
-  assert.deepEqual(prompts.map((q) => q.name), ["language", "runtime", "orm", "action"]);
+  // SQLite has multiple providers now (local, turso), so provider is prompted
+  assert.deepEqual(prompts.map((q) => q.name), ["language", "runtime", "provider", "orm", "action"]);
   assert.equal(config.frontend, "nextjs");
   assert.equal(config.backend, "express");
   assert.deepEqual(config.database, { type: "sqlite", provider: "local" });
@@ -139,7 +139,7 @@ test("--db alone prompts for its provider and ORM with the right choices", async
   const { config, prompts } = await runWizard({ databaseType: "mysql" }, { provider: "docker" });
 
   assert.equal(prompts.some((q) => q.name === "databaseType"), false);
-  assert.deepEqual(prompts.find((q) => q.name === "provider").choices.map((c) => c.value), ["docker", "local"]);
+  assert.deepEqual(prompts.find((q) => q.name === "provider").choices.map((c) => c.value), ["docker", "planetscale", "local"]);
   assert.deepEqual(prompts.find((q) => q.name === "orm").choices.map((c) => c.value), ["prisma"]);
   assert.deepEqual(config.database, { type: "mysql", provider: "docker" });
 });
@@ -157,13 +157,13 @@ test("missing flags are listed for the no-TTY error", () => {
   );
   // A frontend-only project doesn't need --db
   assert.deepEqual(getMissingFlags(parseCliArgs(["x", "--backend", "none"])), ["--lang", "--frontend", "--runtime", "--pm"]);
-  // MongoDB has several providers and ORMs, SQLite has one of each
+  // MongoDB has several providers and ORMs
   assert.deepEqual(
     getMissingFlags(parseCliArgs(["x", "--lang", "typescript", "--frontend", "astro", "--backend", "hono", "--runtime", "node", "--db", "mongodb", "--pm", "npm"])),
     ["--db-provider", "--orm"]
   );
   assert.deepEqual(
-    getMissingFlags(parseCliArgs(["x", "--lang", "typescript", "--frontend", "astro", "--backend", "hono", "--runtime", "node", "--db", "sqlite", "--pm", "npm"])),
+    getMissingFlags(parseCliArgs(["x", "--lang", "typescript", "--frontend", "astro", "--backend", "hono", "--runtime", "node", "--db", "sqlite", "--db-provider", "local", "--pm", "npm"])),
     []
   );
   assert.deepEqual(getMissingFlags(parseCliArgs(["mern-js"])), ["[project-name]", "--runtime", "--pm"]);
@@ -182,7 +182,7 @@ const INVALID_VALUES = [
   ["--backend", "koa", "Invalid --backend \"koa\". Expected one of: hono, fastify, express, none"],
   ["--runtime", "deno", "Invalid --runtime \"deno\". Expected one of: node, bun"],
   ["--db", "redis", "Invalid --db \"redis\". Expected one of: sqlite, mysql, postgres, mongodb, none"],
-  ["--db-provider", "neon", "Invalid --db-provider \"neon\". Expected one of: supabase, docker, local, atlas"],
+  ["--db-provider", "cockroach", "Invalid --db-provider \"cockroach\". Expected one of: supabase, neon, docker, local, planetscale, atlas, turso"],
   ["--orm", "drizzle", "Invalid --orm \"drizzle\". Expected one of: prisma, mongoose"],
   ["--pm", "deno", "Invalid --pm \"deno\". Expected one of: npm, yarn, pnpm, bun"],
 ];
@@ -259,13 +259,13 @@ test("--orm without --db is rejected", () => {
 
 test("a provider that the database doesn't offer is rejected", () => {
   assert.deepEqual(parseError(["app", "--db", "mysql", "--db-provider", "supabase"]), [
-    'Invalid --db-provider "supabase" for --db mysql. Expected one of: docker, local',
+    'Invalid --db-provider "supabase" for --db mysql. Expected one of: docker, planetscale, local',
   ]);
   assert.deepEqual(parseError(["app", "--db", "sqlite", "--db-provider", "docker"]), [
-    'Invalid --db-provider "docker" for --db sqlite. Expected one of: local',
+    'Invalid --db-provider "docker" for --db sqlite. Expected one of: local, turso',
   ]);
   assert.deepEqual(parseError(["app", "--db", "postgres", "--db-provider", "atlas"]), [
-    'Invalid --db-provider "atlas" for --db postgres. Expected one of: supabase, docker, local',
+    'Invalid --db-provider "atlas" for --db postgres. Expected one of: supabase, neon, docker, local',
   ]);
 });
 
