@@ -189,8 +189,8 @@ test("normal forward navigation reaches confirmation with a clean config", async
   assert.equal(config.frontend, "nextjs");
   assert.equal(config.backend, "express");
   assert.equal(config.runtime, "bun");
-  // SQLite has a single provider, so the provider question is skipped
-  assert.equal(prompts.filter((question) => question.name === "provider").length, 0);
+  // SQLite has multiple providers now (local, turso), so the provider question is asked
+  assert.equal(prompts.filter((question) => question.name === "provider").length, 1);
   assert.deepEqual(config.database, { type: "sqlite", provider: "local" });
   assert.equal(prompts.filter((question) => question.name === "orm").length, 1);
   assert.equal(config.orm, "prisma");
@@ -222,7 +222,7 @@ test("Docker is offered as a provider for server databases", async () => {
 
   assert.deepEqual(
     prompts.find((question) => question.name === "provider").choices.map((choice) => choice.value),
-    ["docker", "local"]
+    ["docker", "planetscale", "local"]
   );
   assert.deepEqual(config.database, { type: "mysql", provider: "docker" });
 });

@@ -122,13 +122,30 @@ function getEnvTemplate(context, features) {
   const t = (type) => (context.isTs ? type : "");
 
   const vars = [
-    `  PORT: Number(process.env.PORT) || 3001,`,
+    `  PORT: Number(process.env.BACKEND_PORT || process.env.PORT) || 3001,`,
+    `  BACKEND_PORT: Number(process.env.BACKEND_PORT || process.env.PORT) || 3001,`,
     `  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',`,
   ];
-  if (features.database) vars.push(`  DATABASE_URL: required('DATABASE_URL'),`);
+  if (features.database) {
+    if (context.config.database?.provider === "turso") {
+      vars.push(
+        `  TURSO_DATABASE_URL: required('TURSO_DATABASE_URL'),`,
+        `  TURSO_AUTH_TOKEN: required('TURSO_AUTH_TOKEN'),`,
+        `  DATABASE_URL: process.env.DATABASE_URL || (process.env.TURSO_DATABASE_URL ? \`libsql://\${process.env.TURSO_DATABASE_URL}?authToken=\${process.env.TURSO_AUTH_TOKEN || ''}\` : ''),`
+      );
+    } else if (context.config.database?.provider === "atlas" || context.config.database?.type === "mongodb") {
+      vars.push(
+        `  MONGODB_URI: process.env.MONGODB_URI || process.env.DATABASE_URL ? (process.env.MONGODB_URI || process.env.DATABASE_URL) : required('MONGODB_URI'),`,
+        `  DATABASE_URL: process.env.DATABASE_URL || process.env.MONGODB_URI || '',`
+      );
+    } else {
+      vars.push(`  DATABASE_URL: required('DATABASE_URL'),`);
+    }
+  }
   if (features.supabase) {
     vars.push(
       `  SUPABASE_URL: process.env.SUPABASE_URL || '',`,
+      `  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',`,
       `  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',`
     );
   }
